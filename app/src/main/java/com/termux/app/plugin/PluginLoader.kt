@@ -307,10 +307,27 @@ object PluginLoader {
         prefs.edit().putString(key, gson.toJson(config)).apply()
     }
 
+    /**
+ * Resuelve [relativePath] dentro de [pluginDir] garantizando que no se escape.
+ *
+ * El bug anterior era `file.canonicalPath.startsWith(pluginDir.canonicalPath)`
+ * sin separador: con pluginDir = .../plugins/com.foo y relativePath =
+ * "../com.foobar/manifest.json", el canónico empieza por ".../plugins/com.foo"
+ * y pasaba el filtro — leyendo directorios hermanos. La comparación correcta
+ * exige el separador de límite: `startsWith(dir + "/")` o igualdad exacta.
+ */
     fun getPluginFile(context: Context, pluginId: String, relativePath: String): File? {
         val pluginDir = getPluginDir(context, pluginId)
-        val file = File(pluginDir, relativePath)
-        return if (file.exists() && file.canonicalPath.startsWith(pluginDir.canonicalPath)) file else null
+        val base = pluginDir.canonicalFile
+        // canonicalFile resuelve ".." y los enlaces simbólicos; una ruta
+        // relativa que apunte fuera se resuelve antes de comparar.
+        val file = File(base, relativePath).canonicalFile
+        val within = file == base || file.path.startsWith(base.path + File.separator)
+        if (!within) {
+            // Intent de traversal: es un ataque o un bug, no un error de uso.
+            return null
+        }
+        return if (file.exists()) file else null
     }
 
     private data class InstallRecord(

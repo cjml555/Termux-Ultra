@@ -243,7 +243,21 @@ object PluginManager {
         context.startActivity(intent)
     }
 
+    /**
+     * Lee un fichero del directorio del plugin.
+     *
+     * Antes esta función NO comprobaba permisos: el puente `readFile` llamaba
+     * directamente a getPluginFile, así que cualquier plugin habilitado leía
+     * sus ficheros tenga o no FILE_SYSTEM_READ. canAccessFileSystem existía
+     * como código muerto (0 llamadas en toda la app).
+     *
+     * Ahora se comprueba el permiso, con el sandbox por delante: el
+     * getPluginFile ya impide salir del directorio del plugin, y esta capa
+     * añade el permiso que faltaba.
+     */
     fun getPluginFileContent(context: Context, pluginId: String, path: String): String? {
+        val perm = PluginSecurity.canAccessFileSystem(context, pluginId, path, isWrite = false)
+        if (!perm.allowed) return null
         val file = PluginLoader.getPluginFile(context, pluginId, path) ?: return null
         return try {
             file.readText()
