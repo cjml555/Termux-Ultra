@@ -256,10 +256,28 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
 
     val languageOptions = listOf(
         context.getString(R.string.chinese),
-        context.getString(R.string.english)
+        context.getString(R.string.english),
+        context.getString(R.string.spanish)
     )
     var languageSelectedIndex by remember {
-        mutableStateOf(if (LocaleHelper.isChinese(context)) 0 else 1)
+        mutableStateOf(
+            when {
+                LocaleHelper.isChinese(context) -> 0
+                LocaleHelper.isSpanish(context) -> 2
+                else -> 1
+            }
+        )
+    }
+
+    // Shared handler so the compact (search) and full settings layouts stay in sync.
+    fun selectLanguageIndex(idx: Int) {
+        languageSelectedIndex = idx
+        when (idx) {
+            0 -> LocaleHelper.setChinese(context)
+            2 -> LocaleHelper.setSpanish(context)
+            else -> LocaleHelper.setEnglish(context)
+        }
+        showRestartPrompt = true
     }
 
     val navBarStyleOptions = listOf(
@@ -635,18 +653,14 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_appearance, context.getString(R.string.language), context.getString(R.string.language_description),
-            keywords = listOf("语言", "language", "中文", "英文", "locale"),
+            keywords = listOf("语言", "language", "中文", "英文", "español", "es", "locale"),
             render = {
                 OverlayDropdownPreference(
                     title = context.getString(R.string.language),
                     summary = context.getString(R.string.language_description),
                     items = languageOptions,
                     selectedIndex = languageSelectedIndex,
-                    onSelectedIndexChange = { idx ->
-                        languageSelectedIndex = idx
-                        if (idx == 0) LocaleHelper.setChinese(context) else LocaleHelper.setEnglish(context)
-                        showRestartPrompt = true
-                    },
+                    onSelectedIndexChange = { idx -> selectLanguageIndex(idx) },
                     startAction = { SettingIcon(Icons.Rounded.Language, contentDescription = context.getString(R.string.language)) }
                 )
             }),
@@ -1126,15 +1140,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                             summary = context.getString(R.string.language_description),
                             items = languageOptions,
                             selectedIndex = languageSelectedIndex,
-                            onSelectedIndexChange = { idx ->
-                                languageSelectedIndex = idx
-                                if (idx == 0) {
-                                    LocaleHelper.setChinese(context)
-                                } else {
-                                    LocaleHelper.setEnglish(context)
-                                }
-                                showRestartPrompt = true
-                            },
+                            onSelectedIndexChange = { idx -> selectLanguageIndex(idx) },
                             startAction = {
                                 SettingIcon(Icons.Rounded.Language, contentDescription = context.getString(R.string.language))
                             }

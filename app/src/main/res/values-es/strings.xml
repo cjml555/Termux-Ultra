@@ -39,6 +39,7 @@
 <string name="language">Idioma</string>
 <string name="english">Inglés</string>
 <string name="chinese">Chino (simplificado)</string>
+<string name="spanish">Español</string>
 <string name="device_model">Modelo del dispositivo</string>
 <string name="android_version">Versión de Android</string>
 <string name="kernel_version">Versión del kernel</string>

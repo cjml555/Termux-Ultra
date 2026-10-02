@@ -45,6 +45,7 @@
     <string name="language">Language</string>
     <string name="english">English</string>
     <string name="chinese">Chinese (Simplified)</string>
+    <string name="spanish">Spanish</string>
 
     <string name="device_model">Device Model</string>
     <string name="android_version">Android Version</string>

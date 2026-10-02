@@ -11,6 +11,7 @@ public class LocaleHelper {
     private static final String PREF_LANGUAGE = "app_language";
     private static final String VALUE_ENGLISH = "en";
     private static final String VALUE_CHINESE = "zh";
+    private static final String VALUE_SPANISH = "es";
 
     public static Context attachBaseContext(Context context) {
         String language = getLanguage(context);
@@ -50,6 +51,8 @@ public class LocaleHelper {
     private static Locale getLocaleFromString(String language) {
         if (VALUE_CHINESE.equals(language)) {
             return Locale.SIMPLIFIED_CHINESE;
+        } else if (VALUE_SPANISH.equals(language)) {
+            return new Locale("es");
         } else {
             return Locale.ENGLISH;
         }
@@ -63,7 +66,15 @@ public class LocaleHelper {
         setLocale(context, VALUE_ENGLISH);
     }
 
+    public static void setSpanish(Context context) {
+        setLocale(context, VALUE_SPANISH);
+    }
+
     public static boolean isChinese(Context context) {
         return VALUE_CHINESE.equals(getLanguage(context));
+    }
+
+    public static boolean isSpanish(Context context) {
+        return VALUE_SPANISH.equals(getLanguage(context));
     }
 }

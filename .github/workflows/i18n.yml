@@ -1,0 +1,51 @@
+name: i18n
+
+# Guarda de traducciones. Distingue dos cosas que antes no había forma de separar:
+#   - regresión dura: placeholder desalineado, strings.xml roto, o un locale
+#     existente en disco pero ausente de `resConfigs` (AGP 9.x filtra el
+#     directorio entero y el usuario ve inglés sin ningún error visible);
+#   - cobertura incompleta: claves aún sin traducir, que es el estado normal de
+#     un idioma en curso y NO debe bloquear el merge.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**/res/values*/strings.xml'
+      - 'app/build.gradle'
+      - 'tools/i18n/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '**/res/values*/strings.xml'
+      - 'app/build.gradle'
+      - 'tools/i18n/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Cobertura y regresiones de traducción
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v7
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      # `--gate` sale con 1 sólo ante regresiones duras; la cobertura incompleta
+      # se reporta en el log sin romper el build. Un `check_translations.py`
+      # pelado (sin --gate) sería inútil aquí: fallaría siempre con `es` al 43 %.
+      - name: Auditar traducciones
+        run: python3 tools/i18n/check_translations.py --gate

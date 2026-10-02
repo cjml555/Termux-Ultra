@@ -45,6 +45,7 @@
     <string name="language">语言</string>
     <string name="english">English</string>
     <string name="chinese">中文</string>
+    <string name="spanish">Español</string>
 
     <string name="device_model">设备型号</string>
     <string name="android_version">Android 版本</string>
@@ -894,9 +895,9 @@
     <string name="crash_post_title">侦测到已发生错误</string>
     <string name="crash_post_message">侦测到上次运行时发生了错误和崩溃，以下是崩溃详情。</string>
     <string name="crash_dialog_title">应用错误</string>
-    <string name="crash_dialog_message">发生错误，应用将尝试恢复。</string>
+    <string name="crash_dialog_message">发生错误，应用将尝试恢复。\n\n错误详情：\n%1$s</string>
     <string name="crash_dialog_severe_title">严重错误</string>
-    <string name="crash_dialog_severe_message">发生严重错误，应用无法自动恢复。</string>
+    <string name="crash_dialog_severe_message">发生严重错误，应用无法自动恢复。\n\n错误详情：\n%1$s</string>
     <string name="view_crash_report">查看崩溃报告</string>
     <string name="view_logs">查看日志</string>
     <string name="use_fallback_mode">使用降级模式</string>

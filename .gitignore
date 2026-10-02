@@ -56,3 +56,6 @@ _deps.txt
 .workbuddy
 CODE_REVIEW_REPORT.md
 .designkit-history-delivery
+# Python tooling (tools/i18n)
+__pycache__/
+*.pyc
