@@ -111,12 +111,44 @@ android {
         // （CMake 任务本身是按 ABI 拆的），所以只列一个 ABI 时原生编译也只跑这一个。
     }
 
+    // Las credenciales de la clave de release NO van aquí. Estaban hardcodeadas
+    // (storePassword/keyPassword = la contraseña real) y además el keystore
+    // completo estaba embebido en base64 dentro de
+    // .github/workflows/release_apk.yml, que es peor: la clave privada entera
+    // en claro. Cualquiera con acceso al repo podía firmar APKs con la
+    // identidad de esta app, y como todas las apps Termux comparten
+    // sharedUserId=com.termux, un APK así pasa los requisitos de firma.
+    //
+    // Ahora se leen del entorno (GitHub Actions secret, o tu shell local), con
+    // gradle.properties como alternativa local no versionada.
+    // Si faltan, solo falla la variante release; debug no las necesita.
     signingConfigs {
         release {
-            storeFile file("ki-terminal-release.jks")
-            storePassword "ki-terminal"
-            keyAlias "ki-terminal"
-            keyPassword "ki-terminal"
+            def storePw = System.getenv("TERMUX_STORE_PASSWORD")
+                    ?: (project.findProperty("TERMUX_STORE_PASSWORD") as String)
+            def keyPw = System.getenv("TERMUX_KEY_PASSWORD")
+                    ?: (project.findProperty("TERMUX_KEY_PASSWORD") as String)
+            def keyName = System.getenv("TERMUX_KEY_ALIAS")
+                    ?: (project.findProperty("TERMUX_KEY_ALIAS") as String)
+            def jksFile = System.getenv("TERMUX_KEYSTORE_PATH")
+                    ?: (project.findProperty("TERMUX_KEYSTORE_PATH") as String)
+                    ?: "ki-terminal-release.jks"
+
+            if (storePw && keyPw && keyName && file(jksFile).exists()) {
+                storeFile file(jksFile)
+                storePassword storePw
+                keyAlias keyName
+                keyPassword keyPw
+            } else {
+                // No es un fallo de configuración: `assembleDebug` y las tareas
+                // de recursos siguen funcionando. Solo assembleRelease necesita
+                // la clave, y fallará al firmar con un mensaje útil.
+                logger.warn(
+                    "TERMUX_STORE_PASSWORD/KEY_PASSWORD/KEY_ALIAS no definidas o " +
+                    "keystore no encontrado (${jksFile}); la variante release no " +
+                    "se firmará. Ver docs sobre firma de release."
+                )
+            }
         }
     }
 
