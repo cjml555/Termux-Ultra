@@ -86,6 +86,20 @@
   html[data-theme="light"] .icon-moon{display:block;} html[data-theme="light"] .icon-sun{display:none;}
   html[data-theme="dark"] .icon-moon{display:none;}   html[data-theme="dark"] .icon-sun{display:block;}
 
+  /* ---------- language selector ----------
+     Rutas relativas a propósito: esta página es HTML plano (no pasa por Liquid),
+     así que no dispone del filtro relative_url. "../" funciona tanto bajo
+     /Termux-Ultra/okr/ como en un dominio propio, sin tocar nada al migrar. */
+  .langsel{display:inline-flex;align-items:center;gap:2px;float:right;
+        border:1px solid var(--border);border-radius:99px;padding:2px 3px;background:var(--card);
+        box-shadow:var(--shadow);margin-bottom:18px;}
+  .langsel a{display:inline-block;padding:4px 11px;border-radius:99px;font-size:12.5px;
+        font-weight:600;color:var(--dim);text-decoration:none;transition:.2s;}
+  .langsel a:hover{color:var(--accent);background:var(--bg);}
+  .langsel a[aria-current="page"]{background:var(--accent);color:var(--card);}
+  .langsel a:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  @media (max-width:560px){ .langsel{float:none;display:flex;margin-bottom:14px;} }
+
   /* ---------- tabs ---------- */
   .tabs{display:flex;gap:9px;margin-top:22px;flex-wrap:wrap;}
   .tab{display:inline-flex;align-items:center;gap:8px;padding:9px 17px;border-radius:10px;border:1px solid var(--border);
@@ -196,6 +210,12 @@
 <div class="wrap">
 
   <a class="backlink" href="../">← 返回文档首页</a>
+
+  <nav class="langsel" aria-label="Language / 语言">
+    <a href="../" lang="zh-Hans">中文</a>
+    <a href="../en/" lang="en">EN</a>
+    <a href="../es/" lang="es">ES</a>
+  </nav>
 
   <div class="head">
     <div>

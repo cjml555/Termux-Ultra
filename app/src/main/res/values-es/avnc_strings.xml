@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<!--
+  ~ Copyright (c) 2020  Gaurav Ujjwal.
+  ~
+  ~ SPDX-License-Identifier:  GPL-3.0-or-later
+  ~
+  ~ See COPYING.txt for more details.
+  -->
+
+
+
+    <string name="title_add_server_profile">Agregar servidor</string>
+    <string name="title_edit_server_profile">Editar servidor</string>
+    <string name="title_duplicate">Duplicar</string>
+    <string name="title_edit">Editar</string>
+    <string name="title_delete">Eliminar</string>
+    <string name="title_clear">Limpiar</string>
+    <string name="title_copy_host">Copiar host</string>
+    <string name="title_copy_name">Copiar nombre</string>
+    <string name="title_advanced">Avanzado</string>
+    <string name="title_cancel">Cancelar</string>
+    <string name="title_save">Guardar</string>
+    <string name="title_try">Probar</string>
+    <string name="title_undo">Deshacer</string>
+    <string name="title_settings">Ajustes de VNC</string>
+    <string name="title_vnc_login">Inicio de sesión VNC</string>
+    <string name="title_ssh_login">Inicio de sesión SSH</string>
+    <string name="title_unlock_private_key">Desbloquear clave privada</string>
+    <string name="title_forget">Olvidar</string>
+    <string name="title_remember">Recordar</string>
+    <string name="title_export">Exportar</string>
+    <string name="title_import">Importar</string>
+    <string name="title_view_only_mode">Solo ver</string>
+    <string name="title_connect_on_app_start">Conectar automáticamente al iniciar la app</string>
+    <string name="title_enable_wol">Wake-on-LAN</string>
+    <string name="title_hide_remote_cursor">Ocultar puntero remoto</string>
+    <string name="title_button_up_delay">Enviar eventos de clic con retraso</string>
+    <string name="title_resize_remote_desktop">Ajustar la sesión remota a la ventana local</string>
+    <string name="title_image_quality">Calidad de imagen</string>
+    <string name="title_orientation">Orientación</string>
+    <string name="title_image_quality_raw">Sin procesar</string>
+    <string name="title_vnc_security">Seguridad</string>
+    <string name="title_use_ssh_tunnel">Usar túnel SSH</string>
+    <string name="title_always_show_advanced_editor">Mostrar siempre las opciones avanzadas</string>
+    <string name="title_unknown_ssh_host">Host SSH desconocido</string>
+    <string name="title_ssh_host_key_changed">La clave del host SSH cambió</string>
+    <string name="title_continue">Continuar</string>
+    <string name="title_export_passwords_and_keys">Exportar contraseñas y claves</string>
+    <string name="title_delete_servers_before_import">Eliminar los servidores actuales antes de importar</string>
+    <string name="title_password">Contraseña</string>
+    <string name="title_use_repeater">Usar repetidor</string>
+    <string name="title_private_key">Clave privada</string>
+    <string name="title_change">Cambiar</string>
+    <string name="title_about">Acerca de</string>
+    <string name="title_license">Licencia</string>
+    <string name="title_open_source_libraries">Bibliotecas de código abierto</string>
+    <string name="title_report_bug">Reportar un problema</string>
+    <string name="title_source_code">Código fuente</string>
+    <string name="title_unlock_dialog">Desbloquear para continuar</string>
+    <string name="title_automatic">Automático</string>
+    <string name="title_none">Ninguno</string>
+    <string name="title_next">Siguiente</string>
+    <string name="title_got_it">Entendido</string>
+    <string name="title_load_defaults">Cargar valores predeterminados</string>
+
+
+    <string name="hint_urlbar">Conectarse a un servidor</string>
+    <string name="hint_server_name">Nombre (p. ej., PC del trabajo)</string>
+    <string name="hint_host">Host</string>
+    <string name="hint_repeater_host">Host del repetidor</string>
+    <string name="hint_port">Puerto</string>
+    <string name="hint_server_id">ID del servidor</string>
+    <string name="hint_username">Nombre de usuario</string>
+    <string name="hint_password">Contraseña</string>
+    <string name="hint_wol_mac">Dirección MAC</string>
+    <string name="hint_wol_address">Dirección de difusión (opcional)</string>
+    <string name="hint_ssh_host">Host SSH</string>
+    <string name="hint_ssh_port">Puerto SSH</string>
+    <string name="hint_key_password">Contraseña de la clave</string>
+    <string name="hint_send_text_to_server">Enviar texto al servidor</string>
+
+
+    <string name="msg_about_app">Un cliente VNC rápido y seguro. Ve y controla de forma remota cualquier dispositivo que ejecute un servidor VNC.\n\n\nAVNC es software libre y copyleft, creado con la ayuda de muchos colaboradores.</string>
+    <string name="msg_server_profile_added">Servidor agregado</string>
+    <string name="msg_server_profile_deleted">Servidor eliminado</string>
+    <string name="msg_normal_view_mode">Modo normal activado</string>
+    <string name="msg_input_disabled">Entrada desactivada</string>
+    <string name="msg_video_disabled">Vídeo desactivado</string>
+    <string name="msg_gesture_style_locked_to_touchpad">El estilo de gestos \'Panel táctil\' está activo</string>
+    <!--Temporary message for view mode migration -->
+    <string name="msg_zoom_locked">Zoom bloqueado</string>
+    <string name="msg_zoom_unlocked">Zoom desbloqueado</string>
+    <string name="msg_zoom_reset">Zoom restablecido al 100 %</string>
+    <string name="msg_zoom_reset_default">Zoom restablecido al valor predeterminado</string>
+    <string name="msg_zoom_saved">Se guardó el zoom actual como predeterminado</string>
+    <string name="msg_pip_not_supported">No compatible con este dispositivo</string>
+    <string name="msg_ptr_hiding_not_supported">No compatible con este dispositivo</string>
+    <string name="msg_loading">Cargando…</string>
+    <string name="msg_imported">Importado</string>
+    <string name="msg_exported">Exportado</string>
+    <string name="msg_saved">Guardado</string>
+    <string name="msg_done">Listo</string>
+    <string name="msg_export_auth_required">Autentícate para exportar los servidores</string>
+    <string name="msg_required">Obligatorio</string>
+    <string name="msg_invalid_mac_address">Dirección MAC no válida</string>
+    <string name="msg_invalid_key_file">Archivo de clave privada no válido</string>
+    <string name="msg_invalid_vnc_uri">URI de VNC no válida</string>
+    <string name="msg_copied_to_clipboard">Copiado</string>
+    <string name="msg_tap_to_select_a_key">Toca para elegir una clave:</string>
+    <string name="msg_button_up_delay_help">Retrasar los eventos de clic puede ayudar en algunos casos poco comunes en los que una app no responde a los clics.</string>
+    <string name="msg_wake_on_lan_help">Wake-on-LAN se puede usar para encender una computadora de forma remota.\n\nPrimero configura WoL en la computadora remota y luego actívalo en AVNC.\nUna vez activado, el paquete mágico WoL se enviará automáticamente antes de conectarse a este servidor.</string>
+    <string name="msg_gesture_style_help"><b>Pantalla táctil</b>\nRealiza las acciones en el punto de toque \n\n<b>Panel táctil</b>\nRealiza las acciones en el puntero</string>
+    <string name="msg_drag_gesture_help">Asignar una acción a este gesto cambiará la detección de pulsación larga:\n\n<b>Presionar-mantener-soltar</b> → Pulsación larga\n<b>Presionar-mantener-deslizar</b> → Pulsación larga y deslizar</string>
+    <string name="msg_shortcut_server_deleted">Este servidor se ha eliminado</string>
+    <string name="tip_empty_server_list">La lista de servidores está vacía.\nToca \'<b>+</b>\' para agregar un servidor o\nusa la barra de direcciones superior para conectarte directamente.</string>
+    <string name="tip_urlbar">Puedes escribir una dirección IP, un nombre de host o un URI \'vnc://\'.</string>
+    <string name="tip_discovery">El descubrimiento puede encontrar automáticamente los servidores compatibles\nque están en tu red.</string>
+    <string name="msg_viewer_tips_label">Algunos consejos para empezar</string>
+    <string name="tip_toolbar_usage">Desliza desde el borde para abrir la barra de herramientas. Úsala para abrir el teclado, cambiar el estilo de gestos o restablecer el zoom.</string>
+    <string name="tip_session_end">Para terminar una sesión, toca el botón de navegación Atrás, igual que harías al salir de un video en reproducción.</string>
+
+    <!-- Accessibility descriptions -->
+    <string name="desc_navigation_btn">Abrir el cajón de navegación</string>
+    <string name="desc_settings_btn">Ajustes</string>
+    <string name="desc_saved_servers_tab">Servidores guardados</string>
+    <string name="desc_discovered_servers_tab">Servidores descubiertos</string>
+    <string name="desc_add_new_server_btn">Agregar servidor</string>
+    <string name="desc_save_discovered_server_btn">Guardar</string>
+    <string name="desc_discovery_btn">Descubrir servidores</string>
+    <string name="desc_discovery_stop_btn">Detener el descubrimiento de servidores</string>
+    <string name="desc_discovery_running">Buscando servidores en tu red</string>
+    <string name="desc_toolbar_btn">Abrir la barra de herramientas</string>
+    <string name="desc_keyboard_btn">Abrir el teclado</string>
+    <string name="desc_virtual_keys_btn">Mostrar las teclas virtuales</string>
+    <string name="desc_view_modes_toggle">Modos de visualización</string>
+    <string name="desc_view_mode_normal">Modo normal</string>
+    <string name="desc_view_mode_no_input">Desactivar todas las entradas</string>
+    <string name="desc_view_mode_no_video">Desactivar el vídeo</string>
+    <string name="desc_zoom_options_btn">Opciones de zoom</string>
+    <string name="desc_reset_zoom_btn">Restablecer el zoom</string>
+    <string name="desc_lock_zoom_btn">Bloquear el zoom</string>
+    <string name="desc_save_zoom_btn">Guardar el zoom actual como predeterminado</string>
+    <string name="desc_audio_btn">Activar o desactivar el audio de QEMU</string>
+    <string name="msg_audio_connection_failed">No se pudo conectar con el audio. Revisa los ajustes de audio.</string>
+    <string name="msg_audio_enabled">Audio activado</string>
+    <string name="msg_audio_disabled">Audio desactivado</string>
+    <string name="desc_retry_connection_btn">Volver a conectar</string>
+    <string name="desc_back_btn">Atrás</string>
+    <string name="desc_clear_url_btn">Limpiar</string>
+    <string name="desc_server_url">Dirección del servidor</string>
+    <string name="desc_help_btn">Ayuda</string>
+    <string name="desc_discovered_list">Lista de servidores descubiertos automáticamente</string>
+    <string name="desc_saved_servers_list">Lista de servidores guardados</string>
+
+    <!-- Preference -->
+    <string name="pref_ui">Interfaz</string>
+    <string name="pref_ui_summary">Apariencia y sensación</string>
+    <string name="pref_viewer">Visor</string>
+    <string name="pref_viewer_summary">Imagen en imagen, zoom</string>
+    <string name="pref_input">Entrada</string>
+    <string name="pref_input_summary">Gestos, ratón, teclas virtuales</string>
+    <string name="pref_servers">Servidores</string>
+    <string name="pref_server_summary">Inicio de sesión, descubrimiento</string>
+    <string name="pref_tools">Herramientas</string>
+    <string name="pref_tools_summary">Importar/Exportar, depuración</string>
+    <string name="pref_experimental">Experimental</string>
+    <string name="pref_experimental_summary">Funciones adicionales</string>
+
+    <string name="pref_gesture_action_none" translatable="false">@string/title_none</string>
+    <string name="pref_gesture_action_left_click">Clic izquierdo</string>
+    <string name="pref_gesture_action_left_press">Pulsación larga</string>
+    <string name="pref_gesture_action_middle_click">Clic central</string>
+    <string name="pref_gesture_action_right_click">Clic derecho</string>
+    <string name="pref_gesture_action_double_click">Doble clic</string>
+    <string name="pref_gesture_action_move_pointer">Mover el puntero</string>
+    <string name="pref_gesture_action_pan">Desplazar el marco local</string>
+    <string name="pref_gesture_action_remote_scroll">Desplazar el contenido remoto</string>
+    <string name="pref_gesture_action_remote_drag">Arrastrar el contenido remoto</string>
+    <string name="pref_gesture_action_remote_drag_middle">Arrastrar con el botón central</string>
+    <string name="pref_gesture_action_remote_back_press">Retroceso en el servidor</string>
+    <string name="pref_gesture_action_open_keyboard">Abrir el teclado</string>
+
+    <string name="pref_theme">Tema</string>
+    <string name="pref_theme_option_system">Sistema</string>
+    <string name="pref_theme_option_dark">Oscuro</string>
+    <string name="pref_theme_option_light">Claro</string>
+    <string name="pref_bell">Campana</string>
+    <string name="pref_prefer_advanced_editor">Abrir directamente las opciones avanzadas del servidor</string>
+    <string name="pref_sort_server_list">Ordenar los servidores guardados por nombre</string>
+    <string name="pref_gesture">Gestos</string>
+    <string name="pref_gesture_style">Estilo de gestos</string>
+    <string name="pref_gesture_style_auto" translatable="false">@string/title_automatic</string>
+    <string name="pref_gesture_style_auto_summary">Según los ajustes de la app</string>
+    <string name="pref_gesture_style_touchscreen">Pantalla táctil</string>
+    <string name="pref_gesture_style_touchscreen_summary">Realiza las acciones en el punto de toque</string>
+    <string name="pref_gesture_style_touchpad">Panel táctil</string>
+    <string name="pref_gesture_style_touchpad_summary">Realiza las acciones en el puntero</string>
+    <string name="pref_single_tap">Toque único</string>
+    <string name="pref_two_finger_tap">Toque con dos dedos</string>
+    <string name="pref_three_finger_tap">Toque con tres dedos</string>
+    <string name="pref_double_tap">Toque doble</string>
+    <string name="pref_long_press">Pulsación larga</string>
+    <string name="pref_swipe1">Deslizar con un dedo</string>
+    <string name="pref_swipe2">Deslizar con dos dedos</string>
+    <string name="pref_swipe3">Deslizar con tres dedos</string>
+    <string name="pref_double_tap_swipe">Toque doble y deslizar</string>
+    <string name="pref_long_press_swipe">Pulsación larga y deslizar</string>
+    <string name="pref_long_press_swipe_disabled_summary">Desactivado por el valor actual del gesto <b>Pulsación larga</b></string>
+    <string name="pref_swipe_sensitivity">Sensibilidad del deslizamiento</string>
+    <string name="pref_invert_vertical_scrolling">Invertir el desplazamiento vertical</string>
+    <string name="pref_mouse">Ratón</string>
+    <string name="pref_mouse_passthrough">Paso directo del ratón</string>
+    <string name="pref_mouse_passthrough_summary_off">Usar los eventos del ratón para los gestos locales</string>
+    <string name="pref_mouse_passthrough_summary_on">Enviar los eventos del ratón directamente al servidor</string>
+    <string name="pref_capture_pointer">Capturar el puntero</string>
+    <string name="pref_hide_local_cursor">Ocultar el puntero local</string>
+    <string name="pref_mouse_back">Botón Atrás</string>
+    <string name="pref_mouse_back_action_default">Predeterminado</string>
+    <string name="pref_vk">Teclas virtuales</string>
+    <string name="pref_vk_show_all">Mostrar todas las teclas</string>
+    <string name="pref_customize_virtual_keys">Personalizar las teclas</string>
+    <string name="msg_customize_keys_hint">Desliza a la izquierda/derecha para explorar las teclas. Toca una tecla para seleccionarla y luego usa los botones de abajo para reordenarla o quitarla.</string>
+    <string name="msg_no_keys_added">Aún no hay teclas agregadas</string>
+    <string name="pref_vk_open_with_keyboard">Abrir con el teclado</string>
+    <string name="pref_vk_row_count">Filas</string>
+    <string name="pref_vk_use_super_with_single_tap">Usar la tecla Super con el toque único</string>
+    <string name="pref_km">Asignación de teclas</string>
+    <string name="pref_km_right_alt_to_super">Alt derecha → Super</string>
+    <string name="pref_km_language_switch_to_super">Cambio de idioma → Super</string>
+    <string name="pref_km_back_to_escape">Atrás → Escape</string>
+    <string name="pref_km_back_to_escape_summary">No afecta la barra de navegación</string>
+    <string name="pref_orientation">Orientación de la pantalla</string>
+    <string name="pref_orientation_option_auto">Automática</string>
+    <string name="pref_orientation_option_portrait">Vertical</string>
+    <string name="pref_orientation_option_landscape">Horizontal</string>
+    <string name="pref_fullscreen">Pantalla completa</string>
+    <string name="pref_display_cutout">Extenderse en la zona del recorte</string>
+    <string name="pref_enable_pip">Imagen en imagen</string>
+    <string name="pref_keep_screen_on">Mantener la pantalla encendida</string>
+    <string name="pref_toolbar">Barra de herramientas</string>
+    <string name="pref_toolbar_alignment">Alineación</string>
+    <string name="pref_toolbar_alignment_option_start">Inicio</string>
+    <string name="pref_toolbar_alignment_option_end">Fin</string>
+    <string name="pref_toolbar_open_with_swipe">Deslizar desde el borde para abrir</string>
+    <string name="pref_toolbar_open_with_button">Mostrar el botón para abrir</string>
+    <string name="pref_show_gesture_style_toggle">Mostrar el selector de estilo de gestos</string>
+    <string name="pref_zoom">Zoom</string>
+    <string name="pref_zoom_min">Mínimo</string>
+    <string name="pref_zoom_max">Máximo</string>
+    <string name="pref_per_orientation_zoom">Zoom independiente para cada orientación</string>
+    <string name="pref_clipboard_sync">Sincronización del portapapeles</string>
+    <string name="pref_saved_server_lock_summary">Requerir desbloqueo biométrico o con contraseña para conectarse</string>
+    <string name="pref_saved_server_lock">Bloquear los servidores guardados</string>
+    <string name="pref_auto_reconnect">Volver a conectar automáticamente</string>
+    <string name="pref_forget_known_hosts">Olvidar los hosts conocidos</string>
+    <string name="pref_forget_known_hosts_question">¿Olvidar los hosts SSH conocidos, los certificados de servidor de confianza y todas las conexiones VNC guardadas?</string>
+    <string name="pref_discovery">Descubrimiento</string>
+    <string name="pref_discovery_autorun">Ejecución automática</string>
+    <string name="pref_discovery_autorun_summary">Buscar servidores mientras estás en la página de inicio</string>
+    <string name="pref_rediscovery_indicator">Resaltar los servidores redescubiertos</string>
+    <string name="pref_import_export">Importar/Exportar servidores</string>
+    <string name="pref_debugging">Depuración</string>
+    <string name="pref_logs">Registros</string>
+    <string name="pref_keycode_map">Mapa de códigos de tecla</string>
+    <string name="pref_touch_test">Prueba de toque</string>
+    <string name="pref_key_test">Prueba de teclas</string>
+
+</resources>

@@ -94,11 +94,25 @@ a:hover { text-decoration: underline; }
 .topnav { display: flex; align-items: center; gap: 14px; font-size: 14px; }
 .topnav a { color: var(--fg-muted); }
 .topnav a:hover { color: var(--accent); text-decoration: none; }
-.topnav .lang {
+/* ---------- 语言选择器 ---------- */
+.langsel {
+  display: inline-flex; align-items: center; gap: 2px;
   border: 1px solid var(--border); border-radius: 999px;
-  padding: 3px 12px; color: var(--fg);
+  padding: 2px 3px 2px 10px; background: var(--bg-soft);
 }
-.topnav .lang:hover { border-color: var(--accent); color: var(--accent); }
+.langsel-label {
+  font-size: 12px; color: var(--fg-muted); margin-right: 4px;
+  white-space: nowrap;
+}
+.langsel-item {
+  padding: 2px 10px; border-radius: 999px;
+  font-size: 13px; line-height: 1.6; color: var(--fg-muted);
+  white-space: nowrap;
+}
+.langsel-item:hover { color: var(--fg); background: var(--bg); text-decoration: none; }
+.langsel-item.is-active { background: var(--accent); color: #fff; font-weight: 600; }
+.langsel-item.is-active:hover { color: #fff; }
+.langsel-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* ---------- 布局 ---------- */
 .layout {
@@ -240,4 +254,13 @@ a:hover { text-decoration: underline; }
   .sidenav-item { margin: 0; }
   .hero h1 { font-size: 26px; }
   .page-title { font-size: 25px; }
+  /* 顶栏空间紧张：隐藏"语言"标签，只留三个短代码 */
+  .langsel { padding-left: 3px; }
+  .langsel-label { display: none; }
+  .langsel-item { padding: 2px 8px; font-size: 12.5px; }
+  .topnav { gap: 10px; font-size: 13px; }
+}
+
+@media (max-width: 520px) {
+  .brand-text { display: none; }
 }
