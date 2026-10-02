@@ -11,7 +11,12 @@
 # o "signatures do not match". Por eso este script detecta y desinstala antes.
 #
 # Uso:  ./deploy.sh            (dry-run: solo informa, no cambia nada)
-#       ./deploy.sh --install  (desinstala lo incompatible e instala)
+#       ./deploy.sh --install  (pide confirmación si hay que desinstalar)
+#       DEPLOY_YES=1 ./deploy.sh --install   (sin confirmación, para CI/no interactivo)
+#
+# No se usa `set -e`: las comprobaciones de adb son asíncronas por naturaleza y un
+# grep sin coincidencias (código 1) es una respuesta válida, no un error. Los
+# puntos donde el fallo sí importa usan `die` explícito.
 set -uo pipefail
 
 APK="/home/jhon/Projects/Termux-Ultra/app/build/outputs/apk/debug/app-debug.apk"
@@ -50,17 +55,33 @@ ok "$model · Android $rel (API $sdk) · $abi"
 say "APK"
 [ -f "$APK" ] || die "No existe $APK — compila antes: ./gradlew :app:assembleDebug"
 ls -lh "$APK" | awk '{print "   tamaño: "$5}'
-BT="$HOME/Android/sdk/build-tools/37.0.0"
-"$BT/aapt2" dump badging "$APK" 2>/dev/null | grep -E "^package|locales" | sed 's/^/   /'
-apksigner_signer=$(cd "$BT" && ./apksigner verify --print-certs "$APK" 2>/dev/null | grep "SHA-256" | head -1)
+# Build-tools: tomar la más reciente del SDK en vez de fijar una versión. Con la
+# versión fijada, un SDK con otra versión no encuentra aapt2/apksigner y los
+# `2>/dev/null` silenciaban el fallo: la firma salía "desconocida" como si nada.
+BT="${BUILD_TOOLS:-}"
+if [ -z "$BT" ]; then
+  BT=$(ls -d "$HOME"/Android/sdk/build-tools/*/ 2>/dev/null | sort -V | tail -1)
+  BT="${BT%/}"
+fi
+if [ -n "$BT" ] && [ -x "$BT/aapt2" ]; then
+  "$BT/aapt2" dump badging "$APK" 2>/dev/null | grep -E "^package|locales" | sed 's/^/   /'
+  apksigner_signer=$("$BT/apksigner" verify --print-certs "$APK" 2>/dev/null | grep "SHA-256" | head -1)
+else
+  warn "build-tools no encontrado; se omite la verificación de firma"
+  apksigner_signer=""
+fi
 echo "   firma: ${apksigner_signer:-desconocida}"
 
-# ------------------------------------------------- qué hay instalado hoy
+# --------------------------------------------------------- qué hay instalado hoy
 say "Estado actual en el dispositivo"
-installed=$(adb shell pm list packages 2>/dev/null | tr -d '\r' | grep "^package:$PKG$" || true)
+installed=$(adb shell pm list packages 2>/dev/null | tr -d '\r' | grep -x "package:$PKG" || true)
 conflicts=()
-for p in "${ADDONS[@]}"; do
-  if adb shell pm list packages 2>/dev/null | tr -d '\r' | grep -q "^package:$p$"; then
+# com.termux TIENE que entrar en conflicts. Antes solo se listaban los add-ons,
+# así que en el caso más habitual — Termux principal de F-Droid/Play y ningún
+# add-on — conflicts quedaba vacío, el bloque de desinstalación se saltaba
+# entero y la instalación moría con INSTALL_FAILED_SHARED_USER_INCOMPATIBLE.
+for p in "$PKG" "${ADDONS[@]}"; do
+  if adb shell pm list packages 2>/dev/null | tr -d '\r' | grep -qx "package:$p"; then
     src=$(adb shell dumpsys package "$p" 2>/dev/null | grep -m1 -oE 'installerPackageName=[^ ]*' | cut -d= -f2)
     conflicts+=("$p (instalada por: ${src:-desconocido})")
     echo "   PRESENTE: $p  ← ${src:-origen desconocido}"
@@ -83,8 +104,32 @@ if [ "$MODE" != "--install" ]; then
   say "Dry-run: no se cambió nada"
   echo "   Para desinstalar lo incompatible e instalar:"
   echo "     $0 --install"
-  [ ${#conflicts[@]} -gt 0 ] && warn "Se desinstalarían: ${conflicts[*]}"
+  if [ ${#conflicts[@]} -gt 0 ]; then
+    warn "Se desinstalarían: ${conflicts[*]}"
+  else
+    echo "   No hay nada que desinstalar."
+  fi
   exit 0
+fi
+
+# --------------------------------------------------------------- confirmación
+# --install borra paquetes de forma irreversible (el UID compartido se rompe si
+# se quita solo uno). Antes no había ninguna barrera: el flag basta para ejecutar.
+if [ "${DEPLOY_YES:-0}" != "1" ]; then
+  if [ ${#conflicts[@]} -eq 0 ]; then
+    ok "No hay apps Termux instaladas: se instalará sin desinstalar nada."
+  else
+    say "Se DESINSTALARÁN estos paquetes (irreversible)"
+    printf '     %s\n' "${conflicts[@]}"
+    warn "Se borran los datos de la app y de los add-ons. El home no se toca:"
+    warn "  /data/data/com.termux se conserva, pero el estado de las apps se pierde."
+    printf '\n   ¿Continuar? [s/N] '
+    read -r reply
+    case "$reply" in
+      s|S|y|Y|si|sí|SI|SÍ) ;;
+      *) die "Cancelado por el usuario. No se cambió nada." ;;
+    esac
+  fi
 fi
 
 # --------------------------------------------------------- desinstalación
@@ -105,12 +150,15 @@ fi
 
 # --------------------------------------------------------------- instalación
 say "Instalando"
-if adb install -r -d "$APK" 2>&1 | sed 's/^/   /'; then
-  :
+# Antes: `if adb install ... | sed ...; then :; fi` — el cuerpo del if no hacía
+# nada, el código de salida de adb lo enmascaraba el pipe y el script no abortaba:
+# si la instalación fallaba seguía al pm list, veía el paquete de una
+# instalación previa y reportaba "instalada" con éxito falso.
+# Ahora el código de salida de adb se captura directamente y un fallo es un fallo.
+if ! adb install -r -d "$APK" 2>&1 | sed 's/^/   /'; then
+  warn "adb install devolvió error"
 fi
-if adb shell pm list packages 2>/dev/null | tr -d '\r' | grep -q "^package:$PKG$"; then
-  ok "$PKG instalada"
-else
+if ! adb shell pm list packages 2>/dev/null | tr -d '\r' | grep -qx "package:$PKG"; then
   die "La instalación falló. Si el error es INSTALL_FAILED_SHARED_USER_INCOMPATIBLE
    o de firmas, quedan apps Termux de otra fuente: desinstálalas desde Ajustes."
 fi

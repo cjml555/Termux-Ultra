@@ -16,6 +16,38 @@ import java.util.UUID
 fun shouldUseQemuInContainer(): Boolean = Build.VERSION.SDK_INT >= 35
 
 /**
+ * 把任意路径安全地放进 shell 脚本的双引号里。
+ *
+ * 磁盘路径（diskPath / isoPath / shareDir）可由用户编辑，之前被直接拼进
+ * 交给 `sh -c` 的脚本里。路径中出现一个 `"` 就会提前闭合引号，后面的内容
+ * 全部被当作命令执行：
+ *
+ *     /sdcard/x"; rm -rf $HOME; echo "
+ *     →  -drive file="/sdcard/x"; rm -rf $HOME; echo "",if=none,id=hd0
+ *
+ * 转义 `\` 和 `"` 是让双引号保持字面含义的最低要求。
+ *
+ * 注意：这里只解决引号问题，不解决内容问题。双引号内 shell 仍会展开 `$()`
+ * 和反引号，所以能控制路径的攻击者依然可以注入。对外部输入的路径应改用
+ * [shellSingleQuote]，单引号内不做任何展开。
+ */
+fun shellDoubleQuote(path: String): String =
+    "\"" + path.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+
+/**
+ * 同 [shellDoubleQuote]，但用单引号：单引号内 shell 不展开 `$`、反引号、`\`，
+ * 值是 100% 字面量。这才是处理用户输入的正确方式。唯一需要特殊处理的是单引号
+ * 自身，用经典的 `'\''` 形式处理（闭合、转义、重新打开）。
+ */
+fun shellSingleQuote(value: String): String {
+    val sb = StringBuilder("'")
+    for (c in value) {
+        if (c == '\'') sb.append("'\\''") else sb.append(c)
+    }
+    return sb.append("'").toString()
+}
+
+/**
  * 音频输出模式
  * - disabled: 关闭
  * - vnc_rfb: 优先使用 VNC RFB 扩展通过 VNC 连接直接传音频；容器模式下若QEMU无vnc audio driver自动回退PulseAudio
@@ -95,6 +127,11 @@ data class QemuVmConfig(
      * Termux 原生环境下的启动脚本（Android <= 14）。
      */
     private fun generateNativeScript(): String {
+        // Las rutas son editables por el usuario: se escapan UNA vez aquí y todas
+        // las interpolaciones del script usan las versiones ya escapadas.
+        val diskPathQ = shellSingleQuote(diskPath)
+        val shareDirQ = shellSingleQuote(shareDir)
+        val isoPathQ = isoPath?.let { shellSingleQuote(it) }
         val sb = StringBuilder()
         sb.append("#!/data/data/com.termux/files/usr/bin/bash\n")
         sb.append("echo \"=== QEMU with VNC (Termux 原生): $name ===\"\n\n")
@@ -128,7 +165,7 @@ data class QemuVmConfig(
 
         // 3. 创建共享目录
         sb.append("# 创建共享目录\n")
-        sb.append("mkdir -p \"$shareDir\"\n")
+        sb.append("mkdir -p $shareDirQ\n")
         sb.append("echo \"共享目录: $shareDir\"\n")
         sb.append("echo \"提示: 您可以将文件放入此目录以便在虚拟机中使用\"\n\n")
 
@@ -136,11 +173,11 @@ data class QemuVmConfig(
         if (mode == "install_iso" || mode == "create_disk") {
             sb.append("# 创建新硬盘\n")
             sb.append("# 确保硬盘所在目录存在\n")
-            sb.append("mkdir -p \"\$(dirname \"$diskPath\")\"\n")
-            sb.append("if [ ! -f \"$diskPath\" ]; then\n")
+            sb.append("mkdir -p \"\$(dirname $diskPathQ)\"\n")
+            sb.append("if [ ! -f $diskPathQ ]; then\n")
             sb.append("    echo \"正在创建新硬盘 (${newDiskSizeGB}GB, 格式 $newDiskFormat)...\"\n")
-            sb.append("    qemu-img create -f $newDiskFormat \"$diskPath\" ${newDiskSizeGB}G\n")
-            sb.append("    if [ ! -f \"$diskPath\" ]; then\n")
+            sb.append("    qemu-img create -f $newDiskFormat $diskPathQ ${newDiskSizeGB}G\n")
+            sb.append("    if [ ! -f $diskPathQ ]; then\n")
             sb.append("        echo \"错误: 硬盘创建失败\"\n")
             sb.append("        sleep 3\n")
             sb.append("        exit 1\n")
@@ -314,35 +351,35 @@ data class QemuVmConfig(
         // 根据硬盘连接方式生成参数
         when (diskInterface) {
             "virtio" -> {
-                sb.append("    -drive file=\"$diskPath\",if=none,id=hd0$driveCacheOption\n")
+                sb.append("    -drive file=$diskPathQ,if=none,id=hd0$driveCacheOption\n")
                 sb.append("    -device virtio-blk-pci,drive=hd0\n")
             }
             "scsi" -> {
-                sb.append("    -drive file=\"$diskPath\",if=none,id=hd0$driveCacheOption\n")
+                sb.append("    -drive file=$diskPathQ,if=none,id=hd0$driveCacheOption\n")
                 sb.append("    -device virtio-scsi-pci,id=scsi0\n")
                 sb.append("    -device scsi-hd,drive=hd0,bus=scsi0.0\n")
             }
             "sata" -> {
-                sb.append("    -drive file=\"$diskPath\",if=none,id=hd0$driveCacheOption\n")
+                sb.append("    -drive file=$diskPathQ,if=none,id=hd0$driveCacheOption\n")
                 sb.append("    -device ich9-ahci,id=sata0\n")
                 sb.append("    -device ide-hd,drive=hd0,bus=sata0.0\n")
             }
             else -> {
                 // ide: 使用最简单的 -hda，通过全局参数指定缓存模式
-                sb.append("    -hda \"$diskPath\"\n")
+                sb.append("    -hda $diskPathQ\n")
                 if (ssdCacheMode) {
                     sb.append("    -global ide-hd.drive-cache=writeback\n")
                 }
             }
         }
         if (isoPath != null) {
-            sb.append("    -cdrom \"$isoPath\"\n")
+            sb.append("    -cdrom $isoPathQ\n")
         }
         sb.append("    -rtc base=localtime\n")
         sb.append(buildBootArgs()).append("\n")
         // 9p virtio 文件夹共享（可选，安装阶段关闭以减少设备开销）
         if (enableShareDir) {
-            sb.append("    -fsdev local,security_model=mapped-file,id=fsdev_shared,path=\"$shareDir\"\n")
+            sb.append("    -fsdev local,security_model=mapped-file,id=fsdev_shared,path=$shareDirQ\n")
             sb.append("    -device virtio-9p-pci,id=fs0,fsdev=fsdev_shared,mount_tag=hostshare\n")
         }
         sb.append(")\n\n")
@@ -398,6 +435,10 @@ data class QemuVmConfig(
      * 从而绕过 linker namespace 对私有符号的限制。
      */
     private fun generateContainerScript(): String {
+        // 同 native：路径用户可编辑，先转义一次，脚本里只用转义后的版本。
+        val diskPathQ = shellSingleQuote(diskPath)
+        val shareDirQ = shellSingleQuote(shareDir)
+        val isoPathQ = isoPath?.let { shellSingleQuote(it) }
         val sb = StringBuilder()
         sb.append("#!/data/data/com.termux/files/usr/bin/bash\n")
         sb.append("echo \"=== QEMU with VNC (proot 容器, Android 17+): $name ===\"\n")
@@ -580,25 +621,26 @@ data class QemuVmConfig(
 
         // 4. 创建共享目录 + 创建新硬盘（在 Termux 层做，容器里 termux-setup-storage 不可用）
         sb.append("# 4. 创建共享目录和新硬盘 (Termux 层)\n")
-        sb.append("mkdir -p \"$shareDir\"\n")
+        sb.append("mkdir -p $shareDirQ\n")
         val vncDisplay = vncPort - 5900
 
         if (mode == "install_iso" || mode == "create_disk") {
-            sb.append("mkdir -p \"\$(dirname \"$diskPath\")\"\n")
-            sb.append("if [ ! -f \"$diskPath\" ]; then\n")
+            sb.append("mkdir -p \"\$(dirname $diskPathQ)\"\n")
+            sb.append("if [ ! -f $diskPathQ ]; then\n")
             sb.append("    echo \"正在创建新硬盘 (${newDiskSizeGB}GB, 格式 $newDiskFormat)...\"\n")
             // 优先使用容器内的 qemu-img（容器版 / 原生版 qcow2 格式完全兼容）
             // 把 diskPath 里的 \$HOME 前缀映射到容器内的 /root/shared，再由容器内 qemu-img 创建到正确位置
             val qemuImgDiskPath = diskPath.replace("\$HOME", "/root/shared")
+            val qemuImgDiskPathQ = shellSingleQuote(qemuImgDiskPath)
             sb.append("    if \"\$RUN_SCRIPT\" -c 'command -v qemu-img' >/dev/null 2>&1; then\n")
-            sb.append("        \"\$RUN_SCRIPT\" -c 'qemu-img create -f $newDiskFormat \"$qemuImgDiskPath\" ${newDiskSizeGB}G' 2>/dev/null || true\n")
+            sb.append("        \"\$RUN_SCRIPT\" -c 'qemu-img create -f $newDiskFormat $qemuImgDiskPathQ ${newDiskSizeGB}G' 2>/dev/null || true\n")
             sb.append("    fi\n")
-            sb.append("    if [ ! -f \"$diskPath\" ]; then\n")
+            sb.append("    if [ ! -f $diskPathQ ]; then\n")
             sb.append("        echo \"  回退到 Termux 层创建镜像...\"\n")
-            sb.append("        command -v qemu-img >/dev/null 2>&1 && qemu-img create -f $newDiskFormat \"$diskPath\" ${newDiskSizeGB}G 2>/dev/null || \\\n")
-            sb.append("            truncate -s ${newDiskSizeGB}G \"$diskPath\"\n")
+            sb.append("        command -v qemu-img >/dev/null 2>&1 && qemu-img create -f $newDiskFormat $diskPathQ ${newDiskSizeGB}G 2>/dev/null || \\\n")
+            sb.append("            truncate -s ${newDiskSizeGB}G $diskPathQ\n")
             sb.append("    fi\n")
-            sb.append("    if [ ! -f \"$diskPath\" ]; then\n")
+            sb.append("    if [ ! -f $diskPathQ ]; then\n")
             sb.append("        echo \"错误: 硬盘创建失败\"\n")
             sb.append("        sleep 3\n")
             sb.append("        exit 1\n")
@@ -618,7 +660,7 @@ data class QemuVmConfig(
         sb.append("# 5. 验证文件并写入容器内执行的 VM 启动脚本\n")
         // 在 Termux 层检查磁盘文件是否存在
         sb.append("echo \"Termux 层验证磁盘文件...\"\n")
-        sb.append("if [ ! -f \"$diskPath\" ]; then\n")
+        sb.append("if [ ! -f $diskPathQ ]; then\n")
         sb.append("    echo \"ERROR: 磁盘文件不存在: $diskPath\"\n")
         sb.append("    echo \"请确认硬盘文件已正确创建\"\n")
         sb.append("    sleep 3\n")
@@ -636,6 +678,10 @@ data class QemuVmConfig(
         val containerDiskPath = diskPath.replace("\$HOME", "/root/shared")
         val containerIsoPath = isoPath?.replace("\$HOME", "/root/shared")
         val containerShareDir = shareDir.replace("\$HOME", "/root/shared")
+        // 版本化转义：这些路径来自用户配置，直接插进 qemu 命令行会闭合引号。
+        val containerDiskPathQ = shellSingleQuote(containerDiskPath)
+        val containerIsoPathQ = containerIsoPath?.let { shellSingleQuote(it) }
+        val containerShareDirQ = shellSingleQuote(containerShareDir)
 
         // 容器内音频策略判定：PA daemon 已在 Termux 原生层启动
         // 容器内 QEMU 通过共享网络栈直连 127.0.0.1:4713（proot 无网络 namespace 隔离）
@@ -687,7 +733,7 @@ data class QemuVmConfig(
 
         // 在 VM_EOF 中做启动前检查
         sb.append("echo \"  [容器内] 检查磁盘文件...\"\n")
-        sb.append("if [ ! -f \"$containerDiskPath\" ]; then\n")
+        sb.append("if [ ! -f $containerDiskPathQ ]; then\n")
         sb.append("    echo \"  ERROR: 容器内磁盘文件不存在: $containerDiskPath\"\n")
         sb.append("    echo \"  Termux 路径: $diskPath\"\n")
         sb.append("    echo \"  可能原因: 存储权限未授予或容器未正确绑定\"\n")
@@ -754,33 +800,33 @@ data class QemuVmConfig(
         val driveCacheOption = if (ssdCacheMode) ",cache=writeback,aio=threads,discard=on,detect-zeroes=on" else ""
         when (diskInterface) {
             "virtio" -> {
-                sb.append("    -drive file=\"$containerDiskPath\",if=none,id=hd0$driveCacheOption\n")
+                sb.append("    -drive file=$containerDiskPathQ,if=none,id=hd0$driveCacheOption\n")
                 sb.append("    -device virtio-blk-pci,drive=hd0\n")
             }
             "scsi" -> {
-                sb.append("    -drive file=\"$containerDiskPath\",if=none,id=hd0$driveCacheOption\n")
+                sb.append("    -drive file=$containerDiskPathQ,if=none,id=hd0$driveCacheOption\n")
                 sb.append("    -device virtio-scsi-pci,id=scsi0\n")
                 sb.append("    -device scsi-hd,drive=hd0,bus=scsi0.0\n")
             }
             "sata" -> {
-                sb.append("    -drive file=\"$containerDiskPath\",if=none,id=hd0$driveCacheOption\n")
+                sb.append("    -drive file=$containerDiskPathQ,if=none,id=hd0$driveCacheOption\n")
                 sb.append("    -device ich9-ahci,id=sata0\n")
                 sb.append("    -device ide-hd,drive=hd0,bus=sata0.0\n")
             }
             else -> {
-                sb.append("    -hda \"$containerDiskPath\"\n")
+                sb.append("    -hda $containerDiskPathQ\n")
                 if (ssdCacheMode) {
                     sb.append("    -global ide-hd.drive-cache=writeback\n")
                 }
             }
         }
         if (containerIsoPath != null) {
-            sb.append("    -cdrom \"$containerIsoPath\"\n")
+            sb.append("    -cdrom $containerIsoPathQ\n")
         }
         sb.append("    -rtc base=localtime\n")
         sb.append(buildBootArgs()).append("\n")
         if (enableShareDir) {
-            sb.append("    -fsdev local,security_model=mapped-file,id=fsdev_shared,path=\"$containerShareDir\"\n")
+            sb.append("    -fsdev local,security_model=mapped-file,id=fsdev_shared,path=$containerShareDirQ\n")
             sb.append("    -device virtio-9p-pci,id=fs0,fsdev=fsdev_shared,mount_tag=hostshare\n")
         }
         sb.append(")\n\n")
@@ -1082,10 +1128,19 @@ object QemuVmManager {
         }
 
         // 迁移共享目录内容
-        script.append("if [ -d \"$oldShareDirAbs\" ]; then\n")
-        script.append("    cp -r \"$oldShareDirAbs\"/* \"$newShareDirAbs\"/ 2>/dev/null\n")
-        script.append("    rm -rf \"$oldShareDirAbs\" 2>/dev/null\n")
-        script.append("    echo \"SHARE_MOVED\"\n")
+        // cp 和 rm 之前是两条独立的命令，脚本开头又是 set +e：cp 失败（比如
+        // 磁盘满、权限）时 rm -rf 照样执行，用户目录直接没了，而且 2>/dev/null
+        // 把错误吞掉，界面上看不出任何异常。
+        // 现在 cp 用 && 串上 rm：只有真的复制成功才删除源目录。
+        // 另外用 "$old"/. 而不是 "$old"/* —— 后者不复制隐藏文件，glob 不匹配时
+        // 会把字面量 "*" 当文件名 cp 过去。
+        script.append("if [ -d ${shellDoubleQuote(oldShareDirAbs)} ]; then\n")
+        script.append("    if cp -a ${shellDoubleQuote(oldShareDirAbs + "/")}. ${shellDoubleQuote(newShareDirAbs + "/")} 2>/dev/null; then\n")
+        script.append("        rm -rf ${shellDoubleQuote(oldShareDirAbs)}\n")
+        script.append("        echo \"SHARE_MOVED\"\n")
+        script.append("    else\n")
+        script.append("        echo \"SHARE_COPY_FAILED\"\n")
+        script.append("    fi\n")
         script.append("fi\n")
 
         // 执行迁移脚本
