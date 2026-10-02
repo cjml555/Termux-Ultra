@@ -278,10 +278,40 @@ def declared_in_resconfigs(locale: str, root: str) -> bool:
     with open(gradle, encoding="utf-8") as fh:
         content = fh.read()
 
-    match = re.search(r'^\s*resConfigs\s+(.*)$', content, re.MULTILINE)
-    if not match:
+    # Puede haber VARIAS líneas resConfigs (típico: la base y luego un +=).
+    # Recogerlas todas; quedarse con la primera hacía que un locale añadido en
+    # una línea posterior pasara por ausente.
+    matches = re.findall(r'^\s*resConfigs\s*(.*)$', content, re.MULTILINE)
+    if not matches:
         return True  # sin resConfigs, AGP incluye todo
-    declared = {tok.strip().strip('"\'') for tok in match.group(1).split(",") if tok.strip()}
+    # AGP acepta varias formas y todas significan lo mismo:
+    #   resConfigs "en", "es"        (Groovy)
+    #   resConfigs("en", "es")       (con paréntesis)
+    #   resConfigs "en", "es"
+    #   resConfigs += ["en", "es"]   (asignación compuesta: solo añade)
+    # El regex anterior sólo cubría la primera y con `+=` capturaba el propio
+    # `+=` como si fuera un token, así que un locale no declarado pasaba el gate.
+    declared: set[str] = set()
+    for raw in matches:
+        raw = raw.strip()
+        if raw.startswith("+="):
+            # Una asignación aditiva solo puede AÑADIR: los locales previos se
+            # conservan, así que no hace falta modelar ese estado.
+            raw = raw[2:]
+        raw = raw.strip()
+        if raw.startswith("("):
+            raw = raw[1:]
+        # Quita el cierre de la llamada con)])
+        raw = re.sub(r"[\)\]]\s*$", "", raw).strip()
+        tokens = re.findall(r'["\']([^"\']+)["\']', raw)
+        if not tokens:
+            # resConfigs presente pero sin tokens legibles: no se puede probar.
+            print(
+                f"  !! resConfigs presente pero ilegible: {raw!r}",
+                file=sys.stderr,
+            )
+            return False
+        declared.update(tok.strip() for tok in tokens)
     # "zh-rCN" está cubierto por su propio token; "es" por "es". Un locale
     # compuesto sólo cuenta si aparece exacto (mismo criterio que AGP).
     return locale in declared
@@ -325,6 +355,15 @@ def main() -> int:
         results.append(audit_module(module, res_dir, locales, args.verbose))
 
     if not results:
+        # Un --gate con un --locale mal escrito debe FALLAR, no dar verde sobre
+        # cero auditorías: en CI eso es un gate que nunca puede bloquear nada.
+        if args.locale:
+            print(
+                f"ERROR: el locale {args.locale!r} no existe: no se encontró "
+                f"ningún values-{args.locale}/ que auditar.",
+                file=sys.stderr,
+            )
+            return 2
         print("No se encontraron locales traducidos.")
         return 0
 
