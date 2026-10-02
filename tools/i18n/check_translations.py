@@ -70,27 +70,72 @@ XML_ERRORS: list[str] = []
 
 def parse_strings(values_dir: str) -> tuple[dict[str, str], list[str]]:
     """Devuelve (nombre -> valor, orden de aparición) de un directorio values*."""
+    values, names, _ = parse_strings_full(values_dir)
+    return values, names
+
+
+def parse_strings_full(values_dir: str) -> tuple[dict[str, str], list[str], set[str]]:
+    """Como parse_strings, pero además devuelve los `translatable="false"`.
+
+    Esos recursos son invariantes por definición (nombres de lenguaje, nombres
+    propios, claves de API): no se espera que aparezcan en un locale traducido,
+    así que contarlos como "falta" es ruido permanente. El original ignore esta
+    distinción y reportaba siempre 5 falsos positivos en app/zh-rCN.
+    """
     path = os.path.join(values_dir, "strings.xml")
     if not os.path.isfile(path):
-        return {}, []
+        return {}, [], set()
 
     names: list[str] = []
     values: dict[str, str] = {}
+    untranslatable: set[str] = set()
     try:
         root = ET.parse(path).getroot()
     except ET.ParseError as exc:
         XML_ERRORS.append(f"{path}: {exc}")
         print(f"  !! XML inválido: {path}: {exc}", file=sys.stderr)
-        return {}, []
+        return {}, [], set()
 
     for node in root.findall("string"):
         name = node.get("name")
         if not name:
             continue
         names.append(name)
+        if node.get("translatable") == "false":
+            untranslatable.add(name)
         # El texto puede estar anidado (CDATA, <b>, etc.); itertext lo aplana.
         values[name] = "".join(node.itertext())
-    return values, names
+    return values, names, untranslatable
+
+
+def parse_all_locale_strings(res_dir: str, locale: str) -> dict[str, str]:
+    """Une los `strings.xml` de TODOS los archivos de values-<locale>/.
+
+    Los recursos de un locale no viven solo en strings.xml: avnc_strings.xml,
+    arrays.xml y compañía también se traducen. Comparar únicamente contra
+    strings.xml reportaba como "falta" claves que ya estaban traducidas en otro
+    archivo del mismo locale — el caso real fue vnc_settings_title, que existe
+    en values-zh-rCN/avnc_strings.xml. Meterla en strings.xml provocaba
+    Duplicate resources en el merge de recursos.
+    """
+    locale_dir = os.path.join(res_dir, f"values-{locale}" if locale else "values")
+    merged: dict[str, str] = {}
+    if not os.path.isdir(locale_dir):
+        return merged
+    for name in sorted(os.listdir(locale_dir)):
+        if not name.endswith(".xml"):
+            continue
+        try:
+            root = ET.parse(os.path.join(locale_dir, name)).getroot()
+        except ET.ParseError as exc:
+            XML_ERRORS.append(f"{os.path.join(locale_dir, name)}: {exc}")
+            print(f"  !! XML inválido: {os.path.join(locale_dir, name)}: {exc}", file=sys.stderr)
+            continue
+        for node in root.findall("string"):
+            key = node.get("name")
+            if key:
+                merged[key] = "".join(node.itertext())
+    return merged
 
 
 def find_locales(res_dir: str) -> list[str]:
@@ -131,7 +176,16 @@ def is_probably_untranslated(default: str, translated: str) -> bool:
 
 def audit_module(module: str, res_dir: str, locales: list[str], verbose: bool) -> dict:
     # `res_dir` es el res/ del módulo; el locale por defecto vive en res/values/.
-    default_values, default_order = parse_strings(os.path.join(res_dir, "values"))
+    default_values, default_order, untranslatable = parse_strings_full(
+        os.path.join(res_dir, "values")
+    )
+    # El locale por defecto también tiene recursos fuera de strings.xml
+    # (avnc_strings.xml aporta 244 claves). Sin unirlos, esas claves aparecen
+    # como "huérfano" en cuanto el locale sí las traduce.
+    for key, value in parse_all_locale_strings(res_dir, "").items():
+        if key not in default_values:
+            default_values[key] = value
+            default_order.append(key)
     result: dict = {
         "module": module,
         "res_dir": res_dir,
@@ -143,10 +197,14 @@ def audit_module(module: str, res_dir: str, locales: list[str], verbose: bool) -
         return result
 
     for locale in locales:
-        locale_dir = os.path.join(res_dir, f"values-{locale}")
-        translated, _ = parse_strings(locale_dir)
+        translated = parse_all_locale_strings(res_dir, locale)
 
-        missing = [k for k in default_order if k not in translated]
+        # `translatable="false"` no se espera en un locale: no cuenta como falta.
+        missing = [
+            k
+            for k in default_order
+            if k not in translated and k not in untranslatable
+        ]
         orphan = [k for k in translated if k not in default_values]
 
         # Placeholders: mismo conjunto de especificadores en ambos idiomas.
