@@ -8,6 +8,12 @@
 [![Build status](https://github.com/TiG-Kira/Termux-Ultra/actions/workflows/ci.yml/badge.svg)](https://github.com/TiG-Kira/Termux-Ultra/actions)
 [![Docs](https://img.shields.io/badge/Docs-GitHub%20Pages-blue.svg)](https://tig-kira.github.io/Termux-Ultra/)
 
+<div align="center">
+
+[ <a href="./README.md">**中文**</a> · <a href="./README.es.md">**Español**</a> · <a href="https://tig-kira.github.io/Termux-Ultra/">Docs</a> ]
+
+</div>
+
 ## 分支说明
 
 | 分支 | 基底 | 版本 | 状态 |

@@ -8,6 +8,12 @@
 [![Build status](https://github.com/TiG-Kira/Termux-Ultra/actions/workflows/ci.yml/badge.svg)](https://github.com/TiG-Kira/Termux-Ultra/actions)
 [![Docs](https://img.shields.io/badge/Docs-GitHub%20Pages-blue.svg)](https://tig-kira.github.io/Termux-Ultra/)
 
+<div align="center">
+
+[ <a href="./README.es.md">**Español**</a> · <a href="./README.md">**中文**</a> · <a href="https://tig-kira.github.io/Termux-Ultra/es/">Docs</a> ]
+
+</div>
+
 ## Descripción de ramas
 
 | Rama | Base | Versión | Estado |

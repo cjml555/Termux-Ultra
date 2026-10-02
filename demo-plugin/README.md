@@ -1,5 +1,11 @@
 ﻿# Demo Plugin for Termux Ultra
 
+<div align="center">
+
+[ <a href="./README.md">**中文**</a> · <a href="./README.es.md">**Español**</a> ]
+
+</div>
+
 这是 Termux Ultra 插件系统的官方示例插件。
 
 ## 功能
@@ -93,6 +99,7 @@ WebView 会以当前 HTML 文件所在目录为基准解析相对路径。
 
 ```bash
 # 在 demo-plugin 目录下
+
 zip -r ../demo-plugin.tup .
 ```
 

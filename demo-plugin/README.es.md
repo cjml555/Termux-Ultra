@@ -1,5 +1,11 @@
 ﻿# Plugin de demostración para Termux Ultra
 
+<div align="center">
+
+[ <a href="./README.es.md">**Español**</a> · <a href="./README.md">**中文**</a> ]
+
+</div>
+
 Este es el plugin de ejemplo oficial del sistema de plugins de Termux Ultra.
 
 ## Funcionalidad
@@ -93,6 +99,7 @@ Empaqueta todos los archivos en formato ZIP y cambia la extensión a `.tup`:
 
 ```bash
 # 在 demo-plugin 目录下
+
 zip -r ../demo-plugin.tup .
 ```
 
