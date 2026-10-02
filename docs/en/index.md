@@ -35,6 +35,19 @@ description: Termux Ultra official documentation — user manual, feature guide,
   </a>
 </div>
 
+## Other languages
+
+<div class="cards">
+  <a class="card" href="{{ '/' | relative_url }}">
+    <span class="card-title">🇨🇳 中文</span>
+    <span class="card-desc">用户手册、功能讲解与插件开发文档（简体中文）。</span>
+  </a>
+  <a class="card" href="{{ '/es/' | relative_url }}">
+    <span class="card-title">🇪🇸 Español</span>
+    <span class="card-desc">Manual de usuario, guía de funciones y documentación de desarrollo de plugins.</span>
+  </a>
+</div>
+
 ## Dashboards
 
 <div class="cards">

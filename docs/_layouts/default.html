@@ -21,13 +21,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   {% if cur == 'es' %}
     {% assign site_title = "Documentación de Termux Ultra" %}
+    {% assign og_locale = "es_ES" %}
+    {% assign og_locale_alt = "zh_CN" %}
   {% elsif cur == 'en' %}
     {% assign site_title = "Termux Ultra Documentation" %}
+    {% assign og_locale = "en_US" %}
+    {% assign og_locale_alt = "zh_CN" %}
   {% else %}
     {% assign site_title = "Termux Ultra 文档" %}
+    {% assign og_locale = "zh_CN" %}
+    {% assign og_locale_alt = "es_ES" %}
   {% endif %}
   <title>{% if page.title and r != 'index' %}{{ page.title }} · {% endif %}{{ site_title }}</title>
   <meta name="description" content="{{ page.description | default: site.description }}">
+  {% comment %} Open Graph / Twitter: sin og:locale cada página se anunciaba como
+     si fuera del idioma del visitante, y los buscadores indexaban las tres
+     versiones como duplicados del mismo texto. {% endcomment %}
+  <meta property="og:site_name" content="{{ site_title }}">
+  <meta property="og:title" content="{% if page.title and r != 'index' %}{{ page.title }} · {% endif %}{{ site_title }}">
+  <meta property="og:description" content="{{ page.description | default: site.description }}">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="{{ og_locale }}">
+  <meta property="og:locale:alternate" content="{{ og_locale_alt }}">
+  <meta property="og:url" content="{{ page.url | absolute_url }}">
+  <meta name="twitter:card" content="summary">
   <link rel="alternate" hreflang="zh-Hans" href="{{ u_zh }}">
   <link rel="alternate" hreflang="en" href="{{ u_en }}">
   <link rel="alternate" hreflang="es" href="{{ u_es }}">
