@@ -174,6 +174,22 @@ def is_probably_untranslated(default: str, translated: str) -> bool:
     return default.strip().lower() == translated.strip().lower() and len(default) >= 40
 
 
+# Una entidad XML pegada a una palabra por ambos lados, con el "&" ausente.
+#
+# El caso real fue "Consejos yamp; agente", traducción de "Tips & Agent": al
+# traducir, el "&" se cambió por "y" pero se dejó el "amp;" del escape pegado.
+# OJO: el bug NO es "&amp;" (que es XML válido y renderiza "&"), es "amp;" sin
+# el "&" delante, queda pegado dentro de una palabra.
+#
+# Por eso el patrón NO busca "&amp;" sino "amp;" (o quot/apos/lt/gt) pegado a
+# una letra por ambos lados:
+#     "yamp;"          -> marca   (letra pegada a "amp;", sin & delante)
+#     "Configuración yquot; lista" -> marca
+#     "todo &amp; ir"   -> limpio (el & está delante: XML válido, renderiza &)
+#     "a&amp;b"        -> limpio (entidad legítima con su &)
+STUCK_ENTITY_RE = re.compile(r"[A-Za-zÀ-ÿ0-9](?:amp|quot|apos|lt|gt);")
+
+
 def audit_module(module: str, res_dir: str, locales: list[str], verbose: bool) -> dict:
     # `res_dir` es el res/ del módulo; el locale por defecto vive en res/values/.
     default_values, default_order, untranslatable = parse_strings_full(
@@ -227,6 +243,23 @@ def audit_module(module: str, res_dir: str, locales: list[str], verbose: bool) -
             and is_probably_untranslated(default_values[k], v)
         ]
 
+        # Escape XML roto pegado a una palabra: "Consejos yamp; agente".
+        #
+        # Traducir "Tips & Agent" al español es cambiar el "&" por "y", pero si
+        # el traductor quita solo el "&" y deja el "amp;" del escape, sale
+        # "yamp;" en pantalla. El XML es válido (no rompe el build) y el texto
+        # es legible, así que ni el compilador ni el resto del gate lo cazan:
+        # el gate estaba verde con la cadena rota.
+        #
+        # Ojo: "&amp;" pegado a ESPACIOS es legítimo ("Restablecer todo &amp;
+        # ir a la configuración" renderiza "todo & ir"). Solo se marca cuando
+        # el "amp;" va glued a una palabra por ambos lados.
+        broken_escapes: list[tuple[str, str]] = []
+        for name, value in translated.items():
+            match = STUCK_ENTITY_RE.search(value)
+            if match:
+                broken_escapes.append((name, value))
+
         covered = len(default_values) - len(missing)
         pct = (covered / len(default_values) * 100) if default_values else 0.0
 
@@ -237,6 +270,7 @@ def audit_module(module: str, res_dir: str, locales: list[str], verbose: bool) -
             "orphan": orphan,
             "bad_placeholders": bad_placeholders,
             "untranslated": untranslated,
+            "broken_escapes": broken_escapes,
         }
 
         if verbose:
@@ -249,6 +283,8 @@ def audit_module(module: str, res_dir: str, locales: list[str], verbose: bool) -
                 print(f"    placeholder: {name}  default=[{exp}] locale=[{act}]")
             for name in untranslated:
                 print(f"    sin traducir: {name}")
+            for name, value in broken_escapes:
+                print(f"    escape roto: {name}  \"{value[:70]}\"" )
 
     return result
 
@@ -369,29 +405,35 @@ def main() -> int:
 
     # ── Resumen ──
     print("=" * 78)
-    print(f"{'MÓDULO':<20} {'LOCALE':<8} {'COBERTURA':>12}  {'FALTAN':>7}  {'HUÉRF.':>7}  {'PLACEH.':>8}")
+    print(f"{'MÓDULO':<20} {'LOCALE':<8} {'COBERTURA':>12}  {'FALTAN':>7}  {'HUÉRF.':>7}  {'PLACEH.':>8}  {'ESCAPE':>7}")
     print("=" * 78)
 
     failures = 0
     hard_failures = 0
+    escape_failures = 0
     for res in results:
         for locale, data in res["locales"].items():
             missing_n = len(data["missing"])
             orphan_n = len(data["orphan"])
             ph_n = len(data["bad_placeholders"])
+            esc_n = len(data.get("broken_escapes", []))
             print(
                 f"{res['module']:<20} {locale:<8} "
                 f"{data['pct']:>6.1f}% ({data['covered']:>4}/{res['total']:<4}) "
-                f"{missing_n:>7}  {orphan_n:>7}  {ph_n:>8}"
+                f"{missing_n:>7}  {orphan_n:>7}  {ph_n:>8}  {esc_n:>7}"
             )
             # Un placeholder divergente rompe en runtime (IllegalFormatException /
             # MissingFormatArgumentException), así que cuenta como fallo duro.
             hard_failures += ph_n
-            failures += missing_n + ph_n
+            escape_failures += esc_n
+            failures += missing_n + ph_n + esc_n
 
     print("=" * 78)
     if failures:
-        print(f"\n⚠  {failures} problema(s) pendiente(s): strings faltantes o placeholders divergentes.")
+        print(
+            f"\n⚠  {failures} problema(s) pendiente(s): strings faltantes, "
+            f"placeholders divergentes o escapes XML pegados a una palabra."
+        )
     else:
         print("\n✓ Todas las claves traducidas existen y los placeholders coinciden.")
 
@@ -409,6 +451,18 @@ def main() -> int:
         # La cobertura incompleta es el estado normal de un idioma en curso; lo
         # que no puede pasar en un PR es un placeholder desalineado (excepción
         # en runtime), un XML roto o un locale sin registrar en resConfigs.
+        if escape_failures:
+            #Va antes que los placeholders porque es el fallo que se confunde:
+            # un "yamp;" pegado en medio de una frase es legible, el gate de
+            # placeholders no lo ve y el mensaje atribuye otro motivo.
+            print(
+                f"\n✗ GATE: {escape_failures} escape(s) XML roto(s) pegado a una "
+                f"palabra.\n  Suele ser un \"&amp;\" del original que al traducir "
+                f"cambió a \"y\" dejando el \"amp;\" pegado:\n"
+                f"    \"Consejos yamp; agente\" -> \"Consejos y agente\"\n"
+                f"  Ver con: python3 tools/i18n/check_translations.py --verbose"
+            )
+            return 1
         if hard_failures:
             print(
                 f"\n✗ GATE: {hard_failures} placeholder(s) divergente(s). "
