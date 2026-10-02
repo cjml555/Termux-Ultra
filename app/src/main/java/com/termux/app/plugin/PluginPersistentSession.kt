@@ -77,7 +77,21 @@ class PluginPersistentSession(
      */
     fun readNew(mark: Boolean = true): String {
         val full = ShellUtils.getTerminalSessionTranscriptText(terminalSession, true, false) ?: return ""
-        val result = if (readOffset >= full.length) "" else full.substring(readOffset)
+        // El transcript tiene tope (DEFAULT_TRANSCRIPT_ROWS) y cuando lo supera
+        // se desplaza por la cabeza: el contenido antiguo se descarta y la
+        // longitud baja. El offset era absoluto sobre el texto original, así
+        // que readOffset acababa mayor que full.length y este método devolvía ""
+        // para siempre, aunque el terminal siguiera escribiendo.
+        //
+        // Si el offset quedó más allá del final, el transcript se ha recortado
+        // desde el principio: lo único sensato es devolver lo que hay ahora
+        // (el contenido que se perdió nunca fue legible) y reanclar el cursor.
+        val result = when {
+            readOffset <= 0 -> full
+            readOffset < full.length -> full.substring(readOffset)
+            // Recortado: devolver el texto actual en vez de nada.
+            else -> full
+        }
         if (mark) readOffset = full.length
         return result
     }

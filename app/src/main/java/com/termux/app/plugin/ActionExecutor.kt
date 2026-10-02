@@ -26,8 +26,11 @@ object ActionExecutor {
             when {
                 actionStr.startsWith("shell:") -> {
                     val cmd = actionStr.removePrefix("shell:")
-                    PluginManager.executeShellCommand(context, pluginId, cmd)
-                    true
+                    // executeShellCommand devuelve Result; se descartaba y se
+                    // devolvía true incondicional, así que la UI mostraba
+                    // "éxito" aunque el comando fallara o fuera denegado por
+                    // seguridad. Propagar el resultado real.
+                    PluginManager.executeShellCommand(context, pluginId, cmd).isSuccess
                 }
                 actionStr.startsWith("action:") -> {
                     val id = actionStr.removePrefix("action:")

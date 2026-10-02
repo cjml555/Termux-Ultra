@@ -3083,14 +3083,37 @@ private fun readProcStat(): CpuStats? {
     }
 }
 
+/**
+ * Ejecuta un comando corto y devuelve su stdout completo.
+ *
+ * Los cinco sitios anteriores que lanzaban `ps`/`dumpsys` a mano tenían el mismo
+ * patrón defectuoso: `reader.close()` y `waitFor()` sin `finally`, y sin
+ * `destroy()`. Si readLines() lanzaba (interrupción, proceso que no arranca, OOM
+ * al leer miles de líneas de `ps -A`), el Process y su descriptor de fichero
+ * quedaban vivos. Como estas lecturas se repetyen cada pocos segundos desde la
+ * pantalla de overview, son fugas acumulativas.
+ *
+ * Aquí el stream se cierra con `use` (excepción o no) y el proceso se destruye
+ * siempre. `readText()` en vez de `readLines()` evita además retener toda la
+ * salida en una lista de miles de strings.
+ */
+private fun execAndRead(vararg cmd: String): String {
+    val process = Runtime.getRuntime().exec(cmd)
+    return try {
+        process.inputStream.bufferedReader().use { it.readText() }
+    } finally {
+        // waitFor con timeout: un comando colgado no debe dejar el hilo de
+        // lectura bloqueado para siempre; destroyForcibly como último recurso.
+        if (!process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) {
+            process.destroy()
+        }
+    }
+}
+
 fun readCpuUsage(sessionPids: Set<Int> = emptySet()): Float {
     return try {
         val numCores = Runtime.getRuntime().availableProcessors()
-        val process = Runtime.getRuntime().exec(arrayOf("ps", "-A", "-o", "PID,NAME,%CPU"))
-        val reader = process.inputStream.bufferedReader()
-        val lines = reader.readLines()
-        reader.close()
-        process.waitFor()
+        val lines = execAndRead("ps", "-A", "-o", "PID,NAME,%CPU").lines()
         
         var totalCpu = 0f
         for (line in lines.drop(1)) {
@@ -3258,12 +3281,8 @@ fun readGpuUsage(): Float {
         
         // Fallback: compute from frame rendering using dumpsys
         try {
-            val process = Runtime.getRuntime().exec(arrayOf("dumpsys", "gfxinfo", "termux"))
-            val reader = process.inputStream.bufferedReader()
-            val lines = reader.readLines()
-            reader.close()
-            process.waitFor()
-            
+            val lines = execAndRead("dumpsys", "gfxinfo", "termux").lines()
+
             var jankyFrames = 0
             var totalFrames = 0
             for (line in lines) {
@@ -3283,12 +3302,8 @@ fun readGpuUsage(): Float {
         
         // Try dumpsys SurfaceFlinger
         try {
-            val process = Runtime.getRuntime().exec(arrayOf("dumpsys", "SurfaceFlinger", "--list"))
-            val reader = process.inputStream.bufferedReader()
-            val output = reader.readText()
-            reader.close()
-            process.waitFor()
-            
+            val output = execAndRead("dumpsys", "SurfaceFlinger", "--list")
+
             if (output.contains("Termux") || output.contains("termux")) {
                 return 0f  // GPU is being used by Termux
             }
@@ -3510,21 +3525,13 @@ private fun readProcessCpuFromPs(): Map<Int, Float> {
         }
     }
     try {
-        val process = Runtime.getRuntime().exec(arrayOf("ps", "-A", "-o", "PID,%CPU"))
-        val reader = process.inputStream.bufferedReader()
-        val lines = reader.readLines()
-        reader.close()
-        process.waitFor()
+        val lines = execAndRead("ps", "-A", "-o", "PID,%CPU").lines()
         parseLines(lines)
     } catch (_: Exception) {
     }
     if (cpuMap.isEmpty()) {
         try {
-            val process = Runtime.getRuntime().exec(arrayOf("ps", "-A"))
-            val reader = process.inputStream.bufferedReader()
-            val lines = reader.readLines()
-            reader.close()
-            process.waitFor()
+            val lines = execAndRead("ps", "-A").lines()
             for (line in lines.drop(1)) {
                 val trimmed = line.trim()
                 if (trimmed.isEmpty()) continue
