@@ -24,22 +24,6 @@ concurrency:
 permissions:
   contents: write
 
-env:
-  # La clave de firma se lee de un secret de GitHub, NO del repositorio.
-  #
-  # Antes este workflow traía el keystore COMPLETO en base64 en una variable env.
-  # Eso equivale a tener la clave privada de producción escrita en el archivo:
-  # cualquiera que pudiera leer el repo podía firmar APKs con la identidad
-  # de esta app y, al compartir sharedUserId=com.termux con el resto de apps
-  # Termux, ese APK pasaba los requisitos de firma. Sacarla del archivo no
-  # deshace la exposición — la clave sigue en el historial de git — pero evita
-  # que se propague y acompaña a la rotación de clave.
-  #
-  # Configurar en Settings → Secrets and variables → Actions:
-  #   RELEASE_JKS_BASE64       el .jks en base64
-  #   RELEASE_STORE_PASSWORD   contraseña del keystore
-  #   RELEASE_KEY_PASSWORD    contraseña de la clave
-  #   RELEASE_KEY_ALIAS       alias de la clave
 
 jobs:
   # ── 1. 预检：Release 里是否已经有 APK ───────────────────────────────
