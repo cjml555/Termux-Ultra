@@ -159,11 +159,53 @@ is_installed() { grep -qx "package:$1" <<<"$installed_packages"; }
 
 installed=""
 conflicts=()
-# com.termux TIENE que entrar en conflicts. Antes solo se listaban los add-ons,
-# así que en el caso más habitual — Termux principal de F-Droid/Play y ningún
-# add-on — conflicts quedaba vacío, el bloque de desinstalación se saltaba
-# entero y la instalación moría con INSTALL_FAILED_SHARED_USER_INCOMPATIBLE.
-for p in "$PKG" "${ADDONS[@]}"; do
+if is_installed "$PKG"; then installed="$PKG"; fi
+
+# --------------------------------------- comparar firma de lo que está vivo
+# `dumpsys` solo expone un hash corto (signatures=[7c3fcce]) que no es
+# comparable con el SHA-256 que da apksigner. Para decidir bien hay que extraer
+# el APK instalado y sacarle la huella de verdad.
+#
+# Esto evita lo que pasaba antes: `conflicts` incluía siempre el paquete
+# principal, así que cada --install desinstalaba y reinstalaba la app aunque
+# las dos estuvieran firmadas con la MISMA clave. Eso borra el home, los
+# paquetes y el estado de los plugins, cada vez que se probaba una build.
+installed_digest=""
+new_digest=""
+if [ -n "$BT" ] && [ -x "$BT/apksigner" ]; then
+  new_digest=$("$BT/apksigner" verify --print-certs "$APK" 2>/dev/null \
+    | grep -m1 'SHA-256' | grep -oE '[0-9a-f]{64}')
+fi
+
+# Extraer el APK instalado es lo unico que da la huella real: dumpsys solo
+# enseña un hash corto no comparable. Se hace en un directorio temporal y se
+# borra siempre; el APK pesa ~110 MB asi que no se descarga mas de una vez.
+tmpdir=""
+if [ -n "$installed" ] && [ -n "$new_digest" ]; then
+  tmpdir=$(mktemp -d)
+  remote_apk=$("${ADB[@]}" shell pm path "$PKG" 2>/dev/null | tr -d '\r' | head -1 | sed 's/^package://')
+  if [ -n "$remote_apk" ]; then
+    "${ADB[@]}" pull "$remote_apk" "$tmpdir/instalado.apk" >/dev/null 2>&1
+    if [ -s "$tmpdir/instalado.apk" ]; then
+      installed_digest=$("$BT/apksigner" verify --print-certs "$tmpdir/instalado.apk" 2>/dev/null \
+        | grep -m1 'SHA-256' | grep -oE '[0-9a-f]{64}')
+    fi
+  fi
+  [ -n "$tmpdir" ] && rm -rf "$tmpdir"
+fi
+
+same_signature=0
+if [ -n "$installed" ]; then
+  say "Firma"
+  if [ -n "$installed_digest" ] && [ -n "$new_digest" ] && [ "$installed_digest" = "$new_digest" ]; then
+    same_signature=1
+  fi
+fi
+
+# Sólo entra en `conflicts` lo que realmente impide instalar: el paquete
+# principal únicamente si su firma es distinta de la del APK.
+conflicts=()
+for p in "${ADDONS[@]}"; do
   if is_installed "$p"; then
     src=$("${ADB[@]}" shell dumpsys package "$p" 2>/dev/null | grep -m1 -oE 'installerPackageName=[^ ]*' | cut -d= -f2)
     conflicts+=("$p (instalada por: ${src:-desconocido})")
@@ -171,16 +213,18 @@ for p in "$PKG" "${ADDONS[@]}"; do
   fi
 done
 
-if is_installed "$PKG"; then installed="$PKG"; fi
-[ -n "$installed" ] || echo "   $PKG no está instalada"
-
-# --------------------------------------- comparar firma de lo que está vivo
-mismatch=0
 if [ -n "$installed" ]; then
-  say "Firma de la app instalada"
-  # adb shell pm path + extraer no es viable; comparamos el hash que reporta el sistema
-  installed_sig=$("${ADB[@]}" shell dumpsys package "$PKG" 2>/dev/null | grep -m1 -oE 'signatures=.*' || true)
-  echo "   ${installed_sig:-no informado por dumpsys}"
+  if [ "$same_signature" -eq 1 ]; then
+    ok "$PKG ya instalada con la misma firma — se actualiza sin perder datos"
+  else
+    # Firma distinta o no verificable: instalar encima fallaría con
+    # UPDATE_INCOMPATIBLE / signatures do not match. Hay que desinstalar.
+    src=$("${ADB[@]}" shell dumpsys package "$PKG" 2>/dev/null | grep -m1 -oE 'installerPackageName=[^ ]*' | cut -d= -f2)
+    conflicts=("$PKG (instalada por: ${src:-desconocido}, FIRMA DISTINTA)" "${conflicts[@]+"${conflicts[@]}"}")
+    echo "   PRESENTE: $PKG  ← ${src:-origen desconocido} (firma distinta, hay que reemplazarla)"
+  fi
+else
+  echo "   $PKG no está instalada"
 fi
 
 # ------------------------------------------------------------------ decisión
@@ -189,7 +233,9 @@ if [ "$MODE" != "--install" ]; then
   echo "   Para desinstalar lo incompatible e instalar:"
   echo "     $0 --install"
   if [ ${#conflicts[@]} -gt 0 ]; then
-    warn "Se desinstalarían: ${conflicts[*]}"
+    warn "Se desinstalarían (y se perderían sus datos): ${conflicts[*]}"
+  elif [ -n "$installed" ]; then
+    ok "Se instalará encima: la firma coincide, tus datos se conservan."
   else
     echo "   No hay nada que desinstalar."
   fi
@@ -205,8 +251,9 @@ if [ "${DEPLOY_YES:-0}" != "1" ]; then
   else
     say "Se DESINSTALARÁN estos paquetes (irreversible)"
     printf '     %s\n' "${conflicts[@]}"
-    warn "Se borran los datos de la app y de los add-ons. El home no se toca:"
-    warn "  /data/data/$PKG se conserva, pero el estado de las apps se pierde."
+    warn "Se borra TODO el contenido de /data/data/$PKG, incluido el home"
+    warn "(paquetes instalados, scripts, configuracion de plugins)."
+    warn "Si tienes ahi algo que valoras, haz backup antes: https://wiki.termux.com/wiki/Backing_up_Termux"
     printf '\n   ¿Continuar? [s/N] '
     read -r reply
     case "$reply" in
