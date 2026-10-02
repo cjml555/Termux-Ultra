@@ -25,6 +25,11 @@ render.experimental.xml
 # Keystore files
 *.jks
 *.keystore
+# Ver docs/SIGNING.md: la clave de release es publica a proposito y esta en el
+# historial de git. Estos ficheros son copias locales que no deben volver a
+# trackearse por accidente.
+ki-terminal-release.jks
+*.p12
 
 # Google Services (e.g. APIs or Firebase)
 google-services.json

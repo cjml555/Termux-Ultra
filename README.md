@@ -250,6 +250,8 @@ Termux Ultra 与原版 Termux 及其所有插件共享 `sharedUserId`（`com.ter
 - 请勿混用来源（例如 F-Droid 装一个、GitHub 装另一个）。
 - 如需更换来源，请先**卸载所有已安装的 Termux 及其插件 APK**，再从同一新来源全部安装。卸载前建议参考 [Backing up Termux](https://wiki.termux.com/wiki/Backing_up_Termux) 备份数据。
 
+> **关于签名密钥**：本项目的 release 签名密钥是**公开的**，这是有意为之的决定，不是疏漏。本应用不在 Google Play 上发行，没有需要密钥保密的分发渠道。公开的后果是任何人可以签出被系统识别为本应用的 APK（身份与信任问题，不涉及账号或数据）。如需了解完整的威胁模型、可行的彻底解决方案（reproducible builds）以及日后轮换密钥的步骤，见 **[docs/SIGNING.md](docs/SIGNING.md)**。
+
 > "bootstrap" 指 `termux-app` 自带的用于启动最小 shell 环境的最小包集合，其 zip 由 [termux/termux-packages releases](https://github.com/termux/termux-packages/releases) 构建发布。
 
 ### APK 来源

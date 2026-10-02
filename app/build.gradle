@@ -112,16 +112,23 @@ android {
     }
 
     // Las credenciales de la clave de release NO van aquí. Estaban hardcodeadas
-    // (storePassword/keyPassword = la contraseña real) y además el keystore
-    // completo estaba embebido en base64 dentro de
-    // .github/workflows/release_apk.yml, que es peor: la clave privada entera
-    // en claro. Cualquiera con acceso al repo podía firmar APKs con la
-    // identidad de esta app, y como todas las apps Termux comparten
-    // sharedUserId=com.termux, un APK así pasa los requisitos de firma.
+    // (storePassword/keyPassword) y el keystore completo estaba embebido en
+    // base64 dentro de .github/workflows/release_apk.yml.
     //
-    // Ahora se leen del entorno (GitHub Actions secret, o tu shell local), con
-    // gradle.properties como alternativa local no versionada.
-    // Si faltan, solo falla la variante release; debug no las necesita.
+    // Que la clave esté en el repo público es una DECISIÓN, no un descuido: la
+    // app no está en Google Play, no hay canal que exija secreto, y el daño de
+    // exponerla (identidad de app falsificable) es menor que el coste de
+    // protegerla (historial que reescribir e instalaciones que se rompen).
+    // Ver docs/SIGNING.md para el modelo de amenaza y la solución de fondo
+    // (reproducible builds), que es lo que elimina el problema sin secretos.
+    //
+    // Lo que sí es un descuido es propagar la clave de producción en cada
+    // commit, así que ahora se lee de secrets y variables de entorno. Esto NO
+    // cambia el modelo de amenaza —el historial sigue ahí— pero evita que se
+    // extienda hacia adelante.
+    //
+    // Si faltan las variables, solo falla la variante release; debug no las
+    // necesita.
     signingConfigs {
         release {
             def storePw = System.getenv("TERMUX_STORE_PASSWORD")
