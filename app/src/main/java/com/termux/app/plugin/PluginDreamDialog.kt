@@ -65,6 +65,9 @@ fun PluginDreamDialog(onDismiss: () -> Unit, onInstalled: () -> Unit) {
     var errorText by remember { mutableStateOf<String?>(null) }
     var rawText by remember { mutableStateOf("") }
     var cancelled by remember { mutableStateOf(false) }
+    // Plugin recién instalado que pide permisos de riesgo alto: queda a la
+    // espera de que el usuario confirme en PluginPermissionDialog.
+    var pendingHighRiskPlugin by remember { mutableStateOf<InstalledPlugin?>(null) }
 
     // 打开弹窗时先做一次前置校验，把「能不能用在线模型」摆在明面上
     LaunchedEffect(Unit) {
@@ -129,7 +132,33 @@ fun PluginDreamDialog(onDismiss: () -> Unit, onInstalled: () -> Unit) {
         val result = PluginManager.installPlugin(context, file)
         if (result.isSuccess) {
             val manifest = result.getOrThrow()
-            // 生成物没有签名风险提示，直接授权并启用，省一次点击
+            // 生成的 manifest 是模型写的，不是人手写的，可能声明 ROOT_EXECUTE /
+            // FILE_SYSTEM_WRITE / AGENT_MODIFY。原来的做法是一律直接授权启用，
+            // 注释写的是"生成物没有签名风险提示，省一次点击"——但风险不在签名上，
+            // 而在于这是一个连权限都可能是幻觉出来的产物。
+            //
+            // 风险分级用项目自己的 permissionRiskMap，不另造一套：INTERNET_ACCESS
+            // 在那张表里是 LOW，就不该被当成人为高危拦下来。
+            val permissions = manifest.getParsedPermissions()
+            val asksHighRisk = permissions.any {
+                permissionRiskMap[it] == PermissionRiskLevel.HIGH
+            }
+            if (asksHighRisk) {
+                // 先安装但不启用、不授权，等用户在对话框里逐项确认。
+                pendingHighRiskPlugin = InstalledPlugin(
+                    id = manifest.id,
+                    manifest = manifest,
+                    state = PluginState.INSTALLED,
+                    grantedPermissions = emptySet(),
+                    installPath = PluginLoader.getPluginDir(context, manifest.id).absolutePath,
+                    installedAt = System.currentTimeMillis()
+                )
+                // El .tup ya se copió al directorio del plugin; borrarlo aquí
+                // también. Sin esto el return dejaba el temporal en disco.
+                file.delete()
+                return
+            }
+            // Solo permisos bajos: se concede sin interrumpir.
             PluginManager.enablePlugin(context, manifest.id)
             SnackbarHelper.show(context, "插件「${manifest.name}」已安装并启用", Snackbar.LENGTH_SHORT)
             file.delete()
@@ -138,6 +167,26 @@ fun PluginDreamDialog(onDismiss: () -> Unit, onInstalled: () -> Unit) {
         } else {
             SnackbarHelper.show(context, "安装失败: ${result.exceptionOrNull()?.message}", Snackbar.LENGTH_LONG)
         }
+    }
+
+    /** El usuario ha confirmado los permisos de riesgo alto: conceder y activar. */
+    fun grantHighRiskPermissions() {
+        val plugin = pendingHighRiskPlugin ?: return
+        val permissions = plugin.manifest.getParsedPermissions().toSet()
+        PluginLoader.grantPermissions(context, plugin.id, permissions)
+        PluginLoader.setPluginState(context, plugin.id, PluginState.ENABLED)
+        SnackbarHelper.show(context, "插件「${plugin.manifest.name}」已启用", Snackbar.LENGTH_SHORT)
+        pendingHighRiskPlugin = null
+        onInstalled()
+        onDismiss()
+    }
+
+    /** El usuario ha rechazado: se desinstala para no dejar un plugin muerto ocupando sitio. */
+    fun discardHighRiskGrant() {
+        val plugin = pendingHighRiskPlugin ?: return
+        pendingHighRiskPlugin = null
+        PluginManager.uninstallPlugin(context, plugin.id)
+        SnackbarHelper.show(context, "已取消安装，插件未启用", Snackbar.LENGTH_SHORT)
     }
 
     WindowDialog(
@@ -343,5 +392,14 @@ fun PluginDreamDialog(onDismiss: () -> Unit, onInstalled: () -> Unit) {
                 }
             }
         }
+    )
+
+    // Solo aparece si el manifest generado declara un permiso de riesgo alto.
+    // Es el mismo diálogo que usa el centro de plugins, con el aviso de riesgo
+    // alto y la lista de permisos que el modelo pidió.
+    PluginPermissionDialog(
+        plugin = pendingHighRiskPlugin,
+        onConfirm = { grantHighRiskPermissions() },
+        onDismiss = { discardHighRiskGrant() }
     )
 }
