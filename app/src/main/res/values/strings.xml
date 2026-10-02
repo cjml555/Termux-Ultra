@@ -1336,7 +1336,7 @@
     <string name="prefs_about_termux_original_desc">查看 Termux 上游原版项目</string>
     <string name="contributor_1_name">awkoo</string>
     <string name="contributor_1_username">@awkox</string>
-    <string name="contributor_awkoo_name">awkoo</string>
+    <string name="contributor_awkoo_name" translatable="false">awkoo</string>
     <string name="contributor_yhlfurry_name">YHLFurry</string>
     <string name="contributor_yhlfurry_summary">@YHLFurry · Maintainer</string>
     <string name="contributor_yhlfurry_github">YHLFurry</string>
@@ -1376,10 +1376,10 @@
     <string name="pkg_cat_net">网络工具</string>
     <string name="pkg_cat_utils">实用工具</string>
     <string name="pkg_cat_shell">Shell 与终端</string>
-    <string name="pkg_cat_python">Python</string>
-    <string name="pkg_cat_perl">Perl</string>
-    <string name="pkg_cat_ruby">Ruby</string>
-    <string name="pkg_cat_java">Java</string>
+    <string name="pkg_cat_python" translatable="false">Python</string>
+    <string name="pkg_cat_perl" translatable="false">Perl</string>
+    <string name="pkg_cat_ruby" translatable="false">Ruby</string>
+    <string name="pkg_cat_java" translatable="false">Java</string>
     <string name="pkg_cat_devel">开发工具</string>
     <string name="pkg_cat_libs">开发库</string>
     <string name="pkg_cat_database">数据库</string>
