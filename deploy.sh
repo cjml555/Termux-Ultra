@@ -146,20 +146,32 @@ echo "   firma: ${apksigner_signer:-desconocida}"
 
 # --------------------------------------------------------- qué hay instalado hoy
 say "Estado actual en el dispositivo"
-installed=$("${ADB[@]}" shell pm list packages 2>/dev/null | tr -d '\r' | grep -x "package:$PKG" || true)
+# `pm list packages` se pide UNA vez: antes se llamaba una vez por paquete en el
+# bucle, y en un dispositivo con muchas apps cada llamada tarda.
+#
+# NO usar `grep -q` aquí. `grep -q` cierra el pipe en cuanto encuentra la
+# coincidencia, `adb` recibe SIGPIPE y con `pipefail` el pipeline devuelve 141
+# en vez de 0. El `if` daba por no encontrado un paquete que sí estaba
+# instalado. Se usa `grep -x ... || true` y se compara el valor, no el rc.
+installed_packages=$("${ADB[@]}" shell pm list packages 2>/dev/null | tr -d '\r' || true)
+
+is_installed() { grep -qx "package:$1" <<<"$installed_packages"; }
+
+installed=""
 conflicts=()
 # com.termux TIENE que entrar en conflicts. Antes solo se listaban los add-ons,
 # así que en el caso más habitual — Termux principal de F-Droid/Play y ningún
 # add-on — conflicts quedaba vacío, el bloque de desinstalación se saltaba
 # entero y la instalación moría con INSTALL_FAILED_SHARED_USER_INCOMPATIBLE.
 for p in "$PKG" "${ADDONS[@]}"; do
-  if "${ADB[@]}" shell pm list packages 2>/dev/null | tr -d '\r' | grep -qx "package:$p"; then
+  if is_installed "$p"; then
     src=$("${ADB[@]}" shell dumpsys package "$p" 2>/dev/null | grep -m1 -oE 'installerPackageName=[^ ]*' | cut -d= -f2)
     conflicts+=("$p (instalada por: ${src:-desconocido})")
     echo "   PRESENTE: $p  ← ${src:-origen desconocido}"
   fi
 done
 
+if is_installed "$PKG"; then installed="$PKG"; fi
 [ -n "$installed" ] || echo "   $PKG no está instalada"
 
 # --------------------------------------- comparar firma de lo que está vivo
@@ -209,7 +221,7 @@ if [ ${#conflicts[@]} -gt 0 ]; then
   say "Desinstalando apps Termux existentes (comparten UID y clave)"
   warn "El UID $PKG se comparte: quitar solo una deja el resto con UID roto."
   for p in "$PKG" "${ADDONS[@]}"; do
-    if "${ADB[@]}" shell pm list packages 2>/dev/null | tr -d '\r' | grep -q "^package:$p$"; then
+    if is_installed "$p"; then
       if "${ADB[@]}" uninstall "$p" >/dev/null 2>&1; then
         ok "desinstalada $p"
       else
@@ -230,7 +242,9 @@ say "Instalando"
 if ! "${ADB[@]}" install -r -d "$APK" 2>&1 | sed 's/^/   /'; then
   warn "adb install devolvió error"
 fi
-if ! "${ADB[@]}" shell pm list packages 2>/dev/null | tr -d '\r' | grep -qx "package:$PKG"; then
+# Verificación posterior: hay que consultar DE NUEVO, la lista cacheada de antes
+# de desinstalar ya no refleja el estado actual.
+if ! "${ADB[@]}" shell pm list packages 2>/dev/null | tr -d '\r' | grep -x "package:$PKG" >/dev/null; then
   die "La instalación falló. Si el error es INSTALL_FAILED_SHARED_USER_INCOMPATIBLE
    o de firmas, quedan apps Termux de otra fuente: desinstálalas desde Ajustes."
 fi
