@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -23,6 +24,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
@@ -35,6 +38,8 @@ fun LogViewerScreen(
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
+    // 本页在 MainScreen 取景层之外，自建一层供玻璃顶栏折射页面内容
+    val glassPage = rememberGlassPageBackdrop()
     val scrollBehavior = MiuixScrollBehavior()
     val snackbarHostState = remember { SnackbarHostState() }
     val logsClearedMessage = stringResource(R.string.logs_cleared)
@@ -139,8 +144,7 @@ fun LogViewerScreen(
                                 .clickable {
                                     showSearchBar = false
                                     searchQuery = ""
-                                },
-                            contentAlignment = Alignment.Center
+                                },                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = MiuixIcons.Back,
@@ -186,16 +190,11 @@ fun LogViewerScreen(
                     }
                 }
             } else {
-                TopAppBar(
+                GlassTopAppBar(
                     title = stringResource(R.string.log_management),
+                    backdrop = glassPage.backdrop,
                     navigationIcon = {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .clickable { onBack() },
-                            contentAlignment = Alignment.Center
-                        ) {
+                        GlassIconButton(onClick = { onBack() }) {
                             Icon(
                                 imageVector = MiuixIcons.Back,
                                 contentDescription = stringResource(R.string.back),
@@ -206,18 +205,10 @@ fun LogViewerScreen(
                     },
                     actions = {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             // 搜索图标按钮
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                    .clickable { showSearchBar = true },
-                                contentAlignment = Alignment.Center
-                            ) {
+                            GlassIconButton(onClick = { showSearchBar = true }) {
                                 Icon(
                                     painter = painterResource(R.drawable.ic_search),
                                     contentDescription = stringResource(R.string.search),
@@ -226,14 +217,7 @@ fun LogViewerScreen(
                                 )
                             }
                             // 清除日志图标按钮
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                    .clickable { showClearDialog = true },
-                                contentAlignment = Alignment.Center
-                            ) {
+                            GlassIconButton(onClick = { showClearDialog = true }) {
                                 Icon(
                                     painter = painterResource(R.drawable.ic_delete),
                                     contentDescription = stringResource(R.string.clear_logs),
@@ -248,83 +232,92 @@ fun LogViewerScreen(
             }
         }
     ) { paddingValues ->
-        Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Column(
+        // LogFilterBar 是固定条，按实测顶栏高度让位，顶栏收缩时它跟着上移；
+        // 日志列表在它下面接管滚动，顶栏才会跟着收起。
+        CompositionLocalProvider(LocalTopBarClearance provides topBarClearance(paddingValues)) {
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
+                    .then(glassPage.contentModifier)
             ) {
-                LogFilterBar(
-                    selectedLevel = selectedLevel,
-                    onLevelSelected = { selectedLevel = it }
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(pagePaddingWithoutTop(paddingValues))
+                        .padding(top = LocalTopBarClearance.current)
+                ) {
+                    LogFilterBar(
+                        selectedLevel = selectedLevel,
+                        onLevelSelected = { selectedLevel = it }
+                    )
 
-                if (filteredLogs.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = if (logs.isEmpty()) stringResource(R.string.no_logs) else "没有匹配的日志",
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            fontSize = 16.sp
-                        )
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(vertical = 8.dp)
-                    ) {
-                        itemsIndexed(
-                            items = filteredLogs,
-                            key = { index, entry -> "log_${index}_${entry.timestamp}_${entry.message.hashCode()}" }
-                        ) { index, logEntry ->
-                            LogItem(logEntry = logEntry)
+                    if (filteredLogs.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (logs.isEmpty()) stringResource(R.string.no_logs) else "没有匹配的日志",
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                fontSize = 16.sp
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .nestedScroll(scrollBehavior.nestedScrollConnection),
+                            contentPadding = PaddingValues(vertical = 8.dp)
+                        ) {
+                            itemsIndexed(
+                                items = filteredLogs,
+                                key = { index, entry -> "log_${index}_${entry.timestamp}_${entry.message.hashCode()}" }
+                            ) { index, logEntry ->
+                                LogItem(logEntry = logEntry)
+                            }
                         }
                     }
                 }
-            }
 
-            if (showClearDialog) {
-                OverlayDialog(
-                    show = showClearDialog,
-                    onDismissRequest = { showClearDialog = false },
-                    title = stringResource(R.string.confirm_clear_logs),
-                    summary = stringResource(R.string.confirm_clear_logs_message),
-                    content = {
-                        TextButton(
-                            text = stringResource(R.string.cancel),
-                            onClick = { showClearDialog = false }
-                        )
-                        TextButton(
-                            text = stringResource(R.string.confirm),
-                            onClick = {
-                                scope.launch {
-                                    logManager.stopLogcatCollection()
-                                    val cleared = logManager.clearLogs()
-                                    showClearDialog = false
-                                    if (cleared) {
-                                        lastFileModTime = 0L
-                                        logs = emptyList()
-                                        snackbarHostState.showSnackbar(
-                                            message = logsClearedMessage,
-                                            duration = SnackbarDuration.Short
-                                        )
-                                    } else {
-                                        snackbarHostState.showSnackbar(
-                                            message = noLogsToClearMessage,
-                                            duration = SnackbarDuration.Short
-                                        )
+                if (showClearDialog) {
+                    OverlayDialog(
+                        show = showClearDialog,
+                        onDismissRequest = { showClearDialog = false },
+                        title = stringResource(R.string.confirm_clear_logs),
+                        summary = stringResource(R.string.confirm_clear_logs_message),
+                        content = {
+                            TextButton(
+                                text = stringResource(R.string.cancel),
+                                onClick = { showClearDialog = false }
+                            )
+                            TextButton(
+                                text = stringResource(R.string.confirm),
+                                onClick = {
+                                    scope.launch {
+                                        logManager.stopLogcatCollection()
+                                        val cleared = logManager.clearLogs()
+                                        showClearDialog = false
+                                        if (cleared) {
+                                            lastFileModTime = 0L
+                                            logs = emptyList()
+                                            snackbarHostState.showSnackbar(
+                                                message = logsClearedMessage,
+                                                duration = SnackbarDuration.Short
+                                            )
+                                        } else {
+                                            snackbarHostState.showSnackbar(
+                                                message = noLogsToClearMessage,
+                                                duration = SnackbarDuration.Short
+                                            )
+                                        }
+                                        logManager.startLogcatCollection()
                                     }
-                                    logManager.startLogcatCollection()
-                                }
-                            },
-                            colors = ButtonDefaults.textButtonColorsPrimary()
-                        )
-                    }
-                )
+                                },
+                                colors = ButtonDefaults.textButtonColorsPrimary()
+                            )
+                        }
+                    )
+                }
             }
         }
     }

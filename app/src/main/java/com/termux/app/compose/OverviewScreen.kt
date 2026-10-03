@@ -41,6 +41,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Check
@@ -103,12 +104,13 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.glass.GlassIconButton
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.basic.TopAppBar
+import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -861,7 +863,8 @@ fun OverviewScreen(
     SideEffect {
         if (active) {
             onTopBarContent {
-                TopAppBar(
+                GlassTopAppBar(
+                    backdrop = LocalGlassTopAppBarBackdrop.current,
                     title = stringResource(R.string.overview_title),
                     scrollBehavior = scrollBehavior,
                     navigationIcon = {
@@ -878,7 +881,7 @@ fun OverviewScreen(
                         Row(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            IconButton(onClick = {
+                            GlassIconButton(onClick = {
                                 showAddCardDialog = true
                             }) {
                                 Icon(
@@ -888,7 +891,7 @@ fun OverviewScreen(
                                     tint = MiuixTheme.colorScheme.onSurface
                                 )
                             }
-                            IconButton(onClick = {
+                            GlassIconButton(onClick = {
                                 isEditMode = !isEditMode
                             }) {
                                 Icon(
@@ -922,7 +925,7 @@ fun OverviewScreen(
                 .nestedScroll(scrollBehavior.nestedScrollConnection),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(top = 8.dp, bottom = navBarBottomPadding + 16.dp, start = 16.dp, end = 16.dp)
+            contentPadding = PaddingValues(top = LocalTopBarClearance.current + 8.dp, bottom = navBarBottomPadding + 16.dp, start = 16.dp, end = 16.dp)
         ) {
             
             items(
@@ -1022,8 +1025,9 @@ private fun TipsAgentCard(
                 showKeepAliveWarning = true
             }
         }
-        showLowCard = ApiCompat.hasAnyRuntimeDisabled() ||
-            (ApiCompat.isLowAndroid && (ApiCompat.hasAnyForceEnabled(context) || true))
+        // 低版本设备一律显示提示卡（卡内部再区分"已强制启用"红色态与"老旧设备"橙色态），
+        // 与 hasAnyRuntimeDisabled 同为"需要提醒用户"的入口条件。
+        showLowCard = ApiCompat.hasAnyRuntimeDisabled() || ApiCompat.isLowAndroid
     }
 
     fun toggleCollapse() {
@@ -2512,7 +2516,7 @@ fun ProcessListCard(
                     )
                 }
                 CardIconBox(
-                    icon = Icons.Rounded.List,
+                    icon = Icons.AutoMirrored.Rounded.List,
                     tint = processColor,
                     modifier = Modifier.size(40.dp),
                     iconSize = 22.dp
@@ -3034,7 +3038,7 @@ fun getCardIcon(type: OverviewCardType): ImageVector {
         OverviewCardType.CPU_MONITOR -> Icons.Rounded.Monitor
         OverviewCardType.GPU_MONITOR -> Icons.Rounded.Speed
         OverviewCardType.MEMORY_MONITOR -> Icons.Rounded.Memory
-        OverviewCardType.PROCESS_LIST -> Icons.Rounded.List
+        OverviewCardType.PROCESS_LIST -> Icons.AutoMirrored.Rounded.List
         OverviewCardType.STOP_ALL -> Icons.Rounded.Stop
         OverviewCardType.RESOURCE_ACTION -> Icons.Rounded.PlayArrow
     }
@@ -4022,7 +4026,7 @@ fun launchResourceAction(
         }
         
         action.script?.startsWith("http") == true -> {
-            val command = resolveUrlScript(action.script ?: "")
+            val command = resolveUrlScript(action.script)
             onExecuteScript(action.name, command)
         }
         

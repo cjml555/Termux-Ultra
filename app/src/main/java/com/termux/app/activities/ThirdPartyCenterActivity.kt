@@ -40,10 +40,15 @@ import androidx.core.view.WindowCompat
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.termux.R
+import com.termux.app.compose.rememberGlassPageBackdrop
+import com.termux.app.compose.pagePaddingWithoutTop
+import com.termux.app.compose.standaloneContentPadding
 import com.termux.app.compose.*
 import com.termux.app.compose.TerminalSession
 import com.termux.app.compose.getRunningSessions
 import com.termux.app.utils.SnackbarHelper
+import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.basic.Card as MiuixCard
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -67,6 +72,8 @@ class ThirdPartyCenterActivity : ComponentActivity() {
             ) {
                 com.termux.app.compose.KiTerminalTheme {
                 val context = this@ThirdPartyCenterActivity
+                // 本页在 MainScreen 取景层之外，自建一层供玻璃顶栏折射页面内容
+                val glassPage = rememberGlassPageBackdrop()
                 val scrollBehavior = MiuixScrollBehavior()
                 val density = LocalDensity.current
                 val systemNavBarsHeight = with(density) {
@@ -208,17 +215,12 @@ class ThirdPartyCenterActivity : ComponentActivity() {
                 Scaffold(
                     contentWindowInsets = WindowInsets(0, 0, 0, 0),
                     topBar = {
-                        TopAppBar(
+                        GlassTopAppBar(
                             title = stringResource(R.string.tp_title),
+                            backdrop = glassPage.backdrop,
                             scrollBehavior = scrollBehavior,
                             navigationIcon = {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(androidx.compose.foundation.shape.CircleShape)
-                                        .clickable { finish() },
-                                    contentAlignment = Alignment.Center
-                                ) {
+                                GlassIconButton(onClick = { finish() }) {
                                     Icon(
                                         imageVector = MiuixIcons.Back,
                                         contentDescription = null,
@@ -228,24 +230,18 @@ class ThirdPartyCenterActivity : ComponentActivity() {
                                 }
                             },
                             actions = {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(androidx.compose.foundation.shape.CircleShape)
-                                        .clickable {
-                                            Log.d("ThirdPartyCenter", "Add button clicked")
-                                            editingItem = null
-                                            editName = ""
-                                            editDesc = ""
-                                            editScript = ""
-                                            editUrl = ""
-                                            editNeedContainer = false
-                                            editCopyClip = false
-                                            showAddDialog = true
-                                            Log.d("ThirdPartyCenter", "showAddDialog set to true: $showAddDialog")
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
+                                GlassIconButton(onClick = {
+                                    Log.d("ThirdPartyCenter", "Add button clicked")
+                                    editingItem = null
+                                    editName = ""
+                                    editDesc = ""
+                                    editScript = ""
+                                    editUrl = ""
+                                    editNeedContainer = false
+                                    editCopyClip = false
+                                    showAddDialog = true
+                                    Log.d("ThirdPartyCenter", "showAddDialog set to true: $showAddDialog")
+                                }) {
                                     Icon(
                                         painter = painterResource(R.drawable.ic_add),
                                         contentDescription = null,
@@ -259,10 +255,12 @@ class ThirdPartyCenterActivity : ComponentActivity() {
                 ) { padding ->
                     LazyColumn(
                         modifier = Modifier
+                            .then(glassPage.contentModifier)
                             .fillMaxSize()
-                            .padding(padding)
+                            .padding(pagePaddingWithoutTop(padding))
                             .nestedScroll(scrollBehavior.nestedScrollConnection),
-                        contentPadding = PaddingValues(
+                        contentPadding = standaloneContentPadding(
+                            padding,
                             start = 16.dp,
                             end = 16.dp,
                             bottom = systemNavBarsHeight + 26.dp

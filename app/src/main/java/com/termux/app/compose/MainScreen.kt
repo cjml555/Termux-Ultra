@@ -28,12 +28,14 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -52,7 +54,7 @@ import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.TopAppBar
+import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.basic.NavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem
 import top.yukonga.miuix.kmp.basic.SnackbarHost
@@ -64,9 +66,12 @@ import top.yukonga.miuix.kmp.basic.TopAppBarState
 import top.yukonga.miuix.kmp.blur.layerBackdrop as miuixLayerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop as rememberMiuixLayerBackdrop
 import top.yukonga.miuix.kmp.glass.GlassNavigationBar
+import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.glass.GlassNavigationItem
 import com.termux.R
 import com.termux.shared.termux.shell.command.runner.terminal.TermuxSession
+/** 顶栏玻璃材质共享 MainScreen 的取景层，各页无需各自持有 Backdrop。 */
+val LocalGlassTopAppBarBackdrop = staticCompositionLocalOf<Backdrop?> { null }
 
 private const val SWIPE_THRESHOLD = 100f
 
@@ -104,8 +109,10 @@ fun MainScreen(
         flingAnimationSpec = flingSpec,
     )
     // 各页面把各自的 TopAppBar 内容写入此槽，由 MainScreen 的 Scaffold.topBar 统一渲染
+    // 浮动玻璃底栏的取景层（miuix-blur）：底栏透过它折射页面内容
+    val glassNavBackdrop = rememberMiuixLayerBackdrop()
     val topBarContent = remember {
-        mutableStateOf<@Composable () -> Unit>({ MainTopBar(selectedTab, showVnc, scrollBehavior) })
+        mutableStateOf<@Composable () -> Unit>({ MainTopBar(selectedTab, showVnc, scrollBehavior, glassNavBackdrop) })
     }
     val snackbarHostState = remember { SnackbarHostState() }
     var remoteSubTab by remember { mutableStateOf(0) }
@@ -217,8 +224,6 @@ fun MainScreen(
     }
 
     val liquidGlassBackdrop = rememberLayerBackdrop()
-    // 浮动玻璃底栏的取景层（miuix-blur）：底栏透过它折射页面内容
-    val glassNavBackdrop = rememberMiuixLayerBackdrop()
 
     val direction = if (selectedTab > previousTab) 1 else -1
     val isRemoteWithVnc = selectedTab == 3 && showVnc
@@ -277,7 +282,11 @@ fun MainScreen(
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = { topBarContent.value() },
+        topBar = {
+            CompositionLocalProvider(LocalGlassTopAppBarBackdrop provides glassNavBackdrop) {
+                topBarContent.value()
+            }
+        },
         bottomBar = {
             when (navStyle) {
                 2 -> {
@@ -438,10 +447,10 @@ fun MainScreen(
             }
         }
     ) { padding ->
-        val contentPadding = PaddingValues(
-            top = padding.calculateTopPadding(),
-            bottom = 0.dp
-        )
+        // The tab host's bar occludes with its own gradient band, so the pages are not pushed below
+        // it: they run full height and pass under the bar, each holding its first item clear by
+        // [LocalTopBarClearance] worth of scrollable content padding.
+        val topBarClearance = padding.calculateTopPadding()
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -452,7 +461,9 @@ fun MainScreen(
                         else -> Modifier
                     }
                 )
-                .padding(contentPadding)
+                // No bottom inset either: the glass bottom bar floats over the content, and a gap
+                // here is what made it look like a bar of its own. Pages add their own clearance.
+                .padding()
                 .pointerInput(selectedTab, showVnc, isOverviewEditMode, availableTabs) {
                     detectDragGestures(
                         onDragStart = {
@@ -636,6 +647,7 @@ fun MainScreen(
                         onTabChange(4)
                     },
                     navBarBottomPadding = totalNavHeight,
+                    topBarClearance = topBarClearance,
                     onTopBarContent = { topBarContent.value = it },
                     active = swipeTargetTab == selectedTab
                 )
@@ -692,6 +704,7 @@ fun MainScreen(
                         onTabChange(4)
                     },
                     navBarBottomPadding = totalNavHeight,
+                    topBarClearance = topBarClearance,
                     onTopBarContent = { topBarContent.value = it },
                     active = tab == selectedTab
                 )
@@ -749,9 +762,11 @@ private fun PageContentForTab(
     onGoToFiles: () -> Unit,
     onGoToSettings: () -> Unit,
     navBarBottomPadding: Dp,
+    topBarClearance: Dp,
     onTopBarContent: (@Composable () -> Unit) -> Unit,
     active: Boolean = true
 ) {
+    CompositionLocalProvider(LocalTopBarClearance provides topBarClearance) {
     when (tab) {
         0 -> OverviewScreen(
             sessions = sessions,
@@ -824,13 +839,14 @@ private fun PageContentForTab(
         )
     }
 }
+    }
 
 /**
  * 默认（首帧回退）的全局顶栏：仅展示当前页标题，保证切页动画期间顶栏不为空。
  * 各页面在组合阶段通过 [topBarContent] 槽覆盖为带导航图标与操作按钮的完整顶栏。
  */
 @Composable
-private fun MainTopBar(tab: Int, showVnc: Boolean, scrollBehavior: ScrollBehavior) {
+private fun MainTopBar(tab: Int, showVnc: Boolean, scrollBehavior: ScrollBehavior, backdrop: Backdrop?) {
     val title = when (tab) {
         0 -> stringResource(R.string.overview)
         1 -> stringResource(R.string.terminal)
@@ -838,5 +854,9 @@ private fun MainTopBar(tab: Int, showVnc: Boolean, scrollBehavior: ScrollBehavio
         3 -> if (showVnc) stringResource(R.string.remote) else stringResource(R.string.ssh)
         else -> stringResource(R.string.settings)
     }
-    TopAppBar(title = title, scrollBehavior = scrollBehavior)
+    GlassTopAppBar(
+        title = title,
+        scrollBehavior = scrollBehavior,
+        backdrop = backdrop,
+    )
 }

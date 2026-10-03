@@ -20,7 +20,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import com.termux.R
+import com.termux.app.compose.rememberGlassPageBackdrop
 import com.termux.app.compose.KiTerminalTheme
+import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -73,17 +76,13 @@ class PluginComposeActivity : ComponentActivity() {
                     PluginManager.getPluginConfig(context, pluginId).toMutableMap<String, Any?>()
                 }
 
+                val glassPage = rememberGlassPageBackdrop()
                 Scaffold(topBar = {
-                    TopAppBar(
+                    GlassTopAppBar(
                         title = title,
+                        backdrop = glassPage.backdrop,
                         navigationIcon = {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .clickable { finish() },
-                                contentAlignment = Alignment.Center
-                            ) {
+                            GlassIconButton(onClick = { finish() }) {
                                 Icon(
                                     imageVector = MiuixIcons.Back,
                                     contentDescription = stringResource(R.string.back),

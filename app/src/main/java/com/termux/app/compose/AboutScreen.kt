@@ -29,6 +29,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -38,6 +39,8 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import coil.compose.AsyncImage
+import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
@@ -46,7 +49,6 @@ import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
@@ -73,6 +75,8 @@ import kotlinx.coroutines.flow.collect
 @Composable
 fun AboutScreen(onBack: () -> Unit) {
     val context = LocalContext.current
+    // 本页在 MainScreen 取景层之外，自建一层供玻璃顶栏折射页面内容
+    val glassPage = rememberGlassPageBackdrop()
     val scrollBehavior = MiuixScrollBehavior()
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
@@ -152,12 +156,6 @@ fun AboutScreen(onBack: () -> Unit) {
             }
     }
 
-    // TopAppBar 透明度动画
-    val topBarAlphaAnim by animateFloatAsState(
-        targetValue = scrollFraction,
-        label = "topBarAlpha"
-    )
-
     // 页面遮罩透明度动画 (亮色: surface, 暗色: surface)
     val pageMaskAlphaAnim by animateFloatAsState(
         targetValue = scrollFraction,
@@ -218,25 +216,30 @@ fun AboutScreen(onBack: () -> Unit) {
             containerColor = Color.Transparent,
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
-                SmallTopAppBar(
-                    modifier = Modifier.graphicsLayer { alpha = topBarAlphaAnim },
+                GlassTopAppBar(
                     title = context.getString(R.string.about_preference_title),
+                    backdrop = glassPage.backdrop,
                     scrollBehavior = scrollBehavior,
                     navigationIcon = {
-                        Spacer(modifier = Modifier.size(40.dp))
-                    }
+                        GlassIconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = MiuixIcons.Back,
+                                contentDescription = stringResource(R.string.back),
+                                tint = MiuixTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    },
                 )
             }
-        ) { paddingValues ->
+        ) { padding ->
             LazyColumn(
                 state = listState,
                 modifier = Modifier
+                    .then(glassPage.contentModifier)
                     .fillMaxSize()
                     .nestedScroll(scrollBehavior.nestedScrollConnection),
-                contentPadding = PaddingValues(
-                    top = paddingValues.calculateTopPadding(),
-                    bottom = systemNavBarsHeight + 26.dp
-                ),
+                contentPadding = standaloneContentPadding(padding, bottom = systemNavBarsHeight + 26.dp),
                 verticalArrangement = Arrangement.Top
             ) {
                 item {
@@ -877,31 +880,6 @@ fun AboutScreen(onBack: () -> Unit) {
             }
         }
     )
-    }
-
-    // 独立返回按钮: 最顶层, 始终可见
-    val statusBarHeightPx = WindowInsets.statusBars.getTop(LocalDensity.current)
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(start = 16.dp)
-            .padding(top = (statusBarHeightPx.toFloat() / density.density).dp + 4.dp),
-        contentAlignment = Alignment.TopStart
-    ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .clickable { onBack() },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = MiuixIcons.Back,
-                contentDescription = context.getString(R.string.back),
-                tint = MiuixTheme.colorScheme.onSurface,
-                modifier = Modifier.size(24.dp)
-            )
-        }
     }
 }
 }

@@ -32,6 +32,8 @@ import com.termux.R
 import com.termux.app.utils.FontDownloader
 import com.termux.app.utils.SnackbarHelper
 import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
@@ -41,6 +43,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.util.Properties
+import com.termux.app.compose.pagePaddingWithoutTop
 
 private const val DEFAULT_FILENAME = "Default"
 
@@ -147,6 +150,8 @@ fun TermuxStylingScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    // 本页在 MainScreen 取景层之外，自建一层供玻璃顶栏折射页面内容
+    val glassPage = rememberGlassPageBackdrop()
     val scrollBehavior = MiuixScrollBehavior()
 
     val colorItems = remember { loadStyleItems(context, "colors", ".properties") }
@@ -244,17 +249,12 @@ fun TermuxStylingScreen(
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(
+            GlassTopAppBar(
                 title = stringResource(R.string.title_styling),
+                backdrop = glassPage.backdrop,
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .clickable { onBack() },
-                        contentAlignment = Alignment.Center
-                    ) {
+                    GlassIconButton(onClick = { onBack() }) {
                         Icon(
                             imageVector = MiuixIcons.Back,
                             contentDescription = context.getString(R.string.back),
@@ -268,14 +268,15 @@ fun TermuxStylingScreen(
     ) { padding ->
         Box(
             modifier = modifier
+                .then(glassPage.contentModifier)
                 .fillMaxSize()
-                .padding(padding)
+                .padding(pagePaddingWithoutTop(padding))
         ) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .nestedScroll(scrollBehavior.nestedScrollConnection),
-                contentPadding = PaddingValues(bottom = 16.dp)
+                contentPadding = standaloneContentPadding(padding, bottom = 16.dp)
             ) {
                 item { SmallTitle(text = stringResource(R.string.styling_header)) }
 

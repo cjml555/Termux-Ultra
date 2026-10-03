@@ -47,6 +47,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.Job
+import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.basic.Card as MiuixCard
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -57,6 +59,8 @@ import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import com.termux.app.compose.pagePaddingWithoutTop
+import com.termux.app.compose.standaloneContentPadding
 
 /** 扩展 ProcessInfo，补充 ProcessListScreen 需要的 user / path 信息。 */
 private data class DetailedProcess(
@@ -170,6 +174,8 @@ fun ProcessListScreen(
     // es la primera en muchos recorridos: sin esto, ProcessInfo.stateLabel se
     // quedaría sin contexto y saldría en blanco.
     ensureI18nContext(context)
+    // 本页在 MainScreen 取景层之外，自建一层供玻璃顶栏折射页面内容
+    val glassPage = rememberGlassPageBackdrop()
     val scrollBehavior = MiuixScrollBehavior()
     val isDark = isSystemInDarkTheme()
 
@@ -213,16 +219,11 @@ fun ProcessListScreen(
         modifier = Modifier.fillMaxSize(),
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(
+            GlassTopAppBar(
                 title = stringResource(R.string.process_list_title),
+                backdrop = glassPage.backdrop,
                 navigationIcon = {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .clickable { onBackPressed() },
-                        contentAlignment = Alignment.Center
-                    ) {
+                    GlassIconButton(onClick = { onBackPressed() }) {
                         Icon(
                             imageVector = MiuixIcons.Back,
                             contentDescription = null,
@@ -238,11 +239,9 @@ fun ProcessListScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
+                    .padding(pagePaddingWithoutTop(padding))
                     .nestedScroll(scrollBehavior.nestedScrollConnection),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    bottom = navBarBottomPadding + 16.dp
-                )
+                contentPadding = standaloneContentPadding(padding, bottom = navBarBottomPadding + 16.dp)
             ) {
                 item {
                     Row(

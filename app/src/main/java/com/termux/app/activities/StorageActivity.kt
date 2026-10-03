@@ -1,5 +1,8 @@
 package com.termux.app.activities
 
+import com.termux.app.compose.pagePaddingWithoutTop
+import com.termux.app.compose.topBarClearance
+import com.termux.app.compose.standaloneContentPadding
 import android.app.usage.StorageStatsManager
 import android.content.Context
 import android.os.Bundle
@@ -29,11 +32,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import com.termux.R
+import com.termux.app.compose.rememberGlassPageBackdrop
 import com.termux.app.compose.AiLocalModel
 import com.termux.app.compose.KiTerminalTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -125,6 +131,8 @@ private fun cleanItem(item: CleanableItem): Boolean {
 @Composable
 fun StorageScreen(onBack: () -> Unit) {
     val context = LocalContext.current
+        // 本页在 MainScreen 取景层之外，自建一层供玻璃顶栏折射页面内容
+val glassPage = rememberGlassPageBackdrop()
     val scrollBehavior = MiuixScrollBehavior()
     val scope = rememberCoroutineScope()
     var isScanning by remember { mutableStateOf(true) }
@@ -214,17 +222,12 @@ fun StorageScreen(onBack: () -> Unit) {
         modifier = Modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(
+            GlassTopAppBar(
                 title = stringResource(R.string.storage_title),
+                backdrop = glassPage.backdrop,
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .clickable { onBack() },
-                        contentAlignment = Alignment.Center
-                    ) {
+                    GlassIconButton(onClick = { onBack() }) {
                         Icon(
                             imageVector = MiuixIcons.Back,
                             contentDescription = stringResource(R.string.back),
@@ -238,10 +241,11 @@ fun StorageScreen(onBack: () -> Unit) {
     ) { padding ->
         LazyColumn(
             modifier = Modifier
+                .then(glassPage.contentModifier)
                 .fillMaxSize()
-                .padding(padding)
+                .padding(pagePaddingWithoutTop(padding))
                 .nestedScroll(scrollBehavior.nestedScrollConnection),
-            contentPadding = PaddingValues(bottom = 92.dp)
+            contentPadding = standaloneContentPadding(padding, bottom = 92.dp)
         ) {
             // 总占用卡片
             item {
@@ -577,6 +581,8 @@ fun StorageScreen(onBack: () -> Unit) {
         onDeleted: () -> Unit
     ) {
         val context = LocalContext.current
+                // 本页在 MainScreen 取景层之外，自建一层供玻璃顶栏折射页面内容
+val glassPage = rememberGlassPageBackdrop()
         val scrollBehavior = MiuixScrollBehavior()
         val scope = rememberCoroutineScope()
         var refresh by remember { mutableStateOf(0) }
@@ -597,20 +603,15 @@ fun StorageScreen(onBack: () -> Unit) {
     }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
+Modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(
+            GlassTopAppBar(
                 title = stringResource(R.string.storage_local_model_detail_title),
+                backdrop = glassPage.backdrop,
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .clickable { onBack() },
-                        contentAlignment = Alignment.Center
-                    ) {
+                    GlassIconButton(onClick = { onBack() }) {
                         Icon(
                             imageVector = MiuixIcons.Back,
                             contentDescription = stringResource(R.string.back),
@@ -625,8 +626,12 @@ fun StorageScreen(onBack: () -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .then(glassPage.contentModifier)
+                .padding(pagePaddingWithoutTop(padding))
         ) {
+            // 这页内容固定不滚动，让位只能落在首个 item 上；滚动页才把它折进 contentPadding。
+            Spacer(Modifier.height(topBarClearance(padding)))
+
             itemDetailCard(
                 icon = R.drawable.ic_computer,
                 title = stringResource(R.string.storage_local_model_name),

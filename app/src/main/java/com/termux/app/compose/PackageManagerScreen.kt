@@ -63,6 +63,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.basic.Card as MiuixCard
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -80,6 +82,7 @@ import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import java.io.File
+import com.termux.app.compose.pagePaddingWithoutTop
 
 private val AccentBlue = Color(0xFF2563EB)
 private val GrayColor = Color(0xFF6B7280)
@@ -585,6 +588,8 @@ fun PackageManagerScreen(
 ) {
     val context = LocalContext.current
     val listState = rememberLazyListState()
+    // 本页在 MainScreen 取景层之外，自建一层供玻璃顶栏折射页面内容
+    val glassPage = rememberGlassPageBackdrop()
     val scrollBehavior = MiuixScrollBehavior()
     val isDark = isSystemInDarkTheme()
     val scope = rememberCoroutineScope()
@@ -718,22 +723,17 @@ fun PackageManagerScreen(
             Scaffold(
                 contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
                 topBar = {
-                    TopAppBar(
+                    GlassTopAppBar(
                         title = if (navStack.size > 1) PkgRepo.sectionDisplayName(context, navStack.last().sectionKey ?: "")
                                  else stringResource(R.string.pkgmgr_title),
+                        backdrop = glassPage.backdrop,
                         scrollBehavior = scrollBehavior,
                         navigationIcon = {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .clickable {
-                                        if (searchQuery.isNotBlank()) searchQuery = ""
-                                        else if (navStack.size > 1) navStack = navStack.dropLast(1)
-                                        else onBackPressed()
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
+                            GlassIconButton(onClick = {
+                                if (searchQuery.isNotBlank()) searchQuery = ""
+                                else if (navStack.size > 1) navStack = navStack.dropLast(1)
+                                else onBackPressed()
+                            }) {
                                 Icon(
                                     imageVector = MiuixIcons.Back,
                                     contentDescription = stringResource(R.string.back),
@@ -745,7 +745,7 @@ fun PackageManagerScreen(
                         actions = {
                             // 后台任务恢复按钮 — 有运行中的包操作时显示
                             if (pkgStateSnap != null && !pkgStateSnap!!.finished) {
-                                IconButton(
+                                GlassIconButton(
                                     onClick = {
                                         LiveUpdateState.requestResumePkg()
                                         showProgressDialog = true
@@ -825,8 +825,11 @@ fun PackageManagerScreen(
             ) { innerPadding ->
                 Column(
                     modifier = Modifier
+                        .then(glassPage.contentModifier)
                         .fillMaxSize()
-                        .padding(innerPadding)
+                        // 顶部的搜索栏与 tab 是固定条，必须停在玻璃顶栏下方；列表本身仍会滚到顶栏之下。
+                        .padding(top = topBarClearance(innerPadding))
+                        .padding(pagePaddingWithoutTop(innerPadding))
                 ) {
                     val searchFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
                     var searchBarActivated by remember { mutableStateOf(false) }

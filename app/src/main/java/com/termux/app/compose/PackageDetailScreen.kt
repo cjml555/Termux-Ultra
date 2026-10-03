@@ -47,6 +47,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
@@ -70,6 +72,7 @@ import androidx.compose.ui.draw.alpha
 import com.termux.R
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.annotation.StringRes
+import com.termux.app.compose.pagePaddingWithoutTop
 
 private val AccentBlue = Color(0xFF2563EB)
 private val DangerRed = Color(0xFFDC2626)
@@ -102,6 +105,8 @@ fun PackageDetailScreen(
 ) {
     val context = LocalContext.current
     val listState = rememberLazyListState()
+    // 本页在 MainScreen 取景层之外，自建一层供玻璃顶栏折射页面内容
+    val glassPage = rememberGlassPageBackdrop()
     val scrollBehavior = MiuixScrollBehavior()
     val scope = rememberCoroutineScope()
     val isDark = isSystemInDarkTheme()
@@ -243,8 +248,9 @@ fun PackageDetailScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            GlassTopAppBar(
                 title = pkg.name,
+                backdrop = glassPage.backdrop,
                 subtitle = run {
                     val d = detail ?: pkg
                     val statusText = if (d.isInstalled) stringResource(R.string.pkgdetail_installed) else stringResource(R.string.pkgdetail_not_installed)
@@ -253,13 +259,7 @@ fun PackageDetailScreen(
                 },
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .clickable { if (!showProgressDialog && !showLockDialog) onBack() },
-                        contentAlignment = Alignment.Center
-                    ) {
+                    GlassIconButton(onClick = { if (!showProgressDialog && !showLockDialog) onBack() }) {
                         Icon(
                             imageVector = MiuixIcons.Back,
                             contentDescription = stringResource(R.string.back),
@@ -270,9 +270,7 @@ fun PackageDetailScreen(
                 },
                 actions = {
                     if (!detail?.homepage.isNullOrBlank()) {
-                        IconButton(
-                            onClick = { detail?.homepage?.let { openHomepage(it) } }
-                        ) {
+                        GlassIconButton(onClick = { detail?.homepage?.let { openHomepage(it) } }) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_link),
                                 contentDescription = stringResource(R.string.pkgdetail_open_homepage),
@@ -287,8 +285,9 @@ fun PackageDetailScreen(
     ) { innerPadding ->
         Box(
             modifier = Modifier
+                .then(glassPage.contentModifier)
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(pagePaddingWithoutTop(innerPadding))
         ) {
             if (isLoading) {
                 Column(
@@ -310,7 +309,8 @@ fun PackageDetailScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
-                    contentPadding = PaddingValues(
+                    contentPadding = standaloneContentPadding(
+                        innerPadding,
                         start = 12.dp,
                         end = 12.dp,
                         top = 6.dp,

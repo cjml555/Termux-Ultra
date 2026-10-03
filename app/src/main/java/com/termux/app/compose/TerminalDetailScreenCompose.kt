@@ -49,14 +49,15 @@ import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.KeyboardArrowLeft
-import androidx.compose.material.icons.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Settings
@@ -114,6 +115,7 @@ import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.glass.GlassIconButton
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
@@ -247,9 +249,17 @@ fun TerminalDetailScreenCompose(
     val terminalBgColor = Color(terminalBgInt)
     val isTerminalDark = terminalBgColor.luminance() < 0.5f
 
-    // 2. 大 TopAppBar 背景 → 用系统亮暗主题的固定 opaque 色
+    // 2. 大 TopAppBar 背景 → 默认沿用系统亮暗主题的固定 opaque 色；
+    //    开了动态取色就换成 Miuix 实际渲染的 surface，否则顶栏永远是纯黑白，动态色根本看不出来。
     val isSystemDarkTheme = isSystemInDarkTheme()
-    val topBarOpaqueBg = if (isSystemDarkTheme) Color(0xFF1C1B1F) else Color(0xFFFFFFFF)
+    AppThemePrefs.init(context)
+    val materialYouEnabled by AppThemePrefs.materialYouEnabled.collectAsState()
+    val useMonetTopBar = materialYouEnabled && ApiCompat.isFeatureUsable(context, ApiCompat.Feature.MIUIX_DYNAMIC_COLOR)
+    val topBarOpaqueBg = when {
+        useMonetTopBar -> MiuixTheme.colorScheme.surface
+        isSystemDarkTheme -> Color(0xFF1C1B1F)
+        else -> Color(0xFFFFFFFF)
+    }
 
     // 3. 大 TopAppBar 图标 → 从 opaque 背景 luminance 算
     val topBarOpaqueContent = if (topBarOpaqueBg.luminance() > 0.5f) Color(0xFF000000) else Color(0xFFFFFFFF)
@@ -760,6 +770,31 @@ fun TerminalDetailScreenCompose(
         }
     }
 
+    /**
+     * 顶栏左右两端的键（返回、收缩/展开）。收缩态顶栏只剩这条 56dp 的行压在终端背景上，
+     * 图标得自带玻璃底板 + 阴影，否则会糊进终端内容；展开态顶栏是完整 TopAppBar、自带
+     * 不透明底色，用普通 IconButton 即可。
+     *
+     * 两态必须占同样大的盒子，否则图标会随展开/收缩左右跳：IconButton 默认只给 40dp
+     * 触碰盒，玻璃底板是 48dp。所以展开态显式把 minWidth/minHeight 提到 48dp，玻璃态
+     * 保持 size = 48dp、padding = 0，两者只差画在底板上的那层外观。
+     */
+    @Composable
+    fun TopBarLeafIcon(
+        collapsed: Boolean,
+        onClick: () -> Unit,
+        glyph: @Composable () -> Unit
+    ) {
+        if (collapsed) {
+            GlassIconButton(onClick = onClick, size = 48.dp, padding = 0.dp) {
+                glyph()
+            }
+        } else {
+            // 展开态也要占 48dp，和玻璃态一致；IconButton 默认只有 40dp，图标会跟着态切换左右跳 4dp。
+            IconButton(onClick = onClick, minWidth = 48.dp, minHeight = 48.dp) { glyph() }
+        }
+    }
+
     @Composable
     fun TopBarButtonRow() {
         val showLargeButtons = if (isTopBarTransitioning) useLargeButtons else !isCompact
@@ -782,12 +817,17 @@ fun TerminalDetailScreenCompose(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(modifier = Modifier.padding(start = 16.dp)) {
-                IconButton(onClick = { updateInteractionTime(); onBack() }) {
+                TopBarLeafIcon(
+                    collapsed = isCompact,
+                    onClick = { updateInteractionTime(); onBack() }
+                ) {
                     Icon(
                         imageVector = MiuixIcons.Back,
                         contentDescription = null,
                         modifier = Modifier.size(24.dp),
-                        tint = effectiveTopBarContentColor
+                        tint = if (isCompact)
+                            MiuixTheme.colorScheme.onSurface
+                        else effectiveTopBarContentColor
                     )
                 }
             }
@@ -829,7 +869,8 @@ fun TerminalDetailScreenCompose(
             }
 
             Row(modifier = Modifier.padding(start = 8.dp, end = 16.dp)) {
-                IconButton(
+                TopBarLeafIcon(
+                    collapsed = isCompact,
                     onClick = {
                         updateInteractionTime()
                         val newCollapsed = !isTopBarCollapsed
@@ -848,10 +889,12 @@ fun TerminalDetailScreenCompose(
                     }
                 ) {
                     Icon(
-                        imageVector = if (isTopBarCollapsed) Icons.Rounded.KeyboardArrowRight else Icons.Rounded.KeyboardArrowLeft,
+                        imageVector = if (isTopBarCollapsed) Icons.AutoMirrored.Rounded.KeyboardArrowRight else Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
                         contentDescription = null,
                         modifier = Modifier.size(22.dp),
-                        tint = effectiveTopBarContentColor
+                        tint = if (isCompact)
+                            MiuixTheme.colorScheme.onSurface
+                        else effectiveTopBarContentColor
                     )
                 }
             }
@@ -1355,6 +1398,22 @@ private val REPETITIVE_KEY_NAMES = setOf(
 private val MIN_KEY_WIDTH = 28.dp
 
 /**
+ * 小键盘按键标签的字号策略：优先 11.sp，放不下就自动缩小字号，而不是截断成省略号。
+ *
+ * 按键宽高都是固定值（宽由 [BoxWithConstraints] 等分，高 32.dp），大字号或 CJK 标签
+ * （自定义 extra-keys 布局里很常见）会超出按钮边界。11.sp 是原来的固定字号，作为上限
+ * 保证正常标签的渲染与改动前完全一致；下限 6.sp 防止极小键宽下字号塌到不可读。
+ *
+ * 键高固定 32.dp，正常字号（≤11.sp）行高远小于键高，实际只有水平方向会触顶收缩；
+ * 极端情况下（系统字体缩放很大）才会连带垂直收缩，同样是"保证显示完整"的预期行为。
+ */
+private val KeyboardLabelAutoSize = TextAutoSize.StepBased(
+    minFontSize = 6.sp,
+    maxFontSize = 11.sp,
+    stepSize = 0.5.sp
+)
+
+/**
  * 把 keyCode + 修饰态交给 libterminal 编码并写入当前会话。
  *
  * 走引擎的 TerminalView.onKeyDown 而不是自己拼字节：KeyInputProcessor 会读
@@ -1766,11 +1825,12 @@ private fun KeyButton(
     ) {
         Text(
             text = label,
-            fontSize = 11.sp,
+            autoSize = KeyboardLabelAutoSize,
             fontWeight = FontWeight.Medium,
             color = effectiveContentColor,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            softWrap = false,
+            overflow = TextOverflow.Clip
         )
     }
 }
@@ -1805,10 +1865,12 @@ private fun SpecialKeyButton(
     ) {
         Text(
             text = label,
-            fontSize = 11.sp,
+            autoSize = KeyboardLabelAutoSize,
             fontWeight = FontWeight.Bold,
             color = if (locked) MiuixTheme.colorScheme.onPrimary else effectiveContentColor,
-            maxLines = 1
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Clip
         )
     }
 }

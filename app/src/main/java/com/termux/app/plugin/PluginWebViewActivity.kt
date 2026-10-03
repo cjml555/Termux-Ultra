@@ -1,5 +1,7 @@
 package com.termux.app.plugin
 
+import com.termux.app.compose.pagePaddingWithoutTop
+import com.termux.app.compose.topBarClearance
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
@@ -32,7 +34,10 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
 import com.google.gson.Gson
 import com.termux.R
+import com.termux.app.compose.rememberGlassPageBackdrop
 import com.termux.app.compose.KiTerminalTheme
+import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -86,6 +91,16 @@ class PluginWebViewActivity : ComponentActivity() {
         window.statusBarColor = android.graphics.Color.TRANSPARENT
         window.navigationBarColor = android.graphics.Color.TRANSPARENT
 
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (webView?.canGoBack() == true) {
+                    webView?.goBack()
+                } else {
+                    finish()
+                }
+            }
+        })
+
         setContent {
             KiTerminalTheme {
                 PluginWebViewScreen(
@@ -129,14 +144,6 @@ class PluginWebViewActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-    override fun onBackPressed() {
-        if (webView?.canGoBack() == true) {
-            webView?.goBack()
-        } else {
-            super.onBackPressed()
-        }
-    }
-
     @SuppressLint("SetJavaScriptEnabled")
     @Composable
     private fun PluginWebViewScreen(
@@ -146,20 +153,17 @@ class PluginWebViewActivity : ComponentActivity() {
         onWebViewReady: (WebView) -> Unit
     ) {
         val context = LocalContext.current
+        // 本页在 MainScreen 取景层之外，自建一层供玻璃顶栏折射页面内容
+        val glassPage = rememberGlassPageBackdrop()
 
         Scaffold(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
-                TopAppBar(
+                GlassTopAppBar(
                     title = title,
+                    backdrop = glassPage.backdrop,
                     navigationIcon = {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .clickable { onBack() },
-                            contentAlignment = Alignment.Center
-                        ) {
+                        GlassIconButton(onClick = { onBack() }) {
                             Icon(
                                 imageVector = MiuixIcons.Back,
                                 contentDescription = getString(R.string.back),
@@ -173,14 +177,17 @@ class PluginWebViewActivity : ComponentActivity() {
         ) { padding ->
             Box(
                 modifier = Modifier
+                    .then(glassPage.contentModifier)
+                    .padding(top = topBarClearance(padding))
                     .fillMaxSize()
-                    .padding(padding)
+                    .padding(pagePaddingWithoutTop(padding))
             ) {
                 AndroidView(
                     factory = { ctx ->
                         WebView(ctx).apply {
                             setBackgroundColor(0)
                             setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
+                            @Suppress("DEPRECATION")
                             settings.apply {
                                 javaScriptEnabled = true
                                 domStorageEnabled = true

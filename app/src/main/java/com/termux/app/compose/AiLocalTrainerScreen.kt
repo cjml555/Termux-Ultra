@@ -57,6 +57,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
@@ -75,6 +77,7 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
+import com.termux.app.compose.pagePaddingWithoutTop
 
 // Claves internas de estilo para las tarjetas de paso. No son texto visible:
 // el encabezado visible sale de un recurso, así que el color no puede deducirse
@@ -97,6 +100,8 @@ fun AiLocalTrainerScreen(
     val scope = rememberCoroutineScope()
     val onlineReady = remember { mutableStateOf(false) }
     val hasLocal = remember { mutableStateOf(AiTermuxPrefs.getConfig(ctx).providerConfig.provider == "local") }
+    // 本页在 MainScreen 取景层之外，自建一层供玻璃顶栏折射页面内容
+    val glassPage = rememberGlassPageBackdrop()
     val scrollBehavior = MiuixScrollBehavior()
 
     LaunchedEffect(Unit) {
@@ -108,14 +113,12 @@ fun AiLocalTrainerScreen(
             modifier = modifier.fillMaxSize(),
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
-                TopAppBar(
+                GlassTopAppBar(
                     title = stringResource(R.string.train_local_model),
+                    backdrop = glassPage.backdrop,
                     scrollBehavior = scrollBehavior,
                     navigationIcon = {
-                        Box(
-                            modifier = Modifier.size(40.dp).clip(CircleShape).clickable { onBack() },
-                            contentAlignment = Alignment.Center
-                        ) {
+                        GlassIconButton(onClick = { onBack() }) {
                             Icon(
                                 imageVector = MiuixIcons.Back,
                                 contentDescription = stringResource(R.string.back),
@@ -128,12 +131,15 @@ fun AiLocalTrainerScreen(
             }
         ) { padding ->
             if (!hasLocal.value) {
-                NoLocalModelHint(Modifier.padding(padding))
+                // 居中提示按整屏居中，让位交给 pagePaddingWithoutTop 之外的那一份顶部空间。
+                NoLocalModelHint(Modifier.padding(top = topBarClearance(padding)))
             } else {
                 TrainerBody(
                     Modifier
-                        .padding(padding)
                         .fillMaxSize()
+                        // 顶部的 TabBar 是固定条，必须停在玻璃顶栏下方；各 tab 的列表仍会滚到顶栏之下。
+                        .padding(top = topBarClearance(padding))
+                        .padding(pagePaddingWithoutTop(padding))
                         .nestedScroll(scrollBehavior.nestedScrollConnection),
                     ctx, onlineReady
                 )

@@ -1,5 +1,7 @@
 package com.termux.app.activities
 
+import com.termux.app.compose.pagePaddingWithoutTop
+import com.termux.app.compose.topBarClearance
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -31,11 +33,14 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import com.termux.R
 import com.termux.app.TermuxService
+import com.termux.app.compose.rememberGlassPageBackdrop
 import com.termux.app.compose.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
@@ -133,6 +138,8 @@ private fun QemuVmScreen(
     var editingVm by remember { mutableStateOf<QemuVmConfig?>(null) }
     var showDeleteConfirm by remember { mutableStateOf<QemuVmConfig?>(null) }
     var runningVmCount by remember { mutableStateOf(0) }
+    // 本页在 MainScreen 取景层之外，自建一层供玻璃顶栏折射页面内容
+    val glassPage = rememberGlassPageBackdrop()
     val scrollBehavior = MiuixScrollBehavior()
 
     // 路径迁移状态
@@ -163,17 +170,12 @@ private fun QemuVmScreen(
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(
+            GlassTopAppBar(
                 title = stringResource(R.string.vm_title),
+                backdrop = glassPage.backdrop,
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .clickable { onBack() },
-                        contentAlignment = Alignment.Center
-                    ) {
+                    GlassIconButton(onClick = { onBack() }) {
                         Icon(
                             imageVector = MiuixIcons.Back,
                             contentDescription = null,
@@ -187,13 +189,15 @@ private fun QemuVmScreen(
     ) { padding ->
         Box(
             modifier = Modifier
+                .then(glassPage.contentModifier)
                 .fillMaxSize()
-                .padding(padding)
+                .padding(pagePaddingWithoutTop(padding))
         ) {
             if (vms.isEmpty()) {
                 VmEmptyState(
                     modifier = Modifier
                         .fillMaxSize()
+                        .padding(top = topBarClearance(padding))
                         .verticalScroll(rememberScrollState()),
                     onCreate = {
                         editingVm = null
@@ -204,6 +208,7 @@ private fun QemuVmScreen(
                 VmListScreen(
                     modifier = Modifier
                         .fillMaxSize()
+                        .padding(top = topBarClearance(padding))
                         .nestedScroll(scrollBehavior.nestedScrollConnection),
                     vms = vms,
                     runningVmCount = runningVmCount,

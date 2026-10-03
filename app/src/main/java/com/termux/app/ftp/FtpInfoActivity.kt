@@ -1,5 +1,7 @@
 package com.termux.app.ftp
 
+import com.termux.app.compose.pagePaddingWithoutTop
+import com.termux.app.compose.topBarClearance
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -24,7 +26,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.termux.R
+import com.termux.app.compose.rememberGlassPageBackdrop
 import com.termux.app.compose.KiTerminalTheme
+import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
@@ -65,6 +70,8 @@ class FtpInfoActivity : ComponentActivity() {
 @Composable
 fun FtpInfoScreen() {
     val context = LocalContext.current
+    // 本页在 MainScreen 取景层之外，自建一层供玻璃顶栏折射页面内容
+    val glassPage = rememberGlassPageBackdrop()
     val prefs = remember { context.getSharedPreferences("termux_prefs", Context.MODE_PRIVATE) }
     
     var username by remember { mutableStateOf(prefs.getString("sftp_username", "termux") ?: "termux") }
@@ -76,17 +83,11 @@ fun FtpInfoScreen() {
     
     Scaffold(
         topBar = {
-            TopAppBar(
+            GlassTopAppBar(
                 title = "FTP 连接信息",
+                backdrop = glassPage.backdrop,
                 navigationIcon = {
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 12.dp)
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .clickable { (context as FtpInfoActivity).finish() },
-                        contentAlignment = Alignment.Center
-                    ) {
+                    GlassIconButton(onClick = { (context as FtpInfoActivity).finish() }) {
                         Icon(
                             imageVector = MiuixIcons.Back,
                             contentDescription = stringResource(R.string.back),
@@ -100,12 +101,16 @@ fun FtpInfoScreen() {
     ) { padding ->
         Column(
             modifier = Modifier
+                .then(glassPage.contentModifier)
                 .fillMaxSize()
-                .padding(padding)
+                .padding(pagePaddingWithoutTop(padding))
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // 这页内容固定不滚动，让位落在首个 item 上；滚动页才把它折进 contentPadding。
+            Spacer(Modifier.height(topBarClearance(padding)))
+
             Card(
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -248,8 +253,9 @@ fun getLocalIpAddress(context: Context): String {
             val addresses = networkInterface.inetAddresses
             while (addresses.hasMoreElements()) {
                 val address = addresses.nextElement()
-                if (!address.isLoopbackAddress && address is java.net.Inet4Address) {
-                    return address.hostAddress
+                val host = address.hostAddress
+                if (!address.isLoopbackAddress && address is java.net.Inet4Address && !host.isNullOrEmpty()) {
+                    return host
                 }
             }
         }

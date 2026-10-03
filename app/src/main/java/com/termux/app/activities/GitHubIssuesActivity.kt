@@ -1,5 +1,7 @@
 package com.termux.app.activities
 
+import com.termux.app.compose.pagePaddingWithoutTop
+import com.termux.app.compose.standaloneContentPadding
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -39,6 +41,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.*
+import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -62,6 +65,8 @@ class GitHubIssuesActivity : ComponentActivity() {
                         WindowInsets.navigationBars.getBottom(density).toDp()
                     }
                     val session = remember { GitHubSessionStore.load(context) }
+                    // 本页在 MainScreen 取景层之外，自建一层供玻璃顶栏折射页面内容
+                    val glassPage = rememberGlassPageBackdrop()
 
                     var issues by remember { mutableStateOf<List<GitHubIssue>>(emptyList()) }
                     var loading by remember { mutableStateOf(true) }
@@ -98,15 +103,16 @@ class GitHubIssuesActivity : ComponentActivity() {
                     Scaffold(
                         contentWindowInsets = WindowInsets(0, 0, 0, 0),
                         topBar = {
-                            TopAppBar(
+                            GlassTopAppBar(
                                 title = stringResource(R.string.github_topics_title),
+                                backdrop = glassPage.backdrop,
                                 scrollBehavior = scrollBehavior,
                                 navigationIcon = { BackButton { finish() } }
                             )
                         }
                     ) { padding ->
                         if (session == null) {
-                            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                            Box(Modifier.fillMaxSize().padding(pagePaddingWithoutTop(padding)), contentAlignment = Alignment.Center) {
                                 Text(
                                     stringResource(R.string.github_login_required),
                                     style = TextStyle(fontSize = 14.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
@@ -117,14 +123,16 @@ class GitHubIssuesActivity : ComponentActivity() {
                         IssueFeed(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(padding)
+                                .then(glassPage.contentModifier)
+                                .padding(pagePaddingWithoutTop(padding))
                                 .nestedScroll(scrollBehavior.nestedScrollConnection),
                             issues = issues,
                             loading = loading,
                             error = error,
                             onRetry = { load() },
                             onIssueClick = { openDetail(it.number) },
-                            contentPadding = PaddingValues(
+                            contentPadding = standaloneContentPadding(
+                                padding,
                                 start = 16.dp, end = 16.dp, bottom = systemNavBarsHeight + 26.dp
                             )
                         )

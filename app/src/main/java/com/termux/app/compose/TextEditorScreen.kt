@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.termux.R
+import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -59,9 +61,11 @@ fun TextEditorScreen(
     onClose: () -> Unit
 ) {
     val isDark = isSystemInDarkTheme()
+    // 本页在 MainScreen 取景层之外，自建一层供玻璃顶栏折射页面内容
+    val glassPage = rememberGlassPageBackdrop()
     val scrollBehavior = MiuixScrollBehavior()
     var currentFilePath by remember { mutableStateOf(filePath) }
-    val file = remember(currentFilePath) { if (currentFilePath != null) File(currentFilePath) else null }
+    val file = remember(currentFilePath) { currentFilePath?.let { File(it) } }
     val lang = remember(file) { SyntaxHighlighter.detectLanguage(file) }
     var content by remember { mutableStateOf(initialContent) }
     var modified by remember { mutableStateOf(false) }
@@ -79,8 +83,9 @@ fun TextEditorScreen(
     val perms = SyntaxHighlighter.permissions(file)
 
     fun doSave() {
-        if (currentFilePath != null) {
-            val ok = onSave(currentFilePath!!, content)
+        val path = currentFilePath
+        if (path != null) {
+            val ok = onSave(path, content)
             if (ok) modified = false
         } else {
             // 新建文件 → 先选目录
@@ -91,20 +96,15 @@ fun TextEditorScreen(
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         topBar = {
-            TopAppBar(
+            GlassTopAppBar(
                 title = fileName,
+                backdrop = glassPage.backdrop,
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .clickable {
-                                if (modified && !readOnly) showConfirmExit = true
-                                else onClose()
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
+                    GlassIconButton(onClick = {
+                        if (modified && !readOnly) showConfirmExit = true
+                        else onClose()
+                    }) {
                         Icon(
                             imageVector = MiuixIcons.Back,
                             contentDescription = null,
@@ -116,7 +116,7 @@ fun TextEditorScreen(
                 actions = {
                     if (!readOnly) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = { doSave() }) {
+                            GlassIconButton(onClick = { doSave() }) {
                                 Icon(
                                     painter = painterResource(R.drawable.ic_save),
                                     contentDescription = stringResource(R.string.save),
@@ -142,11 +142,15 @@ fun TextEditorScreen(
     ) { innerPadding ->
         Column(
             modifier = Modifier
+                .then(glassPage.contentModifier)
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(pagePaddingWithoutTop(innerPadding))
                 .verticalScroll(rememberScrollState())
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
         ) {
+            // 这页是 Column + verticalScroll，让位落在首个 item 上；滚动页才把它折进 contentPadding。
+            Spacer(Modifier.height(topBarClearance(innerPadding)))
+
             // 文件信息条
             if (file != null) {
                 Column(
