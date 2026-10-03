@@ -1785,7 +1785,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                                     )
                                                     vm.updateConfig(cfg)
                                                 } else {
-                                                    SnackbarHelper.show(ctx, "下载失败：" + localProgressMsg, Snackbar.LENGTH_LONG, null)
+                                                    SnackbarHelper.show(ctx, ctx.getString(R.string.fm_scp_download_failed) + localProgressMsg, Snackbar.LENGTH_LONG, null)
                                                 }
                                                 downloadingModelId = null
                                                 localRefresh++
@@ -1961,7 +1961,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                             },
                                             modifier = Modifier.weight(1f)
                                         ) {
-                                            Text("刷新列表")
+                                            Text(stringResource(R.string.agent_refresh_list))
                                         }
                                     }
                                 }
@@ -2094,7 +2094,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                                 },
                                                 modifier = Modifier.fillMaxWidth()
                                             ) {
-                                                Text("下载模型")
+                                                Text(stringResource(R.string.agent_download_model))
                                             }
                                         } else {
                                             Spacer(Modifier.height(10.dp))
@@ -2113,14 +2113,14 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                                         settingsScope.launch {
                                                             val ok = AiOllamaManager.deleteModel(ollamaEntry.ollamaModelName)
                                                             if (ok) {
-                                                                SnackbarHelper.show(ctx, "模型已删除", Snackbar.LENGTH_SHORT, null)
+                                                                SnackbarHelper.show(ctx, ctx.getString(R.string.agent_model_deleted), Snackbar.LENGTH_SHORT, null)
                                                                 val updatedList = AiOllamaManager.getInstalledModels()
                                                                 AiTermuxPrefs.saveInstalledOllamaModels(ctx, updatedList)
                                                             }
                                                         }
                                                     }
                                                 ) {
-                                                    Text("删除")
+                                                    Text(stringResource(R.string.delete))
                                                 }
                                             }
                                         }
@@ -2268,7 +2268,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                         )
                     ) {
                         if (testing) androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                        else Text("测试连接", color = MiuixTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                        else Text(stringResource(R.string.agent_test_connection), color = MiuixTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                     }
                     Button(
                         onClick = {
@@ -2373,7 +2373,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                 SnackbarHelper.show(ctx, ctx.getString(R.string.agent_profile_saved, editName), Snackbar.LENGTH_SHORT, null)
                             }, modifier = Modifier.weight(1f).height(44.dp),
                                 colors = ButtonDefaults.buttonColors(color = MiuixTheme.colorScheme.primary)) {
-                                Text("保存", color = Color.White, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.save), color = Color.White, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -2414,7 +2414,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                             SnackbarHelper.show(ctx, ctx.getString(R.string.agent_profile_deleted, prof.name), Snackbar.LENGTH_SHORT, null)
                         }, modifier = Modifier.weight(1f).height(44.dp),
                             colors = ButtonDefaults.buttonColors(color = Color(0xFFDC2626))) {
-                            Text("删除", color = Color.White, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.delete), color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -2667,7 +2667,7 @@ private fun AiChatScreen(vm: AiTermuxViewModel, onBack: () -> Unit, onOpenSetup:
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.ic_close),
-                                    contentDescription = "移除附件",
+                                    contentDescription = stringResource(R.string.agent_remove_attachment),
                                     modifier = Modifier.size(14.dp),
                                     tint = MiuixTheme.colorScheme.onSurfaceVariantSummary
                                 )
@@ -2756,14 +2756,14 @@ private fun AiChatScreen(vm: AiTermuxViewModel, onBack: () -> Unit, onOpenSetup:
                             } else if (vm.isStreaming) {
                                 Icon(
                                     painter = painterResource(R.drawable.ic_close),
-                                    contentDescription = "停止生成",
+                                    contentDescription = stringResource(R.string.agent_stop_generating),
                                     modifier = Modifier.size(20.dp),
                                     tint = Color.White
                                 )
                             } else {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Rounded.Send,
-                                    contentDescription = "发送",
+                                    contentDescription = stringResource(R.string.vnc_send_button),
                                     tint = sendBtnIconTint,
                                     modifier = Modifier.size(22.dp)
                                 )
@@ -3052,7 +3052,7 @@ fun TaskBar(
             Spacer(Modifier.weight(1f))
             Icon(
                 painter = painterResource(R.drawable.ic_close),
-                contentDescription = "隐藏任务栏",
+                contentDescription = stringResource(R.string.agent_hide_taskbar),
                 modifier = Modifier
                     .size(20.dp)
                     .clickable {
@@ -3478,7 +3478,7 @@ private fun ChatBubble(msg: ChatMessage, vm: AiTermuxViewModel) {
                     onCopy = {
                         val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                         clipboard.setPrimaryClip(android.content.ClipData.newPlainText("消息", msg.content))
-                        SnackbarHelper.show(ctx, "已复制", Snackbar.LENGTH_SHORT, null)
+                        SnackbarHelper.show(ctx, ctx.getString(R.string.agent_copied), Snackbar.LENGTH_SHORT, null)
                     },
                     onRegenerate = { vm.regenerateLast() },
                     onDelete = { vm.deleteMessage(msg.id) }
@@ -4004,7 +4004,7 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
                                 tint = Color(0xFFDC2626)
                             )
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("执行出错", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
+                                Text(stringResource(R.string.agent_exec_error), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
                                 Spacer(Modifier.height(2.dp))
                                 Text(errText, fontSize = 12.sp, color = Color(0xFFB91C1C))
                             }
@@ -4068,7 +4068,7 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
                                                 .clip(RoundedCornerShape(10.dp)),
                                             colors = ButtonDefaults.buttonColors(color = MiuixTheme.colorScheme.primary)
                                         ) {
-                                            Text("提交回答", color = Color.White, fontWeight = FontWeight.Bold)
+                                            Text(stringResource(R.string.agent_submit_answer), color = Color.White, fontWeight = FontWeight.Bold)
                                         }
                                     }
 
@@ -4120,7 +4120,7 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
                                                 .clip(RoundedCornerShape(10.dp)),
                                             colors = ButtonDefaults.buttonColors(color = MiuixTheme.colorScheme.primary)
                                         ) {
-                                            Text("提交回答", color = Color.White, fontWeight = FontWeight.Bold)
+                                            Text(stringResource(R.string.agent_submit_answer), color = Color.White, fontWeight = FontWeight.Bold)
                                         }
                                     }
 
@@ -4177,7 +4177,7 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
                                                 .clip(RoundedCornerShape(10.dp)),
                                             colors = ButtonDefaults.buttonColors(color = MiuixTheme.colorScheme.primary)
                                         ) {
-                                            Text("提交回答", color = Color.White, fontWeight = FontWeight.Bold)
+                                            Text(stringResource(R.string.agent_submit_answer), color = Color.White, fontWeight = FontWeight.Bold)
                                         }
                                     }
                                 }
@@ -4207,7 +4207,7 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
                                             color = if (isDark) Color(0xFF333333) else Color(0xFFEEEEEE)
                                         )
                                     ) {
-                                        Text("取消", color = MiuixTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                                        Text(stringResource(R.string.cancel), color = MiuixTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                                     }
                                     Button(
                                         onClick = { vm.confirmDangerous(msgId) },
@@ -4217,7 +4217,7 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
                                             .clip(RoundedCornerShape(10.dp)),
                                         colors = ButtonDefaults.buttonColors(color = Color(0xFFDC2626))
                                     ) {
-                                        Text("确认执行", color = Color.White, fontWeight = FontWeight.Bold)
+                                        Text(stringResource(R.string.agent_confirm_exec), color = Color.White, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -4405,7 +4405,7 @@ private fun AgentSkillCard(msgId: String, card: SkillCardData, errorMsg: String?
                                         tint = Color(0xFFDC2626)
                                     )
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("执行出错", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
+                                        Text(stringResource(R.string.agent_exec_error), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
                                         Spacer(Modifier.height(2.dp))
                                         Text(errText, fontSize = 12.sp, color = Color(0xFFB91C1C))
                                     }

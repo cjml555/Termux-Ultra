@@ -2113,4 +2113,32 @@
     <string name="agent_history_cleared">对话历史已清空</string>
     <string name="agent_copied_to_clipboard">已复制到剪贴板</string>
     <string name="logviewer_search_hint">搜索日志内容或标签...</string>
+
+    <!-- fm/ftp/remote/keys: contentDescription y labels sin traducir -->
+    <string name="fm_file_name_label">文件名</string>
+    <string name="fm_scp_download_failed">下载失败：</string>
+    <string name="agent_model_deleted">模型已删除</string>
+    <string name="agent_remove_attachment">移除附件</string>
+    <string name="agent_stop_generating">停止生成</string>
+    <string name="agent_hide_taskbar">隐藏任务栏</string>
+    <string name="agent_copied">已复制</string>
+    <string name="ftp_port_label">端口</string>
+    <string name="ftp_username_label">用户名</string>
+    <string name="ftp_password_label">密码</string>
+    <string name="keys_move_up">上移</string>
+    <string name="keys_move_down">下移</string>
+    <string name="remote_scan">扫描</string>
+    <string name="logviewer_clear_search">清除搜索</string>
+    <string name="settings_search_hint">搜索设置项</string>
+    <string name="plugin_webview_back">返回</string>
+    <string name="ftp_port_value">端口：%1$s</string>
+    <string name="ftp_username_value">用户名：%1$s</string>
+    <string name="ftp_password_value">密码：%1$s</string>
+    <string name="agent_refresh_list">刷新列表</string>
+    <string name="agent_download_model">下载模型</string>
+    <string name="agent_test_connection">测试连接</string>
+    <string name="agent_exec_error">执行出错</string>
+    <string name="agent_submit_answer">提交回答</string>
+    <string name="agent_confirm_exec">确认执行</string>
+    <string name="fm_file_label">文件</string>
 </resources>

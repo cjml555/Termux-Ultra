@@ -352,7 +352,7 @@ fun FileManagerScreen(
                         }) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_copy),
-                                contentDescription = "复制",
+                                contentDescription = stringResource(R.string.copy_text),
                                 modifier = Modifier.size(24.dp),
                                 tint = MiuixTheme.colorScheme.onSurface
                             )
@@ -365,7 +365,7 @@ fun FileManagerScreen(
                         }) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_cut),
-                                contentDescription = "剪切",
+                                contentDescription = stringResource(R.string.cut_text),
                                 modifier = Modifier.size(24.dp),
                                 tint = MiuixTheme.colorScheme.onSurface
                             )
@@ -377,7 +377,7 @@ fun FileManagerScreen(
                             }) {
                                 Icon(
                                     painter = painterResource(R.drawable.ic_edit),
-                                    contentDescription = "重命名",
+                                    contentDescription = stringResource(R.string.rename),
                                     modifier = Modifier.size(24.dp),
                                     tint = MiuixTheme.colorScheme.onSurface
                                 )
@@ -388,7 +388,7 @@ fun FileManagerScreen(
                         }) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_delete),
-                                contentDescription = "删除",
+                                contentDescription = stringResource(R.string.delete),
                                 modifier = Modifier.size(24.dp),
                                 tint = MiuixTheme.colorScheme.onSurface
                             )
@@ -424,7 +424,7 @@ fun FileManagerScreen(
                         }) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_paste),
-                                contentDescription = "粘贴",
+                                contentDescription = stringResource(R.string.paste_text),
                                 modifier = Modifier.size(24.dp),
                                 tint = MiuixTheme.colorScheme.onSurface
                             )
@@ -456,7 +456,7 @@ fun FileManagerScreen(
                             }) {
                                 Icon(
                                     painter = painterResource(R.drawable.ic_add),
-                                    contentDescription = "文件夹",
+                                    contentDescription = stringResource(R.string.folder),
                                     modifier = Modifier.size(24.dp),
                                     tint = MiuixTheme.colorScheme.onSurface
                                 )
@@ -521,7 +521,7 @@ fun FileManagerScreen(
                             )
                             Icon(
                                 painter = painterResource(R.drawable.ic_close),
-                                contentDescription = "确定",
+                                contentDescription = stringResource(R.string.ok),
                                 modifier = Modifier
                                     .size(24.dp)
                                     .clickable {
@@ -1209,7 +1209,7 @@ fun FileManagerScreen(
                     TextField(
                         value = newFileName,
                         onValueChange = { newFileName = it },
-                        label = "文件名"
+                        label = stringResource(R.string.fm_file_name_label)
                     )
 
                     Spacer(Modifier.height(12.dp))
@@ -1264,7 +1264,7 @@ fun FileManagerScreen(
                     TextField(
                         value = newFolderName,
                         onValueChange = { newFolderName = it },
-                        label = "文件名"
+                        label = stringResource(R.string.fm_file_name_label)
                     )
 
                     Spacer(Modifier.height(12.dp))
@@ -1322,7 +1322,7 @@ fun FileManagerScreen(
                     TextField(
                         value = newFileInputName,
                         onValueChange = { newFileInputName = it },
-                        label = "文件名"
+                        label = stringResource(R.string.fm_file_name_label)
                     )
 
                     Spacer(Modifier.height(12.dp))
@@ -1400,7 +1400,7 @@ fun FileManagerScreen(
                             tint = rowTextColor
                         )
                         Spacer(modifier = Modifier.width(16.dp))
-                        Text("文件夹", color = rowTextColor)
+                        Text(stringResource(R.string.folder), color = rowTextColor)
                     }
 
                     Row(
@@ -1422,7 +1422,7 @@ fun FileManagerScreen(
                             tint = rowTextColor
                         )
                         Spacer(modifier = Modifier.width(16.dp))
-                        Text("文件", color = rowTextColor)
+                        Text(stringResource(R.string.fm_file_label), color = rowTextColor)
                     }
 
                     Spacer(Modifier.height(12.dp))

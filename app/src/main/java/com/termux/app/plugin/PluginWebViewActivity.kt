@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
 import com.google.gson.Gson
+import com.termux.R
 import com.termux.app.compose.KiTerminalTheme
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.TopAppBar
@@ -161,7 +162,7 @@ class PluginWebViewActivity : ComponentActivity() {
                         ) {
                             Icon(
                                 imageVector = MiuixIcons.Back,
-                                contentDescription = "返回",
+                                contentDescription = getString(R.string.back),
                                 tint = MiuixTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(24.dp)
                             )

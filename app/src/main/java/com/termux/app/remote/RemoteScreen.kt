@@ -29,6 +29,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
@@ -220,7 +221,7 @@ fun RemoteScreen(
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.ic_add),
-                                        contentDescription = "添加",
+                                        contentDescription = stringResource(R.string.action_add),
                                         tint = topBarIconColor
                                     )
                                 }
@@ -237,7 +238,7 @@ fun RemoteScreen(
                                     } else {
                                         Icon(
                                             painter = painterResource(R.drawable.ic_refresh),
-                                            contentDescription = "扫描",
+                                            contentDescription = stringResource(R.string.remote_scan),
                                             tint = topBarIconColor
                                         )
                                     }
@@ -250,7 +251,7 @@ fun RemoteScreen(
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.ic_add),
-                                        contentDescription = "添加",
+                                        contentDescription = stringResource(R.string.action_add),
                                         tint = topBarIconColor
                                     )
                                 }

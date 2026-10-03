@@ -169,7 +169,7 @@ fun LogViewerScreen(
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.ic_clear),
-                                    contentDescription = "清除搜索",
+                                    contentDescription = stringResource(R.string.logviewer_clear_search),
                                     tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                     modifier = Modifier.size(20.dp)
                                 )

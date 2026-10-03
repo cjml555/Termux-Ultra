@@ -1091,7 +1091,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                                 searchExpanded = it
                                 if (!it) searchQuery = ""
                             },
-                            label = "搜索设置项"
+                            label = stringResource(R.string.settings_search_hint)
                         )
                     },
                     expanded = searchExpanded,

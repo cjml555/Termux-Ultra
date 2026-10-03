@@ -28,10 +28,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.termux.R
 import com.termux.app.TermuxActivity
 import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.Icon
@@ -312,7 +314,7 @@ private fun AddQuickCommandDialog(
                 TextField(
                     value = label,
                     onValueChange = { label = it },
-                    label = "名称",
+                    label = stringResource(R.string.ssh_field_name),
                     useLabelAsPlaceholder = true,
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -321,7 +323,7 @@ private fun AddQuickCommandDialog(
                 TextField(
                     value = command,
                     onValueChange = { command = it },
-                    label = "命令",
+                    label = stringResource(R.string.risk_command_label),
                     useLabelAsPlaceholder = true,
                     modifier = Modifier
                         .fillMaxWidth()

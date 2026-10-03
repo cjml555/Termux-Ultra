@@ -2119,4 +2119,32 @@ Recommendation: close other running Termux sessions first, then try again.</stri
     <string name="agent_history_cleared">Conversation history cleared</string>
     <string name="agent_copied_to_clipboard">Copied to clipboard</string>
     <string name="logviewer_search_hint">Search log content or tag...</string>
+
+    <!-- fm/ftp/remote/keys: contentDescription y labels sin traducir -->
+    <string name="fm_file_name_label">File name</string>
+    <string name="fm_scp_download_failed">Download failed</string>
+    <string name="agent_model_deleted">Model deleted</string>
+    <string name="agent_remove_attachment">Remove attachment</string>
+    <string name="agent_stop_generating">Stop generating</string>
+    <string name="agent_hide_taskbar">Hide taskbar</string>
+    <string name="agent_copied">Copied</string>
+    <string name="ftp_port_label">Port</string>
+    <string name="ftp_username_label">Username</string>
+    <string name="ftp_password_label">Password</string>
+    <string name="keys_move_up">Move up</string>
+    <string name="keys_move_down">Move down</string>
+    <string name="remote_scan">Scan</string>
+    <string name="logviewer_clear_search">Clear search</string>
+    <string name="settings_search_hint">Search settings</string>
+    <string name="plugin_webview_back">Back</string>
+    <string name="ftp_port_value">Port: %1$s</string>
+    <string name="ftp_username_value">Username: %1$s</string>
+    <string name="ftp_password_value">Password: %1$s</string>
+    <string name="agent_refresh_list">Refresh list</string>
+    <string name="agent_download_model">Download model</string>
+    <string name="agent_test_connection">Test connection</string>
+    <string name="agent_exec_error">Execution error</string>
+    <string name="agent_submit_answer">Submit answer</string>
+    <string name="agent_confirm_exec">Confirm execution</string>
+    <string name="fm_file_label">File</string>
 </resources>

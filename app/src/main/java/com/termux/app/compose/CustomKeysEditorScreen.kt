@@ -172,7 +172,7 @@ fun CustomKeysEditorScreen(
                 )
                 ToolIconButton(
                     iconRes = R.drawable.ic_arrow_up,
-                    contentDescription = "上移",
+                    contentDescription = stringResource(R.string.keys_move_up),
                     enabled = focusedIndex > 0,
                     onClick = {
                         if (focusedIndex > 0) {
@@ -187,7 +187,7 @@ fun CustomKeysEditorScreen(
                 )
                 ToolIconButton(
                     iconRes = R.drawable.ic_arrow_down,
-                    contentDescription = "下移",
+                    contentDescription = stringResource(R.string.keys_move_down),
                     enabled = focusedIndex >= 0 && focusedIndex < keyList.size - 1,
                     onClick = {
                         if (focusedIndex >= 0 && focusedIndex < keyList.size - 1) {
@@ -202,7 +202,7 @@ fun CustomKeysEditorScreen(
                 )
                 ToolIconButton(
                     iconRes = R.drawable.ic_delete,
-                    contentDescription = "删除",
+                    contentDescription = stringResource(R.string.delete),
                     enabled = focusedIndex >= 0 && keyList.size > 1,
                     onClick = {
                         if (focusedIndex >= 0 && keyList.size > 1) {

@@ -1951,4 +1951,32 @@ Recomendación: cierra primero las demás sesiones de Termux en ejecución y vue
     <string name="agent_history_cleared">Historial de conversación borrado</string>
     <string name="agent_copied_to_clipboard">Copiado al portapapeles</string>
     <string name="logviewer_search_hint">Busca contenido o etiqueta en el registro...</string>
+
+    <!-- fm/ftp/remote/keys: contentDescription y labels sin traducir -->
+    <string name="fm_file_name_label">Nombre del archivo</string>
+    <string name="fm_scp_download_failed">Error al descargar</string>
+    <string name="agent_model_deleted">Modelo eliminado</string>
+    <string name="agent_remove_attachment">Quitar el archivo adjunto</string>
+    <string name="agent_stop_generating">Detener la generación</string>
+    <string name="agent_hide_taskbar">Ocultar la barra de tareas</string>
+    <string name="agent_copied">Copiado</string>
+    <string name="ftp_port_label">Puerto</string>
+    <string name="ftp_username_label">Usuario</string>
+    <string name="ftp_password_label">Contraseña</string>
+    <string name="keys_move_up">Subir</string>
+    <string name="keys_move_down">Bajar</string>
+    <string name="remote_scan">Escanear</string>
+    <string name="logviewer_clear_search">Borrar la búsqueda</string>
+    <string name="settings_search_hint">Buscar en los ajustes</string>
+    <string name="plugin_webview_back">Atrás</string>
+    <string name="ftp_port_value">Puerto: %1$s</string>
+    <string name="ftp_username_value">Usuario: %1$s</string>
+    <string name="ftp_password_value">Contraseña: %1$s</string>
+    <string name="agent_refresh_list">Actualizar lista</string>
+    <string name="agent_download_model">Descargar modelo</string>
+    <string name="agent_test_connection">Probar conexión</string>
+    <string name="agent_exec_error">Error de ejecución</string>
+    <string name="agent_submit_answer">Enviar respuesta</string>
+    <string name="agent_confirm_exec">Confirmar ejecución</string>
+    <string name="fm_file_label">Archivo</string>
 </resources>

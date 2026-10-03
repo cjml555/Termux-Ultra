@@ -17,11 +17,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.termux.R
 import com.termux.app.compose.KiTerminalTheme
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -87,7 +89,7 @@ fun FtpInfoScreen() {
                     ) {
                         Icon(
                             imageVector = MiuixIcons.Back,
-                            contentDescription = "返回",
+                            contentDescription = stringResource(R.string.back),
                             tint = MiuixTheme.colorScheme.onSurface,
                             modifier = Modifier.size(24.dp)
                         )
@@ -122,7 +124,7 @@ fun FtpInfoScreen() {
                     
                     if (isEditing) {
                         TextField(
-                            label = "端口",
+                            label = stringResource(R.string.ftp_port_label),
                             value = port.toString(),
                             onValueChange = {
                                 it.toIntOrNull()?.let { p ->
@@ -138,7 +140,7 @@ fun FtpInfoScreen() {
                             keyboardActions = KeyboardActions()
                         )
                         TextField(
-                            label = "用户名",
+                            label = stringResource(R.string.ftp_username_label),
                             value = username,
                             onValueChange = { username = it },
                             modifier = Modifier.fillMaxWidth(),
@@ -150,7 +152,7 @@ fun FtpInfoScreen() {
                             keyboardActions = KeyboardActions()
                         )
                         TextField(
-                            label = "密码",
+                            label = stringResource(R.string.ftp_password_label),
                             value = password,
                             onValueChange = { password = it },
                             modifier = Modifier.fillMaxWidth(),
@@ -163,21 +165,21 @@ fun FtpInfoScreen() {
                         )
                     } else {
                         Text(
-                            text = "端口: $port",
+                            text = stringResource(R.string.ftp_port_value, port),
                             style = TextStyle(
                                 fontSize = 14.sp,
                                 color = MiuixTheme.colorScheme.onSurface
                             )
                         )
                         Text(
-                            text = "用户名: $username",
+                            text = stringResource(R.string.ftp_username_value, username),
                             style = TextStyle(
                                 fontSize = 14.sp,
                                 color = MiuixTheme.colorScheme.onSurface
                             )
                         )
                         Text(
-                            text = "密码: $password",
+                            text = stringResource(R.string.ftp_password_value, password),
                             style = TextStyle(
                                 fontSize = 14.sp,
                                 color = MiuixTheme.colorScheme.onSurface
@@ -206,7 +208,7 @@ fun FtpInfoScreen() {
                             color = MiuixTheme.colorScheme.primary
                         )
                     ) {
-                        Text("保存", fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(stringResource(R.string.save), fontWeight = FontWeight.Bold, color = Color.White)
                     }
                     Button(
                         onClick = {
@@ -220,7 +222,7 @@ fun FtpInfoScreen() {
                             color = MiuixTheme.colorScheme.surfaceVariant
                         )
                     ) {
-                        Text("取消", fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.onSurface)
+                        Text(stringResource(R.string.cancel), fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.onSurface)
                     }
                 } else {
                     Button(
@@ -230,7 +232,7 @@ fun FtpInfoScreen() {
                             color = MiuixTheme.colorScheme.primary
                         )
                     ) {
-                        Text("修改", fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(stringResource(R.string.edit), fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             }

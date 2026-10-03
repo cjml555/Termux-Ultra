@@ -337,7 +337,7 @@ fun TextEditorScreen(
                     androidx.compose.material3.OutlinedTextField(
                         value = fileNameInput,
                         onValueChange = { fileNameInput = it },
-                        label = { Text("文件名") },
+                        label = { Text(stringResource(R.string.fm_file_name_label)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
