@@ -72,11 +72,20 @@ DETECTORS = [
 # el inspector de animaciones y NUNCA se muestra al usuario. Se distingue
 # mirando la línea: un label de TextField de verdad viene con value=/onValueChange=
 # o seguido de un Text.
+# Señal de que el `label` pertenece a una transicion de animacion y no a un
+# campo de texto. Se busca en la ventana de lineas anteriores porque el label
+# va DESPUES de la llamada, que puede ocupar 6 lineas:
+#     animationSpec = infiniteRepeatable(...),
+#     repeatMode = RepeatMode.Reverse
+# ),
+# label = "oobeGradient"
 ANIM_LABEL_RE = re.compile(
     r'(rememberInfiniteTransition|infiniteRepeatable|AnimatedContent|animateFloat'
     r'|animateDp|animateColor|updateTransition|animateValue|animateInt'
     r'|animateFloatAsState|animateDpAsState|animateColorAsState'
-    r'|animateIntAsState|animateValueAsState|Animatable)'
+    r'|animateIntAsState|animateValueAsState|Animatable'
+    r'|animationSpec|transitionSpec|slideInHorizontally|slideOutHorizontally'
+    r'|fadeIn|fadeOut|togetherWith|RepeatMode)'
 )
 
 # Chinos/exentos que delatan un literal sin traducir cuando el resto del
@@ -95,13 +104,41 @@ ALLOW = re.compile(
 
 # Un literal es "sospechoso de UI" si tiene letras y al menos un espacio, o
 # al menos 4 caracteres. Evita capturar "x", "id", "v1"...
+# Casos que NO son texto de UI y no deben hacer fallar el gate. Se documentan
+# aquí para que quede claro por qué se ignoran, no como exceptions silenciosas:
+#
+#   - nombres de marca en contentDescription ("Termux Agent"): la marca no se
+#     traduce, y el mismo texto aparece en las tres pantallas
+#   - etiquetas de formato en el logger ("StackTraces"): va a un archivo de
+#     registro, no a la interfaz
+#   - plantillas que SOLO componen valores ya traducidos: "$doneRounds/$total"
+#     (un contador), "#${index + 1}" (numeración de lista) y
+#     "$providerLabel - ${prof.model}" (proveedor y modelo). No hay texto fijo
+#     que traducir: solo formato.
+ALLOW_EXACT = {
+    "Termux Agent",
+    "StackTraces",
+    "StackTraces:",
+}
+ALLOW_TEMPLATE_RE = re.compile(r'^[#$%][\w{}$+()\[\]\s.·/:%,-]*$')
+
+
 def is_meaningful(text: str) -> bool:
+    if text in ALLOW_EXACT:
+        return False
+    if ALLOW_TEMPLATE_RE.match(text):
+        return False
     if ALLOW.match(text):
         return False
     stripped = text.strip()
     if len(stripped) < 2:
         return False
-    # Sin espacios y muy corto: casi siempre un identificador o un valor.
+    # El chino no usa espacios: "尚未安装" son 4 caracteres y ES texto de UI.
+    # La regla de "identificador corto" (sin espacios y <6) se aplicaba solo al
+    # alfabeto latino y se tragaba TODO el texto CJK, que es justo lo que este
+    # detector existe para encontrar.
+    if CJK.search(stripped):
+        return True
     if " " not in stripped and len(stripped) < 6:
         return False
     return True
@@ -141,7 +178,7 @@ def scan_file(path: str) -> list[tuple[str, int, str, str]]:
         #       targetValue = ...,
         #       label = "topBarAlpha"
         #   )
-        window = "".join(lines[max(0, lineno - 4):lineno])
+        window = "".join(lines[max(0, lineno - 8):lineno])
         anim = ANIM_LABEL_RE.search(window)
 
         for name, pattern, weight in DETECTORS:
