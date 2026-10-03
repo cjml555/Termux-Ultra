@@ -329,6 +329,11 @@ def main() -> int:
     )
     parser.add_argument("--verbose", action="store_true", help="Detalle por archivo")
     parser.add_argument(
+        "--baseline",
+        action="store_true",
+        help="Gate de regresión: falla solo si los pendientes SUPERAN la baseline",
+    )
+    parser.add_argument(
         "--gate",
         action="store_true",
         help="Exit 1 si hay literales pendientes (para CI)",
@@ -418,6 +423,43 @@ def main() -> int:
     print("  getString(R.string.clave)       en Java/Android")
     print("Después, traducir la clave en values-es/ y values-zh-rCN/.")
     print("El gate de cobertura (check_translations.py --gate) lo verificará.")
+
+    if args.baseline:
+        # Modo regresion: falla solo si el numero de textos sin traducir SUBE
+        # respecto a la baseline del repositorio.
+        #
+        # Antes el gate exigia cero pendientes, lo que lo hacia imposible de
+        # cumplir: quedan ~1500 textos de interfaz y el gate no distingue
+        # "traducido" de "aun no translators". Un gate que solo puede fallar
+        # teaches mas de lo que protege, porque obliga a desactivarlo en vez de
+        # cumplirlo.
+        #
+        # Un gate de regresion deja que el trabajo avance sin perder la
+        # proteccion: si alguien anade un literal chino sin traducir, el
+        # numero sube por encima de la baseline y el CI se pone rojo.
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "ui_baseline.txt")
+        try:
+            with open(path, encoding="utf-8") as fh:
+                base_n = int(fh.read().strip())
+        except Exception:
+            print(f"XX GATE: no se pudo leer la baseline {path}.", file=sys.stderr)
+            return 1
+        delta = n_ui - base_n
+        if delta > 0:
+            print(f"XX GATE: {n_ui} textos de interfaz sin traducir, la baseline es "
+                  f"{base_n} (+{delta}).", file=sys.stderr)
+            print("   O se traduce lo nuevo, o si es correcto, se sube la baseline:",
+                  file=sys.stderr)
+            print(f"   echo {n_ui} > {path}", file=sys.stderr)
+            return 1
+        print(f"OK  Interfaz pendiente {n_ui} (baseline {base_n}, "
+              f"{base_n - n_ui} menos).")
+        if kw:
+            print(f"XX GATE: {len(kw)} lista(s) de palabras clave de busqueda sin "
+                  f"términos en español/inglés.", file=sys.stderr)
+            return 1
+        return 0
 
     if args.gate:
         print()
