@@ -2181,4 +2181,26 @@ Recommendation: close other running Termux sessions first, then try again.</stri
     <string name="ft_musica">Música %1$s</string>
     <string name="ft_texto">Texto %1$s</string>
     <string name="unknown_file">Unknown file</string>
+
+    <!-- Tipos de archivo, 2a tanda -->
+    <string name="ft2_plantilla">Plantilla %1$s</string>
+    <string name="ft2_pagina">Página %1$s</string>
+    <string name="ft2_vista">Vista %1$s</string>
+    <string name="ft2_datos">Datos %1$s</string>
+    <string name="ft2_configuracion">Configuración %1$s</string>
+    <string name="ft2_certificado">Certificado %1$s</string>
+    <string name="ft2_modelo">Modelo %1$s</string>
+    <string name="ft2_subtitulo">Subtítulo %1$s</string>
+    <string name="ft2_lista_de_reproduccion">Lista de reproducción %1$s</string>
+    <string name="ft2_propiedades">Propiedades de %1$s</string>
+    <string name="ft2_ignore">%1$s ignorado</string>
+    <string name="ft2_contrasena">Contraseña de %1$s</string>
+    <string name="ft2_acceso">Acceso %1$s</string>
+    <string name="ft2_archivo_de_intercambio">Archivo de intercambio de %1$s</string>
+    <string name="ft2_grupo">Grupo %1$s</string>
+    <string name="ft2_submodulo">Submódulo %1$s</string>
+    <string name="ft2_presentacion">Presentación %1$s</string>
+    <string name="ft2_hoja_de_calculo">Hoja de cálculo %1$s</string>
+    <string name="ft2_lenguaje">%1$s</string>
+    <string name="ft2_pagina_web">Página web %1$s</string>
 </resources>

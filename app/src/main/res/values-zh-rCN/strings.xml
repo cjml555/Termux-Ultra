@@ -2175,4 +2175,26 @@
     <string name="ft_musica">%1$s 音乐</string>
     <string name="ft_texto">%1$s 文本</string>
     <string name="unknown_file">未知文件</string>
+
+    <!-- Tipos de archivo, 2a tanda -->
+    <string name="ft2_plantilla">%1$s 模板</string>
+    <string name="ft2_pagina">%1$s 页面</string>
+    <string name="ft2_vista">%1$s 视图</string>
+    <string name="ft2_datos">%1$s 数据</string>
+    <string name="ft2_configuracion">%1$s 配置</string>
+    <string name="ft2_certificado">%1$s 证书</string>
+    <string name="ft2_modelo">%1$s 模型</string>
+    <string name="ft2_subtitulo">%1$s 字幕</string>
+    <string name="ft2_lista_de_reproduccion">%1$s 播放列表</string>
+    <string name="ft2_propiedades">%1$s 属性</string>
+    <string name="ft2_ignore">%1$s 忽略</string>
+    <string name="ft2_contrasena">%1$s 密码</string>
+    <string name="ft2_acceso">%1$s 访问</string>
+    <string name="ft2_archivo_de_intercambio">%1$s 交换文件</string>
+    <string name="ft2_grupo">%1$s 组</string>
+    <string name="ft2_submodulo">%1$s 子模块</string>
+    <string name="ft2_presentacion">%1$s 演示</string>
+    <string name="ft2_hoja_de_calculo">%1$s 表格</string>
+    <string name="ft2_lenguaje">%1$s 语言</string>
+    <string name="ft2_pagina_web">%1$s 网页</string>
 </resources>
