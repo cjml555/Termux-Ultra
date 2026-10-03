@@ -255,7 +255,7 @@ private fun ViewerSettingsPage(
             VncSettingCard {
                 OverlayDropdownPreference(
                     title = stringResource(R.string.pref_orientation),
-                    summary = "选择屏幕显示方向",
+                    summary = stringResource(R.string.vnc_orientation),
                     items = orientationEntries,
                     selectedIndex = orientationIndex,
                     onSelectedIndexChange = { idx ->
@@ -338,7 +338,7 @@ private fun ViewerSettingsPage(
                     modifier = Modifier.padding(start = 72.dp, end = 16.dp)
                 )
                 SwitchPreference(
-                    title = "后台暂停画面更新",
+                    title = stringResource(R.string.vnc_pause_bg),
                     summary = null,
                     checked = pauseFbUpdates,
                     onCheckedChange = {
@@ -357,7 +357,7 @@ private fun ViewerSettingsPage(
             VncSettingCard {
                 OverlayDropdownPreference(
                     title = stringResource(R.string.pref_zoom_min),
-                    summary = "调整最小缩放比例",
+                    summary = stringResource(R.string.vnc_min_scale),
                     items = (10..100 step 10).map { "$it%" },
                     selectedIndex = ((zoomMin - 10) / 10).coerceIn(0, 9),
                     onSelectedIndexChange = { idx ->
@@ -375,7 +375,7 @@ private fun ViewerSettingsPage(
                 )
                 OverlayDropdownPreference(
                     title = stringResource(R.string.pref_zoom_max),
-                    summary = "调整最大缩放比例",
+                    summary = stringResource(R.string.vnc_max_scale),
                     items = (100..1000 step 100).map { "$it%" },
                     selectedIndex = ((zoomMax - 100) / 100).coerceIn(0, 9),
                     onSelectedIndexChange = { idx ->
@@ -411,7 +411,7 @@ private fun ViewerSettingsPage(
             VncSettingCard {
                 OverlayDropdownPreference(
                     title = stringResource(R.string.pref_toolbar_alignment),
-                    summary = "设置工具栏位置",
+                    summary = stringResource(R.string.vnc_toolbar_pos),
                     items = toolbarAlignmentEntries,
                     selectedIndex = toolbarAlignmentIndex,
                     onSelectedIndexChange = { idx ->
@@ -631,7 +631,7 @@ private fun InputSettingsPage(
             VncSettingCard {
                 OverlayDropdownPreference(
                     title = stringResource(R.string.pref_gesture_style),
-                    summary = "选择触控交互模式",
+                    summary = stringResource(R.string.vnc_touch_mode),
                     items = gestureStyleEntries,
                     selectedIndex = gestureStyleIndex,
                     onSelectedIndexChange = { idx ->
@@ -648,7 +648,7 @@ private fun InputSettingsPage(
                 )
                 OverlayDropdownPreference(
                     title = stringResource(R.string.pref_double_tap),
-                    summary = "设置双击操作",
+                    summary = stringResource(R.string.vnc_double_tap),
                     items = doubleTapEntries,
                     selectedIndex = doubleTapIndex,
                     onSelectedIndexChange = { idx ->
@@ -665,7 +665,7 @@ private fun InputSettingsPage(
                 )
                 OverlayDropdownPreference(
                     title = stringResource(R.string.pref_long_press),
-                    summary = "设置长按操作",
+                    summary = stringResource(R.string.vnc_long_press),
                     items = longPressEntries,
                     selectedIndex = longPressIndex,
                     onSelectedIndexChange = { idx ->
@@ -682,7 +682,7 @@ private fun InputSettingsPage(
                 )
                 OverlayDropdownPreference(
                     title = stringResource(R.string.pref_two_finger_tap),
-                    summary = "设置双指轻点操作",
+                    summary = stringResource(R.string.vnc_two_finger_tap),
                     items = tap2Entries,
                     selectedIndex = tap2Index,
                     onSelectedIndexChange = { idx ->
@@ -699,7 +699,7 @@ private fun InputSettingsPage(
                 )
                 OverlayDropdownPreference(
                     title = stringResource(R.string.pref_three_finger_tap),
-                    summary = "设置三指轻点操作",
+                    summary = stringResource(R.string.vnc_three_finger_tap),
                     items = tap3Entries,
                     selectedIndex = tap3Index,
                     onSelectedIndexChange = { idx ->
@@ -716,7 +716,7 @@ private fun InputSettingsPage(
                 )
                 OverlayDropdownPreference(
                     title = stringResource(R.string.pref_swipe1),
-                    summary = "设置单指滑动操作",
+                    summary = stringResource(R.string.vnc_one_finger_swipe),
                     items = swipeEntries,
                     selectedIndex = swipe1Index,
                     enabled = swipe1Enabled,
@@ -734,7 +734,7 @@ private fun InputSettingsPage(
                 )
                 OverlayDropdownPreference(
                     title = stringResource(R.string.pref_swipe2),
-                    summary = "设置双指滑动操作",
+                    summary = stringResource(R.string.vnc_two_finger_swipe),
                     items = swipe2Entries,
                     selectedIndex = swipe2Index,
                     onSelectedIndexChange = { idx ->
@@ -751,7 +751,7 @@ private fun InputSettingsPage(
                 )
                 OverlayDropdownPreference(
                     title = stringResource(R.string.pref_swipe3),
-                    summary = "设置三指滑动操作",
+                    summary = stringResource(R.string.vnc_three_finger_swipe),
                     items = swipeEntries,
                     selectedIndex = swipe3Index,
                     onSelectedIndexChange = { idx ->
@@ -768,7 +768,7 @@ private fun InputSettingsPage(
                 )
                 OverlayDropdownPreference(
                     title = stringResource(R.string.pref_double_tap_swipe),
-                    summary = "设置双击后滑动操作",
+                    summary = stringResource(R.string.vnc_swipe_after_tap),
                     items = doubleTapSwipeEntries,
                     selectedIndex = doubleTapSwipeIndex,
                     onSelectedIndexChange = { idx ->
@@ -785,7 +785,7 @@ private fun InputSettingsPage(
                 )
                 OverlayDropdownPreference(
                     title = stringResource(R.string.pref_long_press_swipe),
-                    summary = if (longPressSwipeEnabled) "设置长按后滑动操作" else "长按设为鼠标按下时不可用",
+                    summary = if (longPressSwipeEnabled) stringResource(R.string.vnc_long_press_swipe) else stringResource(R.string.vnc_long_press_unavailable),
                     items = longPressSwipeEntries,
                     selectedIndex = longPressSwipeIndex,
                     enabled = longPressSwipeEnabled,
@@ -803,7 +803,7 @@ private fun InputSettingsPage(
                 )
                 OverlayDropdownPreference(
                     title = stringResource(R.string.pref_swipe_sensitivity),
-                    summary = "调整滑动灵敏度",
+                    summary = stringResource(R.string.vnc_swipe_sensitivity),
                     items = (5..15).map { it.toString() },
                     selectedIndex = (swipeSensitivity - 5).coerceIn(0, 10),
                     onSelectedIndexChange = { idx ->
@@ -905,7 +905,7 @@ private fun InputSettingsPage(
                 )
                 OverlayDropdownPreference(
                     title = stringResource(R.string.pref_mouse_back),
-                    summary = "设置鼠标返回键功能",
+                    summary = stringResource(R.string.vnc_mouse_back),
                     items = mouseBackEntries,
                     selectedIndex = mouseBackIndex,
                     onSelectedIndexChange = { idx ->
@@ -956,7 +956,7 @@ private fun InputSettingsPage(
                 )
                 OverlayDropdownPreference(
                     title = stringResource(R.string.pref_vk_row_count),
-                    summary = "设置虚拟键盘行数",
+                    summary = stringResource(R.string.vnc_kb_rows),
                     items = vkRowCountEntries,
                     selectedIndex = vkRowCountIndex,
                     onSelectedIndexChange = { idx ->

@@ -2307,4 +2307,38 @@
     <string name="ollama_intro_short">Ollama 是一个轻量级本地大模型运行器。请先安装 Ollama，然后下载所需模型。</string>
     <string name="ollama_intro_auto">Ollama 是一个轻量级本地大模型运行器，支持多种开源模型。点击下方按钮自动安装。</string>
     <string name="completed_label">已完成</string>
+
+    <!-- fichero nuevo de upstream: AlertDialogActivity / VncSettingsScreen -->
+    <string name="adj_vortex_title">调整 VorteX Guard Engine 模式？</string>
+    <string name="adj_vortex_message">如果继续，你可能会丢失虚拟机或容器内的数据。是否继续？</string>
+    <string name="adj_vortex_confirm">确认调整</string>
+    <string name="adj_auth_title">请验证你的身份以继续</string>
+    <string name="adj_auth_subtitle">确认调整</string>
+    <string name="adj_crash_view">查看崩溃报告</string>
+    <string name="adj_crash_view_logs">查看日志</string>
+    <string name="adj_degraded_mode">使用降级模式</string>
+    <string name="adj_error_title">侦测到已发生错误</string>
+    <string name="adj_crash_intro">侦测到上次运行时发生了错误和崩溃，以下是崩溃详情。</string>
+    <string name="adj_close_program">关闭程序</string>
+    <string name="adj_close_app">关闭应用</string>
+    <string name="vnc_orientation">选择屏幕显示方向</string>
+    <string name="vnc_pause_bg">后台暂停画面更新</string>
+    <string name="vnc_min_scale">调整最小缩放比例</string>
+    <string name="vnc_max_scale">调整最大缩放比例</string>
+    <string name="vnc_toolbar_pos">设置工具栏位置</string>
+    <string name="vnc_touch_mode">选择触控交互模式</string>
+    <string name="vnc_double_tap">设置双击操作</string>
+    <string name="vnc_long_press">设置长按操作</string>
+    <string name="vnc_two_finger_tap">设置双指轻点操作</string>
+    <string name="vnc_three_finger_tap">设置三指轻点操作</string>
+    <string name="vnc_one_finger_swipe">设置单指滑动操作</string>
+    <string name="vnc_two_finger_swipe">设置双指滑动操作</string>
+    <string name="vnc_three_finger_swipe">设置三指滑动操作</string>
+    <string name="vnc_swipe_after_tap">设置双击后滑动操作</string>
+    <string name="vnc_long_press_swipe">设置长按后滑动操作</string>
+    <string name="vnc_long_press_unavailable">长按设为鼠标按下时不可用</string>
+    <string name="vnc_swipe_sensitivity">调整滑动灵敏度</string>
+    <string name="vnc_mouse_back">设置鼠标返回键功能</string>
+    <string name="vnc_kb_rows">设置虚拟键盘行数</string>
+    <string name="warn_title">警告</string>
 </resources>

@@ -2313,4 +2313,38 @@ Recommendation: close other running Termux sessions first, then try again.</stri
     <string name="ollama_intro_short">Ollama is a lightweight runner for local models. Install Ollama first, then download the model you need.</string>
     <string name="ollama_intro_auto">Ollama is a lightweight runner for local models and supports many open-source models. Tap below to install it automatically.</string>
     <string name="completed_label">Completed</string>
+
+    <!-- fichero nuevo de upstream: AlertDialogActivity / VncSettingsScreen -->
+    <string name="adj_vortex_title">Adjust VorteX Guard Engine mode?</string>
+    <string name="adj_vortex_message">You may lose data inside the VM or container if you continue. Continue?</string>
+    <string name="adj_vortex_confirm">Confirm adjustment</string>
+    <string name="adj_auth_title">Verify your identity to continue</string>
+    <string name="adj_auth_subtitle">Confirm adjustment</string>
+    <string name="adj_crash_view">View crash report</string>
+    <string name="adj_crash_view_logs">View logs</string>
+    <string name="adj_degraded_mode">Use degraded mode</string>
+    <string name="adj_error_title">An error has been detected</string>
+    <string name="adj_crash_intro">Errors and crashes were detected on the last run. Crash details below.</string>
+    <string name="adj_close_program">Close program</string>
+    <string name="adj_close_app">Close app</string>
+    <string name="vnc_orientation">Select screen orientation</string>
+    <string name="vnc_pause_bg">Pause rendering in background</string>
+    <string name="vnc_min_scale">Adjust minimum scale</string>
+    <string name="vnc_max_scale">Adjust maximum scale</string>
+    <string name="vnc_toolbar_pos">Set toolbar position</string>
+    <string name="vnc_touch_mode">Select touch interaction mode</string>
+    <string name="vnc_double_tap">Set double-tap action</string>
+    <string name="vnc_long_press">Set long-press action</string>
+    <string name="vnc_two_finger_tap">Set two-finger tap action</string>
+    <string name="vnc_three_finger_tap">Set three-finger tap action</string>
+    <string name="vnc_one_finger_swipe">Set one-finger swipe action</string>
+    <string name="vnc_two_finger_swipe">Set two-finger swipe action</string>
+    <string name="vnc_three_finger_swipe">Set three-finger swipe action</string>
+    <string name="vnc_swipe_after_tap">Set action for swipe after tap</string>
+    <string name="vnc_long_press_swipe">Set action for swipe after long press</string>
+    <string name="vnc_long_press_unavailable">Not available when long press is set to mouse down</string>
+    <string name="vnc_swipe_sensitivity">Adjust swipe sensitivity</string>
+    <string name="vnc_mouse_back">Set mouse back button function</string>
+    <string name="vnc_kb_rows">Set virtual keyboard rows</string>
+    <string name="warn_title">Warning</string>
 </resources>

@@ -2138,4 +2138,38 @@ Recomendación: cierra primero las demás sesiones de Termux en ejecución y vue
     <string name="ollama_intro_short">Ollama es un ejecutor de modelos de lenguaje locales ligero. Instálalo primero y luego descarga el modelo que necesites.</string>
     <string name="ollama_intro_auto">Ollama es un ejecutor de modelos de lenguaje locales ligero que admite muchos modelos de código abierto. Toca el botón para instalarlo automáticamente.</string>
     <string name="completed_label">Completado</string>
+
+    <!-- fichero nuevo de upstream: AlertDialogActivity / VncSettingsScreen -->
+    <string name="adj_vortex_title">Ajustar el modo de VorteX Guard Engine?</string>
+    <string name="adj_vortex_message">Si continúas podrías perder los datos de la VM o del contenedor. ¿Seguir?</string>
+    <string name="adj_vortex_confirm">Confirmar ajuste</string>
+    <string name="adj_auth_title">Verifica tu identidad para continuar</string>
+    <string name="adj_auth_subtitle">Confirmar ajuste</string>
+    <string name="adj_crash_view">Ver informe de errores</string>
+    <string name="adj_crash_view_logs">Ver registros</string>
+    <string name="adj_degraded_mode">Usar modo degradado</string>
+    <string name="adj_error_title">Se ha detectado un error</string>
+    <string name="adj_crash_intro">Se detectaron errores y fallos en la última ejecución. Detalles abajo.</string>
+    <string name="adj_close_program">Cerrar programa</string>
+    <string name="adj_close_app">Cerrar app</string>
+    <string name="vnc_orientation">Selecciona la orientación de la pantalla</string>
+    <string name="vnc_pause_bg">Pausar el dibujado en segundo plano</string>
+    <string name="vnc_min_scale">Ajustar la escala mínima</string>
+    <string name="vnc_max_scale">Ajustar la escala máxima</string>
+    <string name="vnc_toolbar_pos">Posición de la barra de herramientas</string>
+    <string name="vnc_touch_mode">Modo de interacción táctil</string>
+    <string name="vnc_double_tap">Acción de doble toque</string>
+    <string name="vnc_long_press">Acción de pulsación larga</string>
+    <string name="vnc_two_finger_tap">Acción de toque con dos dedos</string>
+    <string name="vnc_three_finger_tap">Acción de toque con tres dedos</string>
+    <string name="vnc_one_finger_swipe">Acción de deslizamiento con un dedo</string>
+    <string name="vnc_two_finger_swipe">Acción de deslizamiento con dos dedos</string>
+    <string name="vnc_three_finger_swipe">Acción de deslizamiento con tres dedos</string>
+    <string name="vnc_swipe_after_tap">Acción de deslizar tras tocar</string>
+    <string name="vnc_long_press_swipe">Acción de deslizar tras pulsación larga</string>
+    <string name="vnc_long_press_unavailable">No disponible cuando la pulsación larga está en pulsar ratón</string>
+    <string name="vnc_swipe_sensitivity">Ajustar la sensibilidad del deslizamiento</string>
+    <string name="vnc_mouse_back">Función del botón atrás del ratón</string>
+    <string name="vnc_kb_rows">Filas del teclado virtual</string>
+    <string name="warn_title">Advertencia</string>
 </resources>
