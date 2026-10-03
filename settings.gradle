@@ -1,3 +1,17 @@
+// Caché de compilaciones. Sin esto, cada build recompila desde cero lo mismo
+// que el anterior ya compiló: CMake, Kotlin y el enlazado son deterministas,
+// así que el resultado se puede reutilizar tal cual.
+//
+// Va aquí y no en build.gradle porque buildCache() es un método de
+// Settings, no de Project.
+//
+// Local: directorio dentro del proyecto, sin red.
+buildCache {
+    local {
+        directory = new File(rootDir, '.gradle-build-cache')
+    }
+}
+
 rootProject.name = "KiTerminal-UX"
 include ':app'
 include ':termux-shared'
