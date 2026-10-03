@@ -108,11 +108,15 @@ jobs:
         env:
           # 关键：TERMUX_WORKFLOW_CLI=false，否则会打 CLI 版本！
           TERMUX_WORKFLOW_CLI: "false"
+          # file() dentro del módulo :app ya resuelve desde app/, así que la
+          # ruta NO lleva el prefijo app/: con él Gradle buscaría en
+          # app/app/ki-terminal-release.jks, no lo encontraría, y
+          # packageRelease fallaría con 'missing required property storeFile'.
           # build.gradle 现在从环境读签名信息，不再硬编码
           TERMUX_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           TERMUX_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
           TERMUX_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          TERMUX_KEYSTORE_PATH: "app/ki-terminal-release.jks"
+          TERMUX_KEYSTORE_PATH: "ki-terminal-release.jks"
         run: |
           ./gradlew :app:assembleRelease -Ptermux.abi=${{ matrix.abi }} --console=plain
 
@@ -168,7 +172,7 @@ jobs:
           TERMUX_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           TERMUX_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
           TERMUX_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          TERMUX_KEYSTORE_PATH: "app/ki-terminal-release.jks"
+          TERMUX_KEYSTORE_PATH: "ki-terminal-release.jks"
         run: |
           # -Ptermux.abi=universal → 关闭 ABI 拆分，四个架构一起打进一个包
           ./gradlew :app:assembleRelease -Ptermux.abi=universal --console=plain
