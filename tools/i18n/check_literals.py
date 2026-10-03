@@ -67,6 +67,26 @@ DETECTORS = [
     ("contentDescription", re.compile(r'contentDescription\s*=\s*"([^"\\]{2,})"'), 2),
 ]
 
+# ── Texto en chino dentro de una cadena, en cualquier syntactic position ─────
+#
+# Los detectores de arriba son regex sobre el NOMBRE de una llamada concreta
+# (Text(, Toast.makeText(), ...). Eso los deja ciegos ante la forma mas comun
+# de UI en Compose: un valor que se pasa despues a otro componente.
+#
+#     val name = "FTP 服务"
+#     summary = "设置每次启动新会话自动运行的指令"
+#     operationProgressText = if (...) "移动中..." else "复制中..."
+#
+# Ninguno encaja en `Text(` ni en `Toast.makeText(`, asi que el gate daba 0
+# con 800 lineas de interfaz en chino delante (FileManagerScreen.kt).
+#
+# Aqui se ataca el problema de raiz: cualquier literal CON CHINO dentro de
+# comillas dobles es UI o traducible, este donde este. El chino no se usa en
+# identificadores, rutas, comandos ni claves, asi que un literal con CJK solo
+# puede ser texto para el usuario o un System Prompt del agente (que tambien
+# conviene tener en español, pero se reporta aparte mas abajo).
+CJK_IN_STRING_RE = re.compile(r'"([^"\\\n]*[\u4e00-\u9fff][^"\\\n]*)"')
+
 # `label = "..."` también aparece en las transiciones de Compose
 # (rememberInfiniteTransition, AnimatedContent), donde es un identificador para
 # el inspector de animaciones y NUNCA se muestra al usuario. Se distingue
@@ -189,7 +209,48 @@ def scan_file(path: str) -> list[tuple[str, int, str, str]]:
                 if not is_meaningful(text):
                     continue
                 found.append((name, lineno, text, weight))
+
+        # Cualquier literal con chino, este donde este. Es lo que cubre
+        # `val name = "FTP 服务"` y `summary = "移动中..."`, formas que no
+        # encajan en ningun detector por nombre de funcion. Un System Prompt
+        # del agente tambien aparece aqui, pero no es UI: lo que ve el
+        # usuario es lo que responde el modelo, no la plantilla. Se separan
+        # para no inundar el informe con 200 lineas de prompt.
+        stripped = line.strip()
+        if stripped.startswith(("//", "*", "/*", "#")):
+            continue
+        for match in CJK_IN_STRING_RE.finditer(line):
+            text = match.group(1)
+            if len(text) < 2:
+                continue
+            if is_prompt_context(lines, lineno):
+                found.append(("SystemPrompt", lineno, text, 3))
+            else:
+                found.append(("texto CJK", lineno, text, 1))
     return found
+
+
+# Un System Prompt del agente: valido identidad del texto de sistema, incluidas
+# reglas ("Eres..."/"你是..."), guiones de ejemplo y encabezados de seccion. Un
+# texto de UI nunca empieza asi.
+PROMPT_MARKERS = (
+    "你是", "你是「", "我是", "请", "请根据", "请帮我", "注意：", "规则：",
+    "目标：", "步骤：", "示例：", "输出：", "输入：", "要求：", "准则", "守则",
+    "核心", "扮演", "你的", "如果", "不要", "务必", "可以", "将把", "回答",
+)
+
+
+def is_prompt_context(lines: list[str], lineno: int) -> bool:
+    """True si la linea pertenece a un System Prompt del agente."""
+    window = "".join(lines[max(0, lineno - 40):lineno]).lower()
+    for marker in (
+        "system prompt", "systemprompt", "prompt =", "prompt=", "baseprompt",
+        "systemmessage", "instruction",
+    ):
+        if marker in window:
+            return True
+    stripped = lines[lineno - 1].strip() if lineno - 1 < len(lines) else ""
+    return any(stripped.startswith(m) for m in PROMPT_MARKERS)
 
 
 def main() -> int:
