@@ -11,10 +11,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.gson.Gson
+import com.termux.R
 import com.google.gson.reflect.TypeToken
 
 object ComposeRenderer {
@@ -124,7 +126,7 @@ object ComposeRenderer {
 
             "lazyColumn" -> RenderLazyColumn(node, pluginId, context, stateStore)
 
-            else -> Text("Unknown component: ${node.type}", color = Color.Red)
+            else -> Text(stringResource(R.string.compose_unknown_component, node.type), color = Color.Red)
         }
     }
 

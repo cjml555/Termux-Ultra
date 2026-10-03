@@ -14,9 +14,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.termux.R
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -48,7 +50,7 @@ fun QemuOnVncSheet(
     onExecuteScript: (String, String) -> Unit
 ) {
     val isEditMode = existingVm != null
-    val title = if (isEditMode) "编辑 QEMU 虚拟机" else "新建 QEMU 虚拟机"
+    val title = stringResource(if (isEditMode) R.string.qemu_title_edit else R.string.qemu_title_new)
     val context = LocalContext.current
 
     OverlayBottomSheet(
@@ -134,7 +136,7 @@ private fun VmWizardContent(
     // 复制进度状态
     var showCopyProgress by remember { mutableStateOf(false) }
     var copyProgress by remember { mutableFloatStateOf(0f) }
-    var copyProgressText by remember { mutableStateOf("正在复制到虚拟机目录...") }
+    var copyProgressText by remember { mutableStateOf(context.getString(R.string.qemu_copying)) }
 
     // 文件来源选择："disk"=选择磁盘文件；"iso"=选择ISO文件；null=不显示
     var fileSourceTarget by remember { mutableStateOf<String?>(null) }
@@ -157,7 +159,7 @@ private fun VmWizardContent(
         coroutineScope.launch {
             showCopyProgress = true
             copyProgress = 0f
-            copyProgressText = "正在复制到虚拟机目录..."
+            copyProgressText = context.getString(R.string.qemu_copying)
             val result = withContext(Dispatchers.IO) {
                 copyToSharedDir(context, uri, defaultName) { p ->
                     copyProgress = p
@@ -226,7 +228,7 @@ private fun VmWizardContent(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "虚拟机名称",
+                    text = stringResource(R.string.qemu_vm_name),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = MiuixTheme.colorScheme.primary
@@ -238,14 +240,14 @@ private fun VmWizardContent(
                         vmName = it
                         nameAutoFilled = false
                     },
-                    label = "请输入虚拟机名称"
+                    label = stringResource(R.string.qemu_vm_name_hint)
                 )
             }
         }
 
         // Tab 切换 —— Agent 自动配置 / 手动配置
         TabRowWithContour(
-            tabs = listOf("手动配置", "Agent 自动配置"),
+            tabs = listOf(stringResource(R.string.qemu_tab_manual), stringResource(R.string.qemu_tab_agent)),
             selectedTabIndex = selectedTab,
             onTabSelected = { selectedTab = it },
             modifier = Modifier.padding(horizontal = 12.dp)
@@ -279,7 +281,7 @@ private fun VmWizardContent(
                 onGenerate = {
                     val cfg = AiTermuxPrefs.getConfig(context)
                     if (!cfg.isConfigured) {
-                        agentError = "Agent 未配置，请先在「设置 → AI Agent」中配置 API Key 和模型"
+                        agentError = context.getString(R.string.qemu_agent_not_configured)
                         return@AgentVmConfigTab
                     }
                     agentLoading = true
@@ -296,19 +298,19 @@ private fun VmWizardContent(
                             )
                             agentLoading = false
                             if (result.error != null) {
-                                agentError = "Agent 调用失败: ${result.error?.message}"
+                                agentError = context.getString(R.string.qemu_agent_call_failed, result.error?.message ?: "")
                             } else {
                                 val text = result.choices.firstOrNull()?.message?.content ?: ""
                                 val parsed = parseAgentVmSuggestion(text)
                                 if (parsed != null) {
                                     agentSuggestion = parsed
                                 } else {
-                                    agentError = "Agent 返回内容无法解析，原始回复: ${text.take(200)}"
+                                    agentError = context.getString(R.string.qemu_agent_parse_error, text.take(200))
                                 }
                             }
                         } catch (e: Exception) {
                             agentLoading = false
-                            agentError = "Agent 调用异常: ${e.message}"
+                            agentError = context.getString(R.string.qemu_agent_call_error, e.message ?: "")
                         }
                     }
                 }
@@ -324,15 +326,15 @@ private fun VmWizardContent(
                 Column {
                     Row(modifier = Modifier.padding(16.dp, 16.dp, 16.dp, 0.dp)) {
                         Text(
-                            text = "选择提供方式",
+                            text = stringResource(R.string.qemu_mode_title),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = MiuixTheme.colorScheme.primary
                         )
                     }
                     RadioButtonPreference(
-                        title = "提供现有磁盘",
-                        summary = "使用已有的磁盘镜像文件直接启动",
+                        title = stringResource(R.string.qemu_mode_existing_title),
+                        summary = stringResource(R.string.qemu_mode_existing_sum),
                         selected = mode == "existing_disk",
                         onClick = {
                             mode = "existing_disk"
@@ -340,8 +342,8 @@ private fun VmWizardContent(
                         }
                     )
                     RadioButtonPreference(
-                        title = "提供安装镜像",
-                        summary = "使用 ISO 镜像安装系统，将创建新硬盘",
+                        title = stringResource(R.string.qemu_mode_install_title),
+                        summary = stringResource(R.string.qemu_mode_install_sum),
                         selected = mode == "install_iso",
                         onClick = {
                             mode = "install_iso"
@@ -349,8 +351,8 @@ private fun VmWizardContent(
                         }
                     )
                     RadioButtonPreference(
-                        title = "新建空白磁盘",
-                        summary = "创建新的空白磁盘镜像，不挂载 ISO",
+                        title = stringResource(R.string.qemu_mode_create_title),
+                        summary = stringResource(R.string.qemu_mode_create_sum),
                         selected = mode == "create_disk",
                         onClick = {
                             mode = "create_disk"
@@ -368,7 +370,7 @@ private fun VmWizardContent(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "磁盘镜像",
+                        text = stringResource(R.string.qemu_disk_image),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = MiuixTheme.colorScheme.primary
@@ -377,13 +379,13 @@ private fun VmWizardContent(
 
                     if (mode == "existing_disk") {
                         Text(
-                            text = if (diskPath.isBlank()) "未选择磁盘文件" else diskPath,
+                            text = if (diskPath.isBlank()) stringResource(R.string.qemu_disk_none) else diskPath,
                             fontSize = 13.sp,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                         )
                         Spacer(Modifier.height(8.dp))
                         TextButton(
-                            text = "选择磁盘文件",
+                            text = stringResource(R.string.qemu_disk_pick),
                             onClick = { fileSourceTarget = "disk" },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.textButtonColorsPrimary()
@@ -391,7 +393,7 @@ private fun VmWizardContent(
                     } else {
                         // 新建磁盘：显示大小、格式、路径
                         WindowDropdownPreference(
-                            title = "硬盘大小",
+                            title = stringResource(R.string.qemu_disk_size),
                             items = listOf("10 GB", "20 GB", "40 GB", "60 GB", "80 GB"),
                             selectedIndex = listOf(10, 20, 40, 60, 80).indexOf(newDiskSizeGB).coerceAtLeast(0),
                             onSelectedIndexChange = {
@@ -399,7 +401,7 @@ private fun VmWizardContent(
                             }
                         )
                         WindowDropdownPreference(
-                            title = "硬盘格式",
+                            title = stringResource(R.string.qemu_disk_format),
                             items = listOf("qcow2", "raw", "vmdk"),
                             selectedIndex = listOf("qcow2", "raw", "vmdk").indexOf(newDiskFormat).coerceAtLeast(0),
                             onSelectedIndexChange = {
@@ -408,7 +410,7 @@ private fun VmWizardContent(
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = "将创建到：${ensureCreateDiskPath()}",
+                            text = stringResource(R.string.qemu_disk_create_path, ensureCreateDiskPath()),
                             fontSize = 12.sp,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                         )
@@ -425,20 +427,20 @@ private fun VmWizardContent(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = if (mode == "install_iso") "安装镜像 (ISO)" else "ISO 镜像（可选）",
+                            text = stringResource(if (mode == "install_iso") R.string.qemu_iso_install else R.string.qemu_iso_optional),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = MiuixTheme.colorScheme.primary
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = if (isoPath.isBlank()) "未选择 ISO 文件" else isoPath,
+                            text = if (isoPath.isBlank()) stringResource(R.string.qemu_iso_none) else isoPath,
                             fontSize = 13.sp,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                         )
                         Spacer(Modifier.height(8.dp))
                         TextButton(
-                            text = "选择 ISO 文件",
+                            text = stringResource(R.string.qemu_iso_pick),
                             onClick = { fileSourceTarget = "iso" },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.textButtonColorsPrimary()
@@ -447,7 +449,7 @@ private fun VmWizardContent(
                         if (detectedSystem != null) {
                             Spacer(Modifier.height(8.dp))
                             Text(
-                                text = "识别到系统: ${detectedSystem!!.systemName}\n已自动应用推荐配置（可修改）",
+                                text = stringResource(R.string.qemu_iso_detected, detectedSystem!!.systemName),
                                 fontSize = 12.sp,
                                 color = MiuixTheme.colorScheme.primary
                             )
@@ -464,8 +466,8 @@ private fun VmWizardContent(
                         .clip(RoundedCornerShape(16.dp))
                 ) {
                     SwitchPreference(
-                        title = "挂载 ISO 镜像",
-                        summary = if (mountIso) "启动时挂载 ISO" else "不挂载 ISO",
+                        title = stringResource(R.string.qemu_iso_mount_title),
+                        summary = stringResource(if (mountIso) R.string.qemu_iso_mount_on else R.string.qemu_iso_mount_off),
                         checked = mountIso,
                         onCheckedChange = {
                             mountIso = it
@@ -487,24 +489,29 @@ private fun VmWizardContent(
                 Column {
                     Row(modifier = Modifier.padding(16.dp, 16.dp, 16.dp, 0.dp)) {
                         Text(
-                            text = "CPU 与内存",
+                            text = stringResource(R.string.qemu_cpu_memory),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = MiuixTheme.colorScheme.primary
                         )
                     }
                     WindowDropdownPreference(
-                        title = "CPU 核心数",
-                        items = listOf("1 核", "2 核", "4 核", "8 核"),
+                        title = stringResource(R.string.qemu_cpu_cores),
+                        items = listOf(1, 2, 4, 8).map { stringResource(R.string.qemu_cpu_cores_n, it) },
                         selectedIndex = listOf(1, 2, 4, 8).indexOf(cpuCores).coerceAtLeast(0),
                         onSelectedIndexChange = { cpuCores = listOf(1, 2, 4, 8)[it] }
                     )
                     // CPU 类型：用户可选，支持自定义（留空则用 QEMU 默认）
-                    val cpuModels = listOf("不指定（QEMU 自动）", "host", "max", "qemu64", "qemu64-v2", "epyc", "epyc-v2", "epyc-v3", "x86_64-v2", "x86_64-v3", "x86_64-v4", "kvm64")
-                    val cpuModelLabels = listOf("不指定（QEMU 自动）", "host (宿主机直通)", "max (最大特性)", "qemu64 (基础 x86_64)", "qemu64-v2 (基础+)", "EPYC (AMD)", "EPYC-v2 (AMD Zen2)", "EPYC-v3 (AMD Zen3)", "x86_64-v2 (Haswell)", "x86_64-v3 (Broadwell)", "x86_64-v4 (Skylake)", "kvm64 (KVM 默认)")
+                    val cpuModels = listOf("", "host", "max", "qemu64", "qemu64-v2", "epyc", "epyc-v2", "epyc-v3", "x86_64-v2", "x86_64-v3", "x86_64-v4", "kvm64")
+                    val cpuModelLabels = listOf(
+                        R.string.qemu_cpu_auto, R.string.qemu_cpu_host, R.string.qemu_cpu_max,
+                        R.string.qemu_cpu_qemu64, R.string.qemu_cpu_qemu64v2, R.string.qemu_cpu_epyc,
+                        R.string.qemu_cpu_epycv2, R.string.qemu_cpu_epycv3, R.string.qemu_cpu_x86v2,
+                        R.string.qemu_cpu_x86v3, R.string.qemu_cpu_x86v4, R.string.qemu_cpu_kvm64
+                    ).map { stringResource(it) }
                     val currentCpuModelIndex = if (cpuModelOverride.isBlank()) 0 else cpuModels.indexOf(cpuModelOverride).coerceAtLeast(0)
                     WindowDropdownPreference(
-                        title = "CPU 类型",
+                        title = stringResource(R.string.qemu_cpu_type),
                         items = cpuModelLabels,
                         selectedIndex = currentCpuModelIndex,
                         onSelectedIndexChange = { idx ->
@@ -512,7 +519,7 @@ private fun VmWizardContent(
                         }
                     )
                     WindowDropdownPreference(
-                        title = "内存大小",
+                        title = stringResource(R.string.qemu_memory_size),
                         items = listOf("512 MB", "1024 MB", "2048 MB", "4096 MB", "8192 MB"),
                         selectedIndex = listOf(512, 1024, 2048, 4096, 8192).indexOf(memoryMB).coerceAtLeast(0),
                         onSelectedIndexChange = { memoryMB = listOf(512, 1024, 2048, 4096, 8192)[it] }
@@ -529,23 +536,23 @@ private fun VmWizardContent(
                 Column {
                     Row(modifier = Modifier.padding(16.dp, 16.dp, 16.dp, 0.dp)) {
                         Text(
-                            text = "机型与硬盘接口",
+                            text = stringResource(R.string.qemu_machine_disk),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = MiuixTheme.colorScheme.primary
                         )
                     }
                     WindowDropdownPreference(
-                        title = "虚拟PC类型",
-                        items = listOf("Q35 (现代PC)", "PC (i440fx 传统PC)", "ISA PC (老式PC)"),
+                        title = stringResource(R.string.qemu_machine_type),
+                        items = listOf(stringResource(R.string.qemu_machine_q35), stringResource(R.string.qemu_machine_pc), stringResource(R.string.qemu_machine_isapc)),
                         selectedIndex = listOf("q35", "pc", "isapc").indexOf(machineType).coerceAtLeast(0),
                         onSelectedIndexChange = {
                             machineType = listOf("q35", "pc", "isapc")[it]
                         }
                     )
                     WindowDropdownPreference(
-                        title = "硬盘连接方式",
-                        items = listOf("IDE (兼容性最好)", "VirtIO (高性能)", "SATA (AHCI)", "SCSI (virtio-scsi)"),
+                        title = stringResource(R.string.qemu_disk_iface),
+                        items = listOf(stringResource(R.string.qemu_iface_ide), stringResource(R.string.qemu_iface_virtio), stringResource(R.string.qemu_iface_sata), stringResource(R.string.qemu_iface_scsi)),
                         selectedIndex = listOf("ide", "virtio", "sata", "scsi").indexOf(diskInterface).coerceAtLeast(0),
                         onSelectedIndexChange = {
                             diskInterface = listOf("ide", "virtio", "sata", "scsi")[it]
@@ -563,37 +570,37 @@ private fun VmWizardContent(
                 Column {
                     Row(modifier = Modifier.padding(16.dp, 16.dp, 16.dp, 0.dp)) {
                         Text(
-                            text = "音频输出模式",
+                            text = stringResource(R.string.qemu_audio_mode),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = MiuixTheme.colorScheme.primary
                         )
                     }
                     RadioButtonPreference(
-                        title = "关闭",
-                        summary = "虚拟机无声音输出",
+                        title = stringResource(R.string.qemu_audio_off_title),
+                        summary = stringResource(R.string.qemu_audio_off_sum),
                         selected = audioMode == AudioMode.DISABLED,
                         onClick = { audioMode = AudioMode.DISABLED }
                     )
                     RadioButtonPreference(
-                        title = "VNC RFB 扩展（推荐）",
+                        title = stringResource(R.string.qemu_audio_vnc_title),
                         summary = if (shouldUseQemuInContainer()) {
-                            "通过 VNC 连接直接传递音频；容器内 QEMU 不支持时自动回退到 PulseAudio"
+                            stringResource(R.string.qemu_audio_vnc_sum_container)
                         } else {
-                            "通过 VNC 连接直接传递虚拟机声音，客户端无需额外配置"
+                            stringResource(R.string.qemu_audio_vnc_sum)
                         },
                         selected = audioMode == AudioMode.VNC_RFB,
                         onClick = { audioMode = AudioMode.VNC_RFB }
                     )
                     RadioButtonPreference(
-                        title = "PulseAudio - 跟随 VNC 页面",
-                        summary = "进入 VNC 页面时开始播放声音，退出页面时停止播放；使用容器/原生 PulseAudio 服务",
+                        title = stringResource(R.string.qemu_audio_pa_screen_title),
+                        summary = stringResource(R.string.qemu_audio_pa_screen_sum),
                         selected = audioMode == AudioMode.PA_FOLLOW_SCREEN,
                         onClick = { audioMode = AudioMode.PA_FOLLOW_SCREEN }
                     )
                     RadioButtonPreference(
-                        title = "PulseAudio - 持续播放",
-                        summary = "虚拟机声音持续播放（即使关闭 VNC 页面），可用任意 PulseAudio 客户端收听",
+                        title = stringResource(R.string.qemu_audio_pa_persist_title),
+                        summary = stringResource(R.string.qemu_audio_pa_persist_sum),
                         selected = audioMode == AudioMode.PA_PERSIST,
                         onClick = { audioMode = AudioMode.PA_PERSIST }
                     )
@@ -608,14 +615,14 @@ private fun VmWizardContent(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "共享目录",
+                        text = stringResource(R.string.qemu_shared_dir),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = MiuixTheme.colorScheme.primary
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "使用内部存储在 Termux 中的映射目录（shared）来访问",
+                        text = stringResource(R.string.qemu_shared_dir_sum),
                         fontSize = 12.sp,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                     )
@@ -623,7 +630,7 @@ private fun VmWizardContent(
                     TextField(
                         value = shareDir,
                         onValueChange = { shareDir = it },
-                        label = "共享目录路径"
+                        label = stringResource(R.string.qemu_shared_dir_path)
                     )
                 }
             }
@@ -637,7 +644,7 @@ private fun VmWizardContent(
                 Column {
                     Row(modifier = Modifier.padding(16.dp, 16.dp, 16.dp, 0.dp)) {
                         Text(
-                            text = "引导顺序",
+                            text = stringResource(R.string.qemu_boot_order),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = MiuixTheme.colorScheme.primary
@@ -645,16 +652,16 @@ private fun VmWizardContent(
                     }
                     if (mode == "install_iso") {
                         WindowDropdownPreference(
-                            title = "第一启动设备",
+                            title = stringResource(R.string.qemu_boot_first),
                             items = listOf("CD-ROM"),
                             selectedIndex = 0,
                             onSelectedIndexChange = {}
                         )
                     } else {
-                        val bootOptions = listOf("硬盘", "CD-ROM", "无")
+                        val bootOptions = listOf(stringResource(R.string.qemu_boot_hdd), "CD-ROM", stringResource(R.string.qemu_boot_none))
                         val bootValues = listOf("c", "d", "")
                         WindowDropdownPreference(
-                            title = "第一启动设备",
+                            title = stringResource(R.string.qemu_boot_first),
                             items = bootOptions,
                             selectedIndex = bootValues.indexOf(bootDevice1).coerceAtLeast(0),
                             onSelectedIndexChange = { bootDevice1 = bootValues[it] }
@@ -663,9 +670,9 @@ private fun VmWizardContent(
 
                     val hasIso = mode == "install_iso" || (mode != "install_iso" && mountIso && isoPath.isNotBlank())
                     val bootOptions2 = if (hasIso) {
-                        listOf("硬盘", "CD-ROM", "无")
+                        listOf(stringResource(R.string.qemu_boot_hdd), "CD-ROM", stringResource(R.string.qemu_boot_none))
                     } else {
-                        listOf("硬盘", "无")
+                        listOf(stringResource(R.string.qemu_boot_hdd), stringResource(R.string.qemu_boot_none))
                     }
                     val bootValues2 = if (hasIso) {
                         listOf("c", "d", "")
@@ -673,7 +680,7 @@ private fun VmWizardContent(
                         listOf("c", "")
                     }
                     WindowDropdownPreference(
-                        title = "第二启动设备",
+                        title = stringResource(R.string.qemu_boot_second),
                         items = bootOptions2,
                         selectedIndex = bootValues2.indexOf(bootDevice2).coerceAtLeast(0),
                         onSelectedIndexChange = { bootDevice2 = bootValues2[it] }
@@ -689,14 +696,14 @@ private fun VmWizardContent(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "VNC 端口",
+                        text = stringResource(R.string.qemu_vnc_port),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = MiuixTheme.colorScheme.primary
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "留空或填写端口号，默认 5900",
+                        text = stringResource(R.string.qemu_vnc_port_sum),
                         fontSize = 12.sp,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                     )
@@ -704,7 +711,7 @@ private fun VmWizardContent(
                     TextField(
                         value = vncPort,
                         onValueChange = { vncPort = it.filter { c -> c.isDigit() } },
-                        label = "VNC 端口号"
+                        label = stringResource(R.string.qemu_vnc_port_hint)
                     )
                 }
             }
@@ -715,13 +722,13 @@ private fun VmWizardContent(
         // 底部按钮 —— 公共，始终显示
         Row(horizontalArrangement = Arrangement.SpaceBetween) {
             TextButton(
-                text = "取消",
+                text = stringResource(R.string.cancel),
                 onClick = onCancel,
                 modifier = Modifier.weight(1f)
             )
             Spacer(Modifier.width(16.dp))
             TextButton(
-                text = if (existingVm != null) "保存" else "完成",
+                text = stringResource(if (existingVm != null) R.string.save else R.string.qemu_done),
                 onClick = {
                     val port = vncPort.toIntOrNull() ?: 5900
                     val bootList = mutableListOf<String>()
@@ -806,10 +813,8 @@ private fun VmWizardContent(
     if (fileSourceTarget != null) {
         OverlayDialog(
             show = true,
-            title = if (fileSourceTarget == "disk") "选择磁盘文件方式" else "选择 ISO 文件方式",
-            summary = "请选择文件来源：\n\n" +
-                "• Termux 环境内：浏览 /data/data/com.termux 下的文件（如 \$HOME/virtual_disks/）\n" +
-                "• 外部存储：使用系统文件选择器选择 Termux 之外的文件（自动复制到内部）",
+            title = stringResource(if (fileSourceTarget == "disk") R.string.qemu_src_disk_title else R.string.qemu_src_iso_title),
+            summary = stringResource(R.string.qemu_src_summary),
             onDismissRequest = { fileSourceTarget = null },
             content = {
             Column(
@@ -817,7 +822,7 @@ private fun VmWizardContent(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 TextButton(
-                    text = "Termux 环境内",
+                    text = stringResource(R.string.qemu_src_internal),
                     onClick = {
                         val target = fileSourceTarget
                         fileSourceTarget = null
@@ -830,7 +835,7 @@ private fun VmWizardContent(
                     colors = ButtonDefaults.textButtonColorsPrimary()
                 )
                 TextButton(
-                    text = "外部存储（系统选择器）",
+                    text = stringResource(R.string.qemu_src_external),
                     onClick = {
                         val target = fileSourceTarget
                         fileSourceTarget = null
@@ -849,7 +854,7 @@ private fun VmWizardContent(
     // 磁盘文件：Termux 内部选择器
     TermuxInternalFilePicker(
         show = showInternalDiskPicker,
-        title = "选择磁盘文件",
+        title = stringResource(R.string.qemu_disk_pick),
         fileExtensions = listOf("qcow2", "img", "raw", "vmdk", "vdi", "vpc", "qcow", "qed"),
         onDismiss = { showInternalDiskPicker = false },
         onFileSelected = { path ->
@@ -861,7 +866,7 @@ private fun VmWizardContent(
     // ISO 文件：Termux 内部选择器
     TermuxInternalFilePicker(
         show = showInternalIsoPicker,
-        title = "选择 ISO 文件",
+        title = stringResource(R.string.qemu_iso_pick),
         fileExtensions = listOf("iso"),
         onDismiss = { showInternalIsoPicker = false },
         onFileSelected = { path ->
@@ -1160,14 +1165,14 @@ private fun AgentVmConfigTab(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "描述你的虚拟机需求",
+                    text = stringResource(R.string.qemu_agent_prompt_title),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = MiuixTheme.colorScheme.primary
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "Agent 会根据你的描述自动推荐合适的硬件配置",
+                    text = stringResource(R.string.qemu_agent_prompt_subtitle),
                     fontSize = 12.sp,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                 )
@@ -1175,12 +1180,12 @@ private fun AgentVmConfigTab(
                 TextField(
                     value = agentPrompt,
                     onValueChange = onAgentPromptChange,
-                    label = "例如: Windows 11 虚拟机，用于轻度办公",
+                    label = stringResource(R.string.qemu_agent_prompt_hint),
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(8.dp))
                 TextButton(
-                    text = if (agentLoading) "正在分析..." else "让 Agent 帮我配置",
+                    text = stringResource(if (agentLoading) R.string.qemu_agent_analyzing_short else R.string.qemu_agent_configure_cta),
                     onClick = onGenerate,
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !agentLoading && agentPrompt.isNotBlank(),
@@ -1220,7 +1225,7 @@ private fun AgentVmConfigTab(
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Agent 正在分析需求...",
+                        text = stringResource(R.string.qemu_agent_analyzing_long),
                         fontSize = 12.sp,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                     )
@@ -1237,7 +1242,7 @@ private fun AgentVmConfigTab(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Agent 推荐的硬件配置",
+                        text = stringResource(R.string.qemu_agent_result_title),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = MiuixTheme.colorScheme.primary
@@ -1245,12 +1250,13 @@ private fun AgentVmConfigTab(
                     Spacer(Modifier.height(8.dp))
                     // 建议详情列表
                     listOfNotNull(
-                        "机器类型: ${agentSuggestion.machineType}",
-                        agentSuggestion.cpuModelOverride?.let { "CPU 类型: $it" } ?: "CPU 类型: QEMU 自动",
-                        "CPU 核心数: ${agentSuggestion.cpuCores} 核",
-                        "内存大小: ${agentSuggestion.memoryMB} MB",
-                        agentSuggestion.diskInterface?.let { "硬盘接口: $it" },
-                        agentSuggestion.recommendedDiskSizeGB?.let { "建议硬盘: $it GB" }
+                        stringResource(R.string.qemu_sug_machine, agentSuggestion.machineType),
+                        agentSuggestion.cpuModelOverride?.let { stringResource(R.string.qemu_sug_cpu_model, it) }
+                            ?: stringResource(R.string.qemu_sug_cpu_model_auto),
+                        stringResource(R.string.qemu_sug_cpu_cores, agentSuggestion.cpuCores),
+                        stringResource(R.string.qemu_sug_memory, agentSuggestion.memoryMB),
+                        agentSuggestion.diskInterface?.let { stringResource(R.string.qemu_sug_disk_iface, it) },
+                        agentSuggestion.recommendedDiskSizeGB?.let { stringResource(R.string.qemu_sug_disk_size, it) }
                     ).forEach { line ->
                         Text(
                             text = "• $line",
@@ -1269,7 +1275,7 @@ private fun AgentVmConfigTab(
                     Spacer(Modifier.height(12.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TextButton(
-                            text = "应用建议",
+                            text = stringResource(R.string.qemu_agent_apply),
                             onClick = { onApplySuggestion(agentSuggestion) },
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.textButtonColorsPrimary()
@@ -1277,7 +1283,7 @@ private fun AgentVmConfigTab(
                     }
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "应用后会自动切换回「手动配置」Tab，方便你调整声音/ISO/磁盘等个性设置",
+                        text = stringResource(R.string.qemu_agent_apply_note),
                         fontSize = 11.sp,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                     )
@@ -1294,17 +1300,17 @@ private fun AgentVmConfigTab(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "使用说明",
+                        text = stringResource(R.string.qemu_agent_usage_title),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = MiuixTheme.colorScheme.primary
                     )
                     Spacer(Modifier.height(8.dp))
                     listOf(
-                        "• 在上方用一句话描述你的虚拟机用途",
-                        "• Agent 会推荐合适的机器类型 / CPU / 内存等硬件",
-                        "• 点击「应用建议」后切换到手动 Tab 调整声音/ISO/磁盘",
-                        "• Agent 不会替你决定声音、磁盘文件、ISO 镜像"
+                        stringResource(R.string.qemu_agent_usage_1),
+                        stringResource(R.string.qemu_agent_usage_2),
+                        stringResource(R.string.qemu_agent_usage_3),
+                        stringResource(R.string.qemu_agent_usage_4)
                     ).forEach { line ->
                         Text(
                             text = line,

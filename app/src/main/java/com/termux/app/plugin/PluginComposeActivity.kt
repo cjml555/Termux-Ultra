@@ -16,8 +16,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import com.termux.R
 import com.termux.app.compose.KiTerminalTheme
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.TopAppBar
@@ -52,7 +54,7 @@ class PluginComposeActivity : ComponentActivity() {
 
         val pluginId = intent.getStringExtra(EXTRA_PLUGIN_ID) ?: run { finish(); return }
         val entryPath = intent.getStringExtra(EXTRA_ENTRY_PATH) ?: "pages/index.json"
-        val title = intent.getStringExtra(EXTRA_TITLE) ?: "插件页面"
+        val title = intent.getStringExtra(EXTRA_TITLE) ?: getString(R.string.plugincompose_default_title)
 
         // 提前校验插件状态，避免在 Composable 里 return
         val plugin = PluginManager.getPluginById(this, pluginId)
@@ -84,7 +86,7 @@ class PluginComposeActivity : ComponentActivity() {
                             ) {
                                 Icon(
                                     imageVector = MiuixIcons.Back,
-                                    contentDescription = "返回",
+                                    contentDescription = stringResource(R.string.back),
                                     tint = MiuixTheme.colorScheme.onSurface,
                                     modifier = Modifier.size(24.dp)
                                 )
@@ -96,7 +98,7 @@ class PluginComposeActivity : ComponentActivity() {
                         if (rootNode != null) {
                             ComposeRenderer.RenderNode(rootNode, pluginId, context, stateStore)
                         } else {
-                            Text("页面配置解析失败: $entryPath")
+                            Text(stringResource(R.string.plugincompose_parse_failed, entryPath))
                         }
                     }
                 }

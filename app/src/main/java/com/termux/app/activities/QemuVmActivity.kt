@@ -41,6 +41,7 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import androidx.compose.ui.res.stringResource
 
 /**
  * QEMU 虚拟机管理页面。
@@ -163,7 +164,7 @@ private fun QemuVmScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
-                title = "虚拟机",
+                title = stringResource(R.string.vm_title),
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
                     Box(
@@ -235,7 +236,7 @@ private fun QemuVmScreen(
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_plus),
-                    contentDescription = "新建虚拟机",
+                    contentDescription = stringResource(R.string.vm_new),
                     modifier = Modifier.size(24.dp),
                     tint = Color.White
                 )
@@ -264,21 +265,21 @@ private fun QemuVmScreen(
         if (showDeleteConfirm != null) {
             OverlayDialog(
                 show = true,
-                title = "删除虚拟机",
+                title = stringResource(R.string.vm_delete_confirm_title),
                 summary = showDeleteConfirm?.let {
-                    "确定删除 \"${it.name}\" 的配置吗？\n注意：磁盘和镜像文件不会被删除，如需彻底删除请手动清除。"
+                    stringResource(R.string.vm_delete_confirm_message, it.name)
                 } ?: "",
                 onDismissRequest = { showDeleteConfirm = null },
                 content = {
                 Row(horizontalArrangement = Arrangement.SpaceBetween) {
                     TextButton(
-                        text = "取消",
+                        text = stringResource(R.string.cancel),
                         onClick = { showDeleteConfirm = null },
                         modifier = Modifier.weight(1f)
                     )
                     Spacer(Modifier.width(16.dp))
                     TextButton(
-                        text = "删除",
+                        text = stringResource(R.string.delete),
                         onClick = {
                             showDeleteConfirm?.let { vm ->
                                 QemuVmManager.deleteVm(context, vm.id)
@@ -298,12 +299,8 @@ private fun QemuVmScreen(
         if (showMigrationDialog) {
             OverlayDialog(
                 show = true,
-                title = "路径迁移",
-                summary = "检测到现有虚拟机使用旧版默认路径。\n\n" +
-                    "新版本已更新默认位置：\n" +
-                    "• 硬盘：\$HOME/virtual_disks/\n" +
-                    "• 共享目录：\$HOME/storage/shared/Termux/Sharing/\n\n" +
-                    "是否一键迁移硬盘文件和共享目录到新位置？",
+                title = stringResource(R.string.vm_path_migration_title),
+                summary = stringResource(R.string.vm_path_migration_summary),
                 onDismissRequest = {
                     if (!isMigrating) showMigrationDialog = false
                 },
@@ -314,7 +311,7 @@ private fun QemuVmScreen(
                         horizontalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "正在迁移，请稍候...",
+                            text = stringResource(R.string.vm_migrating),
                             fontSize = 14.sp,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                         )
@@ -322,13 +319,13 @@ private fun QemuVmScreen(
                 } else {
                     Row(horizontalArrangement = Arrangement.SpaceBetween) {
                         TextButton(
-                            text = "稍后",
+                            text = stringResource(R.string.vm_migrate_later),
                             onClick = { showMigrationDialog = false },
                             modifier = Modifier.weight(1f)
                         )
                         Spacer(Modifier.width(16.dp))
                         TextButton(
-                            text = "一键迁移",
+                            text = stringResource(R.string.vm_migrate_now),
                             onClick = {
                                 isMigrating = true
                                 coroutineScope.launch {
@@ -354,14 +351,19 @@ private fun QemuVmScreen(
         if (migrationResult != null) {
             OverlayDialog(
                 show = true,
-                title = "迁移完成",
+                title = stringResource(R.string.vm_migration_done_title),
                 summary = migrationResult!!.let { result ->
                     buildString {
-                        append("已迁移 ${result.migratedVmCount} 个虚拟机配置。\n")
-                        append("成功移动 ${result.movedDiskCount} 个硬盘文件。\n")
-                        append("共享目录${if (result.shareDirMoved) "已" else "未"}迁移。")
+                        append(context.getString(R.string.vm_migration_done_line1, result.migratedVmCount)).append("\n")
+                        append(context.getString(R.string.vm_migration_done_line2, result.movedDiskCount)).append("\n")
+                        append(
+                            context.getString(
+                                if (result.shareDirMoved) R.string.vm_migration_done_shared_yes
+                                else R.string.vm_migration_done_shared_no
+                            )
+                        )
                         if (result.errors.isNotEmpty()) {
-                            append("\n\n错误信息：\n")
+                            append(context.getString(R.string.vm_migration_errors))
                             result.errors.forEach { append("• $it\n") }
                         }
                     }
@@ -370,7 +372,7 @@ private fun QemuVmScreen(
                 content = {
                 Row(horizontalArrangement = Arrangement.Center) {
                     TextButton(
-                        text = "确定",
+                        text = stringResource(R.string.ok),
                         onClick = { migrationResult = null },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.textButtonColorsPrimary()
@@ -408,14 +410,14 @@ private fun VmEmptyState(
         }
         Spacer(Modifier.height(24.dp))
         Text(
-            text = "暂无虚拟机",
+            text = stringResource(R.string.vm_empty),
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             color = MiuixTheme.colorScheme.onSurface
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "点击新建按钮创建第一台虚拟机，开始运行你的 QEMU 环境。",
+            text = stringResource(R.string.vm_empty_hint),
             fontSize = 15.sp,
             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             modifier = Modifier.padding(horizontal = 48.dp)
@@ -443,7 +445,7 @@ private fun VmEmptyState(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "新建虚拟机",
+                    text = stringResource(R.string.vm_new_button),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = MiuixTheme.colorScheme.primary
@@ -480,7 +482,7 @@ private fun VmListScreen(
             ) {
                 Column {
                     Text(
-                        text = "虚拟机总数",
+                        text = stringResource(R.string.vm_total_count),
                         fontSize = 13.sp,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                     )
@@ -493,7 +495,7 @@ private fun VmListScreen(
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "运行中",
+                        text = stringResource(R.string.vm_running),
                         fontSize = 13.sp,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                     )
@@ -510,7 +512,7 @@ private fun VmListScreen(
         Spacer(Modifier.height(4.dp))
 
         Text(
-            text = "全部虚拟机",
+            text = stringResource(R.string.vm_all_vms),
             fontSize = 17.sp,
             fontWeight = FontWeight.SemiBold,
             color = MiuixTheme.colorScheme.onSurface,
@@ -578,7 +580,14 @@ private fun VmCard(
                             color = MiuixTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "${vm.cpuCores}核 / ${vm.memoryMB}MB / ${(vm.machineType ?: "q35").uppercase()} / ${(vm.diskInterface ?: "ide").uppercase()} / VNC:${vm.vncPort}",
+                            text = stringResource(
+                                R.string.vm_spec_line,
+                                vm.cpuCores,
+                                vm.memoryMB,
+                                (vm.machineType ?: "q35").uppercase(),
+                                (vm.diskInterface ?: "ide").uppercase(),
+                                vm.vncPort
+                            ),
                             fontSize = 13.sp,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                         )
@@ -593,19 +602,19 @@ private fun VmCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 TextButton(
-                    text = "删除",
+                    text = stringResource(R.string.delete),
                     onClick = onDelete,
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(Modifier.width(12.dp))
                 TextButton(
-                    text = "编辑",
+                    text = stringResource(R.string.edit),
                     onClick = onEdit,
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(Modifier.width(12.dp))
                 TextButton(
-                    text = "启动",
+                    text = stringResource(R.string.vm_start),
                     onClick = onStart,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.textButtonColorsPrimary()

@@ -76,6 +76,18 @@ import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 
+// Claves internas de estilo para las tarjetas de paso. No son texto visible:
+// el encabezado visible sale de un recurso, así que el color no puede deducirse
+// del texto (dependería del idioma activo).
+private const val STEP_KIND = "step"
+private const val QUESTION_KIND = "question"
+private const val ANSWER_KIND = "answer"
+private const val CRITIQUE_KIND = "critique"
+private const val ROUND_DONE_KIND = "round_done"
+private const val RATING_KIND = "rating"
+private const val ERROR_KIND = "error"
+private const val PAUSED_KIND = "paused"
+
 @Composable
 fun AiLocalTrainerScreen(
     modifier: Modifier = Modifier,
@@ -137,10 +149,9 @@ private fun NoLocalModelHint(modifier: Modifier) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("尚未配置本地模型，无法训练。", fontWeight = FontWeight.SemiBold, color = MiuixTheme.colorScheme.onSurface)
+        Text(stringResource(R.string.trainer_no_model), fontWeight = FontWeight.SemiBold, color = MiuixTheme.colorScheme.onSurface)
         Spacer(Modifier.height(8.dp))
-        Text("请先前往设置页 → Termux Agent → 选择本地模型（llama 或 Ollama）。",
-             fontSize = 12.sp)
+        Text(stringResource(R.string.trainer_no_model_hint), fontSize = 12.sp)
     }
 }
 
@@ -153,10 +164,13 @@ private fun TrainerBody(
 ) {
     val scope = rememberCoroutineScope()
     val session = remember { mutableStateOf(AiTermuxPrefs.getLastTrainSession(ctx) ?: LocalTrainSession()) }
-    val steps = remember { mutableStateListOf<Pair<Int, String>>() }
-    val etaText = remember { mutableStateOf("等待开始…") }
+    val steps = remember { mutableStateListOf<Triple<Int, String, String>>() }
+    val waitingStartText = stringResource(R.string.trainer_waiting_start)
+    val notStartedText = stringResource(R.string.trainer_not_started)
+    val pausedText = stringResource(R.string.trainer_paused_resume)
+    val etaText = remember { mutableStateOf(waitingStartText) }
     val currentTab = rememberSaveable { mutableStateOf(0) }
-    val statusMsg = remember { mutableStateOf(session.value.status.ifBlank { "未开始" }) }
+    val statusMsg = remember { mutableStateOf(session.value.status.ifBlank { notStartedText }) }
     val waitingRating = remember { mutableStateOf<LocalTrainerEvent.WaitingForUserRating?>(null) }
     val refreshTeacherChat = remember { mutableStateOf(0) }
 
@@ -186,7 +200,7 @@ private fun TrainerBody(
         cancelled.value = true
         session.value.status = "paused"
         AiTermuxPrefs.saveLastTrainSession(ctx, session.value)
-        statusMsg.value = "已暂停（可随时继续）"
+        statusMsg.value = pausedText
         scope.launch {
             kotlinx.coroutines.delay(80)
             job?.cancelAndJoin()
@@ -198,8 +212,8 @@ private fun TrainerBody(
         scope.launch { job?.cancelAndJoin(); job = null }
         session.value = LocalTrainSession(targetRounds = session.value.targetRounds)
         steps.clear()
-        etaText.value = "等待开始…"
-        statusMsg.value = "未开始"
+        etaText.value = waitingStartText
+        statusMsg.value = notStartedText
         waitingRating.value = null
         AiTermuxPrefs.saveLastTrainSession(ctx, session.value)
     }
@@ -272,7 +286,7 @@ private fun TrainerBody(
 // ========== 事件处理 ==========
 private fun handleTrainerEvent(
     evt: LocalTrainerEvent,
-    steps: androidx.compose.runtime.snapshots.SnapshotStateList<Pair<Int, String>>,
+    steps: androidx.compose.runtime.snapshots.SnapshotStateList<Triple<Int, String, String>>,
     etaText: MutableState<String>,
     statusMsg: MutableState<String>,
     session: MutableState<LocalTrainSession>,
@@ -285,21 +299,42 @@ private fun handleTrainerEvent(
             evt.message?.let { statusMsg.value = it }
         }
         is LocalTrainerEvent.EtaUpdated -> etaText.value = evt.etaText
-        is LocalTrainerEvent.Step -> steps.add(evt.roundIndex to "【步骤】${evt.title}\n${evt.detail}")
-        is LocalTrainerEvent.TeacherQuestion -> steps.add(evt.roundIndex to "【老师出题 - 第${evt.roundIndex}轮】\n${evt.text}")
-        is LocalTrainerEvent.StudentAnswer -> steps.add(evt.roundIndex to "【学生回答 第${evt.roundIndex}轮 · ${evt.durationMs/1000}s】\n${evt.text}")
+        is LocalTrainerEvent.Step -> steps.add(
+            Triple(evt.roundIndex, STEP_KIND, ctx.getString(R.string.trainer_step_header, evt.title, evt.detail))
+        )
+        is LocalTrainerEvent.TeacherQuestion -> steps.add(
+            Triple(evt.roundIndex, QUESTION_KIND, ctx.getString(R.string.trainer_question_header, evt.roundIndex, evt.text))
+        )
+        is LocalTrainerEvent.StudentAnswer -> steps.add(
+            Triple(evt.roundIndex, ANSWER_KIND, ctx.getString(R.string.trainer_student_answer_header, evt.roundIndex, evt.durationMs / 1000, evt.text))
+        )
         is LocalTrainerEvent.TeacherCritique -> {
             val scoreStr = "%.1f".format(evt.score)
             val maxStr = "%.1f".format(evt.maxScore)
-            val header = if (session.value.teacher == "online_fallback") "【在线老师评分 第${evt.roundIndex}轮 · $scoreStr/$maxStr】" else "【用户评分 第${evt.roundIndex}轮 · $scoreStr/$maxStr】"
+            val header = if (session.value.teacher == "online_fallback")
+                ctx.getString(R.string.trainer_online_score_header, evt.roundIndex, scoreStr, maxStr)
+            else
+                ctx.getString(R.string.trainer_user_score_header, evt.roundIndex, scoreStr, maxStr)
             val bodySb = StringBuilder()
             bodySb.appendLine(evt.critique)
-            if (evt.memoryPatch.isNotBlank()) { bodySb.appendLine(); bodySb.appendLine("→ System Prompt 记忆块追加："); bodySb.append(evt.memoryPatch) }
+            if (evt.memoryPatch.isNotBlank()) {
+                bodySb.appendLine()
+                bodySb.appendLine(ctx.getString(R.string.trainer_memory_patch_append))
+                bodySb.append(evt.memoryPatch)
+            }
             val body = bodySb.toString()
-            steps.add(evt.roundIndex to "$header\n$body")
+            steps.add(Triple(evt.roundIndex, CRITIQUE_KIND, "$header\n$body"))
         }
-        is LocalTrainerEvent.RoundDone -> steps.add(evt.round.roundIndex to "【第${evt.round.roundIndex}轮完成】得分=${evt.round.score}，记忆块当前${evt.learnedNowCount} chars")
-        is LocalTrainerEvent.ErrorOccurred -> { steps.add(evt.roundIndex to "❌ 错误（第${evt.roundIndex}轮）\n${evt.message}"); statusMsg.value = "错误：${evt.message}" }
+        is LocalTrainerEvent.RoundDone -> steps.add(
+            Triple(
+                evt.round.roundIndex, ROUND_DONE_KIND,
+                ctx.getString(R.string.trainer_round_done, evt.round.roundIndex, evt.round.score, evt.learnedNowCount)
+            )
+        )
+        is LocalTrainerEvent.ErrorOccurred -> {
+            steps.add(Triple(evt.roundIndex, ERROR_KIND, ctx.getString(R.string.trainer_error_header, evt.roundIndex, evt.message)))
+            statusMsg.value = ctx.getString(R.string.trainer_error_status, evt.message)
+        }
         is LocalTrainerEvent.SessionSnapshot -> {
             // 给 UI 一份独立快照：LocalTrainSession.rounds 是与训练引擎共享的
             // MutableList，引擎在 Dispatchers.IO 上 add/修改，UI 在 Main 上遍历，
@@ -311,11 +346,20 @@ private fun handleTrainerEvent(
         is LocalTrainerEvent.WaitingForUserRating -> {
             val ss = "%.1f".format(evt.suggestedScore)
             val sm = "%.1f".format(evt.suggestedMaxScore)
-            steps.add(evt.roundIndex to "📝 等待用户评分 第${evt.roundIndex}轮 · 建议分=$ss/$sm\n${evt.suggestedCritique}")
+            steps.add(
+                Triple(
+                    evt.roundIndex, RATING_KIND,
+                    ctx.getString(R.string.trainer_waiting_rating, evt.roundIndex, ss, sm, evt.suggestedCritique)
+                )
+            )
             waitingRating.value = evt
         }
-        is LocalTrainerEvent.TeacherFollowup -> steps.add(evt.roundIndex to "【老师追问 第${evt.roundIndex}轮】\n${evt.followupText}")
-        is LocalTrainerEvent.StudentFollowupAnswer -> steps.add(evt.roundIndex to "【学生回答追问 第${evt.roundIndex}轮】\n${evt.answerText}")
+        is LocalTrainerEvent.TeacherFollowup -> steps.add(
+            Triple(evt.roundIndex, QUESTION_KIND, ctx.getString(R.string.trainer_teacher_followup_header, evt.roundIndex, evt.followupText))
+        )
+        is LocalTrainerEvent.StudentFollowupAnswer -> steps.add(
+            Triple(evt.roundIndex, ANSWER_KIND, ctx.getString(R.string.trainer_student_followup_answer_header, evt.roundIndex, evt.answerText))
+        )
     }
 }
 
@@ -332,7 +376,7 @@ private fun TopInfoCard(
         modifier = Modifier.fillMaxWidth().wrapContentHeight().clip(RoundedCornerShape(16.dp))
     ) {
         Column(Modifier.padding(14.dp)) {
-            Text("训练进度", fontSize = 12.sp)
+            Text(stringResource(R.string.trainer_progress), fontSize = 12.sp)
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 LinearProgressIndicator(progress = progress, modifier = Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(8.dp)))
@@ -342,44 +386,44 @@ private fun TopInfoCard(
             Spacer(Modifier.height(10.dp))
             HorizontalDivider(color = MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.15f))
             Spacer(Modifier.height(8.dp))
-            InfoRow("状态：", statusMsg, true)
-            InfoRow("预计剩余时间：", etaText, false)
-            if (session.avgRoundMs > 0L) InfoRow("单轮平均：", "${session.avgRoundMs/1000}s", false)
+            InfoRow(stringResource(R.string.trainer_label_status), statusMsg, true)
+            InfoRow(stringResource(R.string.trainer_label_eta), etaText, false)
+            if (session.avgRoundMs > 0L) InfoRow(stringResource(R.string.trainer_label_avg_round), "${session.avgRoundMs/1000}s", false)
             val doneRoundsData = session.rounds.filter { it.status == "done" }
             if (doneRoundsData.isNotEmpty()) {
                 val sc = session.totalScore
-                InfoRow("当前总分：", "${"%.2f".format(sc)} / 100", false)
+                InfoRow(stringResource(R.string.trainer_label_total_score), "${"%.2f".format(sc)} / 100", false)
                 val maxW = doneRoundsData.sumOf { it.maxScore }
                 if (maxW > 0.0) {
                     val pct = (sc / maxW * 100.0)
-                    InfoRow("标准化得分：", "${"%.1f".format(pct)}%", false)
+                    InfoRow(stringResource(R.string.trainer_label_normalized), "${"%.1f".format(pct)}%", false)
                 }
             }
             if (session.status == "finished" && doneRoundsData.isNotEmpty()) {
                 Spacer(Modifier.height(6.dp))
                 val totalFinal = session.totalScore
-                Text("🏁 训练完成 · 总分 ${"%.2f".format(totalFinal)} / 100", fontWeight = FontWeight.SemiBold, color = MiuixTheme.colorScheme.primary, fontSize = 13.sp)
+                Text(stringResource(R.string.trainer_finished_total, "%.2f".format(totalFinal)), fontWeight = FontWeight.SemiBold, color = MiuixTheme.colorScheme.primary, fontSize = 13.sp)
                 if (session.finalSummary.isNotBlank()) {
                     Spacer(Modifier.height(4.dp))
                     Text(session.finalSummary, fontSize = 12.sp)
                 }
             }
             Spacer(Modifier.height(8.dp))
-            Text("训练老师（谁来出题+评分）：", fontSize = 12.sp)
+            Text(stringResource(R.string.trainer_teacher_label), fontSize = 12.sp)
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val online = session.teacher == "online_fallback" && onlineReady
                 val manual = session.teacher == "manual" || !onlineReady
                 FilterChip2(
-                    label = if (onlineReady) "在线全自动（推荐）" else "请先配置备用在线模型",
+                    label = stringResource(if (onlineReady) R.string.trainer_teacher_online else R.string.trainer_teacher_online_missing),
                     selected = online, enabled = onlineReady,
                     onClick = { if (onlineReady) onTeacherToggle("online_fallback") }
                 )
                 Spacer(Modifier.width(6.dp))
-                FilterChip2(label = "用户手动评分", selected = manual, onClick = { onTeacherToggle("manual") })
+                FilterChip2(label = stringResource(R.string.trainer_teacher_manual), selected = manual, onClick = { onTeacherToggle("manual") })
             }
             Spacer(Modifier.height(8.dp))
-            Text("总轮数：", fontSize = 12.sp)
+            Text(stringResource(R.string.trainer_label_total_rounds), fontSize = 12.sp)
             Spacer(Modifier.height(4.dp))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -387,7 +431,7 @@ private fun TopInfoCard(
             ) {
                 (5..30 step 5).forEach { n ->
                     FilterChip2(
-                        label = "$n 轮", selected = total == n,
+                        label = stringResource(R.string.trainer_rounds_chip, n), selected = total == n,
                         modifier = Modifier.padding(end = 6.dp),
                         onClick = { onTargetRoundsChange(n) }
                     )
@@ -413,7 +457,13 @@ private fun TabBar(currentTab: MutableState<Int>) {
             .background(MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)).padding(2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        listOf("训练流程" to 0, "完整对话" to 1, "与老师对话" to 2, "经验教训" to 3).forEach { (t, i) ->
+        listOf(
+            R.string.trainer_tab_steps to 0,
+            R.string.trainer_tab_conversation to 1,
+            R.string.trainer_tab_teacher to 2,
+            R.string.trainer_tab_lessons to 3
+        ).forEach { (resId, i) ->
+            val t = stringResource(resId)
             val selected = currentTab.value == i
             Box(
                 Modifier.weight(1f).fillMaxSize().clip(RoundedCornerShape(10.dp))
@@ -443,13 +493,14 @@ private fun ControlBar(
             Button(
                 onClick = onClearTeacherChat, modifier = Modifier.weight(1f).height(48.dp)
             ) {
-                Text("清空老师对话历史")
+                Text(stringResource(R.string.trainer_clear_teacher_chat))
             }
         } else if (!jobActive) {
             val disabled = session.teacher == "online_fallback" && !onlineReady
             val btnText = when {
-                session.rounds.isNotEmpty() && session.status != "finished" -> "继续训练 (${session.rounds.size}/${session.targetRounds})"
-                else -> "开始训练"
+                session.rounds.isNotEmpty() && session.status != "finished" ->
+                    stringResource(R.string.trainer_resume_training, session.rounds.size, session.targetRounds)
+                else -> stringResource(R.string.trainer_start_training)
             }
             Button(
                 onClick = onStart, modifier = Modifier.weight(1f).height(48.dp),
@@ -458,22 +509,22 @@ private fun ControlBar(
                 Text(btnText)
             }
             Spacer(Modifier.width(8.dp))
-            TextButton(text = "重开", onClick = onReset, modifier = Modifier.height(48.dp))
+            TextButton(text = stringResource(R.string.trainer_restart), onClick = onReset, modifier = Modifier.height(48.dp))
             Spacer(Modifier.width(2.dp))
             TextButton(
-                text = "清空教训", onClick = onClearMemory, modifier = Modifier.height(48.dp)
+                text = stringResource(R.string.trainer_clear_lessons), onClick = onClearMemory, modifier = Modifier.height(48.dp)
             )
         } else {
             Button(
                 onClick = onPause, modifier = Modifier.weight(1f).height(48.dp)
             ) {
-                Text("暂停")
+                Text(stringResource(R.string.trainer_pause))
             }
             Spacer(Modifier.width(8.dp))
-            TextButton(text = "重开", onClick = onReset, modifier = Modifier.height(48.dp))
+            TextButton(text = stringResource(R.string.trainer_restart), onClick = onReset, modifier = Modifier.height(48.dp))
             Spacer(Modifier.width(2.dp))
             TextButton(
-                text = "清空教训", onClick = onClearMemory, modifier = Modifier.height(48.dp)
+                text = stringResource(R.string.trainer_clear_lessons), onClick = onClearMemory, modifier = Modifier.height(48.dp)
             )
         }
     }
@@ -482,7 +533,7 @@ private fun ControlBar(
 // ========== 流程 Tab ==========
 @Composable
 private fun StepsTab(
-    steps: androidx.compose.runtime.snapshots.SnapshotStateList<Pair<Int, String>>,
+    steps: androidx.compose.runtime.snapshots.SnapshotStateList<Triple<Int, String, String>>,
     session: LocalTrainSession,
     jobActive: Boolean,
     statusMsg: String,
@@ -523,29 +574,29 @@ private fun StepsTab(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("训练还没有开始。")
+                    Text(stringResource(R.string.trainer_empty_steps_title))
                     Spacer(Modifier.height(6.dp))
-                    Text("选择总轮数和老师类型，点击「开始训练」。", fontSize = 12.sp,
+                    Text(stringResource(R.string.trainer_empty_steps_hint), fontSize = 12.sp,
                          color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                 }
             }
         } else {
-            itemsIndexed(steps, key = { i, _ -> "step_${i}_${steps[i].first}" }) { _, (roundIdx, text) ->
-                StepCard(roundIdx, text)
+            itemsIndexed(steps, key = { i, _ -> "step_${i}_${steps[i].first}" }) { _, step ->
+                StepCard(step.first, step.second, step.third)
             }
         }
     }
 }
 
 @Composable
-private fun StepCard(roundIdx: Int, text: String) {
+private fun StepCard(roundIdx: Int, kind: String, text: String) {
     val header = text.takeWhile { it != '\n' }
     val body = text.drop(header.length).trim('\n')
-    val bg = when {
-        header.startsWith("❌") -> MiuixTheme.colorScheme.errorContainer.copy(alpha = 0.25f)
-        header.startsWith("⏸️") -> MiuixTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
-        header.startsWith("【学生回答") -> MiuixTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
-        header.startsWith("【在线老师评分") || header.startsWith("【用户评分") -> MiuixTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+    val bg = when (kind) {
+        ERROR_KIND -> MiuixTheme.colorScheme.errorContainer.copy(alpha = 0.25f)
+        PAUSED_KIND -> MiuixTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+        ANSWER_KIND -> MiuixTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
+        CRITIQUE_KIND -> MiuixTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
         else -> MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
     }
     Card(
@@ -577,7 +628,7 @@ private fun ConversationTab(session: MutableState<LocalTrainSession>) {
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("暂无对话记录。")
+                    Text(stringResource(R.string.trainer_empty_conversation))
                 }
             }
         } else {
@@ -596,7 +647,7 @@ private fun RoundConversationCard(round: LocalTrainRound, teacher: String) {
     ) {
         Column(Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("第 ${round.roundIndex} 轮", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.trainer_round_label, round.roundIndex), fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.width(8.dp))
                 val scoreColor = when {
                     round.score >= 85 -> MiuixTheme.colorScheme.primary
@@ -608,18 +659,24 @@ private fun RoundConversationCard(round: LocalTrainRound, teacher: String) {
                         .background(scoreColor.copy(alpha = 0.2f))
                         .padding(horizontal = 8.dp, vertical = 2.dp)
                 ) {
-                    Text("评分 ${"%.1f".format(round.score)}/${"%.1f".format(round.maxScore)}", fontSize = 12.sp, color = scoreColor, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.trainer_score_label, "%.1f".format(round.score), "%.1f".format(round.maxScore)), fontSize = 12.sp, color = scoreColor, fontWeight = FontWeight.SemiBold)
                 }
                 Spacer(Modifier.width(8.dp))
-                Text("用时 ${round.durationMs/1000}s", fontSize = 11.sp)
+                Text(stringResource(R.string.trainer_duration_label, round.durationMs / 1000), fontSize = 11.sp)
             }
-            Bubble("老师出题", round.question, "teacher")
-            Bubble("本地学生回答", round.studentAnswer, "student")
+            Bubble(stringResource(R.string.trainer_bubble_teacher), round.question, "teacher")
+            Bubble(stringResource(R.string.trainer_bubble_student), round.studentAnswer, "student")
             if (round.critique.isNotBlank()) {
-                val title = if (teacher == "online_fallback") "在线老师批改" else "用户批改"
+                val title = stringResource(
+                    if (teacher == "online_fallback") R.string.trainer_bubble_online_critique
+                    else R.string.trainer_bubble_user_critique
+                )
                 val contentSb = StringBuilder()
                 contentSb.append(round.critique)
-                if (round.memoryPatch.isNotBlank()) contentSb.append("\n\nSystem Prompt 记忆块追加：\n").append(round.memoryPatch)
+                if (round.memoryPatch.isNotBlank())
+                    contentSb.append("\n\n")
+                        .append(stringResource(R.string.trainer_memory_patch_section))
+                        .append(round.memoryPatch)
                 val content = contentSb.toString()
                 Bubble(title, content, "critique")
             }
@@ -672,9 +729,9 @@ private fun TeacherChatTab(ctx: Context, onlineReady: MutableState<Boolean>, ref
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("⚠️ 需要先配置备用在线大模型", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.trainer_need_online_title), fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(6.dp))
-                Text("前往 设置 → Termux Agent → 备用在线模型 配置后即可使用", fontSize = 12.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+                Text(stringResource(R.string.trainer_need_online_hint), fontSize = 12.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
             }
             return@Column
         }
@@ -685,11 +742,11 @@ private fun TeacherChatTab(ctx: Context, onlineReady: MutableState<Boolean>, ref
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("👨‍🏫 在线老师", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                Text(stringResource(R.string.trainer_online_teacher), fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                 Spacer(Modifier.height(8.dp))
-                Text("和老师聊聊你想怎么训练本地大模型吧", fontSize = 13.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+                Text(stringResource(R.string.trainer_chat_empty_hint), fontSize = 13.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                 Spacer(Modifier.height(4.dp))
-                Text("比如：我想练习 root 权限控制、Ollama 部署等", fontSize = 12.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+                Text(stringResource(R.string.trainer_chat_empty_example), fontSize = 12.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
             }
         } else {
             LazyColumn(
@@ -733,7 +790,7 @@ private fun TeacherChatTab(ctx: Context, onlineReady: MutableState<Boolean>, ref
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(MiuixTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
                             ) {
-                                Text("老师正在思考…", modifier = Modifier.padding(12.dp), fontSize = 12.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+                                Text(stringResource(R.string.trainer_teacher_thinking), modifier = Modifier.padding(12.dp), fontSize = 12.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                             }
                         }
                     }
@@ -750,7 +807,7 @@ private fun TeacherChatTab(ctx: Context, onlineReady: MutableState<Boolean>, ref
                 value = input.value,
                 onValueChange = { input.value = it },
                 modifier = Modifier.weight(1f).heightIn(min = 44.dp),
-                label = "问老师一个训练问题…"
+                label = stringResource(R.string.trainer_chat_input_label)
             )
             Spacer(Modifier.width(8.dp))
             Button(
@@ -762,7 +819,7 @@ private fun TeacherChatTab(ctx: Context, onlineReady: MutableState<Boolean>, ref
                     isLoading.value = true
                     scope.launch(Dispatchers.IO) {
                         val reply = runCatching { AiLocalTrainer.chatWithTeacher(ctx, msg) }
-                            .getOrElse { "❌ 与老师对话失败: ${it.message}" }
+                            .getOrElse { ctx.getString(R.string.trainer_chat_failed, it.message ?: "") }
                         withContext(Dispatchers.Main) {
                             messages.add("assistant" to reply)
                             isLoading.value = false
@@ -804,9 +861,9 @@ private fun LessonsTab(ctx: Context, refreshKey: Int) {
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("暂无经验教训", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                    Text(stringResource(R.string.trainer_lessons_empty_title), fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                     Spacer(Modifier.height(6.dp))
-                    Text("开始训练后，老师会自动生成教训条目；\n也可以在与老师对话中说「归纳教训」来手动整理。",
+                    Text(stringResource(R.string.trainer_lessons_empty_hint),
                          fontSize = 12.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                 }
             }
@@ -815,10 +872,10 @@ private fun LessonsTab(ctx: Context, refreshKey: Int) {
                 Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("共 ${lessons.value.size} 条教训", fontSize = 12.sp)
+                Text(stringResource(R.string.trainer_lessons_count, lessons.value.size), fontSize = 12.sp)
                 Spacer(Modifier.weight(1f))
                 TextButton(
-                    text = "全部清空",
+                    text = stringResource(R.string.trainer_clear_all),
                     onClick = {
                         AiTermuxPrefs.clearLearnedMemory(ctx)
                         refresh()
@@ -832,10 +889,10 @@ private fun LessonsTab(ctx: Context, refreshKey: Int) {
             ) {
                 itemsIndexed(lessons.value) { index, lesson ->
                     val sourceLabel = when (lesson.source) {
-                        "auto" -> "训练自动"
-                        "teacher" -> "老师归纳"
-                        "manual" -> "手动添加"
-                        "migrated" -> "历史迁移"
+                        "auto" -> stringResource(R.string.trainer_source_auto)
+                        "teacher" -> stringResource(R.string.trainer_source_teacher)
+                        "manual" -> stringResource(R.string.trainer_source_manual)
+                        "migrated" -> stringResource(R.string.trainer_source_migrated)
                         else -> lesson.source
                     }
                     val sourceColor = when (lesson.source) {
@@ -894,15 +951,15 @@ private fun LessonsTab(ctx: Context, refreshKey: Int) {
         WindowDialog(
             show = true,
             onDismissRequest = { editingLesson = null },
-            title = "编辑教训",
-            summary = "修改后的教训会同步更新到训练记忆块和 Agent 的 System Prompt。",
+            title = stringResource(R.string.trainer_edit_lesson_title),
+            summary = stringResource(R.string.trainer_edit_lesson_summary),
             content = {
                 Column(Modifier.verticalScroll(rememberScrollState()).padding(vertical = 4.dp)) {
                     TextField(
                         value = editingText,
                         onValueChange = { editingText = it },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
-                        label = "教训内容（以 • 开头）"
+                        label = stringResource(R.string.trainer_lesson_content_label)
                     )
                     Spacer(Modifier.height(12.dp))
                     Row(
@@ -950,16 +1007,16 @@ private fun ManualRatingDialog(
     WindowDialog(
         show = show,
         onDismissRequest = { setShow(false); onDismiss() },
-        title = "给学生本轮回答打分",
-        summary = "本地模型没有配置备用在线大模型，因此需要您手动给出评分与改进建议。",
+        title = stringResource(R.string.trainer_rating_title),
+        summary = stringResource(R.string.trainer_rating_summary),
         content = {
             Column(Modifier.verticalScroll(rememberScrollState()).padding(vertical = 4.dp)) {
-                Text("本地模型没有配置备用在线大模型，因此需要您手动给出评分与改进建议。系统已基于启发式提供了参考评分和建议补丁，可直接修改。", fontSize = 12.sp)
+                Text(stringResource(R.string.trainer_rating_body), fontSize = 12.sp)
                 Spacer(Modifier.height(10.dp))
-                Text("题目：", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.trainer_rating_question_label), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 Text(data.question, fontSize = 12.sp)
                 Spacer(Modifier.height(6.dp))
-                Text("学生回答：", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.trainer_rating_student_label), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 Box(
                     Modifier.fillMaxWidth().height(140.dp).clip(RoundedCornerShape(8.dp))
                         .background(MiuixTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)).padding(8.dp)
@@ -968,7 +1025,7 @@ private fun ManualRatingDialog(
 
                 Spacer(Modifier.height(10.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("评分：${"%.1f".format(score.toDouble())} / ${"%.1f".format(data.suggestedMaxScore)}  ", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.trainer_rating_score_label, "%.1f".format(score.toDouble()), "%.1f".format(data.suggestedMaxScore)) + "  ", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     Slider(
                         value = score, onValueChange = { score = it },
                         valueRange = 0f..maxScoreValue, steps = ((maxScoreValue * 10) - 1).toInt().coerceAtLeast(0),
@@ -976,25 +1033,25 @@ private fun ManualRatingDialog(
                     )
                 }
                 Spacer(Modifier.height(4.dp))
-                Text("批评/批改理由（可直接修改）", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.trainer_rating_critique_label), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(2.dp))
                 TextField(
                     value = critique, onValueChange = { critique = it },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 140.dp),
-                    label = "详细指出优缺点、正确命令应该是什么..."
+                    label = stringResource(R.string.trainer_rating_critique_hint)
                 )
                 Spacer(Modifier.height(8.dp))
-                Text("教训记忆（追加到 System Prompt 末尾）", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.trainer_rating_patch_label), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(2.dp))
                 TextField(
                     value = patch, onValueChange = { patch = it },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 110.dp),
-                    label = "如：• 关于编造参数：列出多个命令参数时，提示用户用 man 确认。完美则可清空。"
+                    label = stringResource(R.string.trainer_rating_patch_hint)
                 )
                 Spacer(Modifier.height(10.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     TextButton(
-                        text = "使用建议值（跳过手动评分）", onClick = { setShow(false); onDismiss() },
+                        text = stringResource(R.string.trainer_rating_use_suggested), onClick = { setShow(false); onDismiss() },
                         modifier = Modifier.weight(1f).height(48.dp)
                     )
                     Spacer(Modifier.width(8.dp))
@@ -1002,7 +1059,7 @@ private fun ManualRatingDialog(
                         onClick = { setShow(false); onConfirm(score.toDouble(), critique, patch) },
                         modifier = Modifier.weight(1f).height(48.dp)
                     ) {
-                        Text("提交评分 · 进入下一轮")
+                        Text(stringResource(R.string.trainer_rating_submit))
                     }
                 }
             }

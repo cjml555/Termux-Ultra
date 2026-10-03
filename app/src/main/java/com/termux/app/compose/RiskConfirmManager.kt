@@ -45,6 +45,9 @@ import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import androidx.annotation.StringRes
+import androidx.compose.ui.res.stringResource
+import com.termux.R
 
 /**
  * 风险命令确认管理器。
@@ -211,11 +214,28 @@ object RiskConfirmManager {
     }
 
     /** 保护级别 */
-    enum class ProtectionLevel(val displayName: String, val description: String) {
-        OFF("关闭", "不检测危险命令"),
-        WARN_ONLY("仅提示", "Snackbar 提示但不拦截"),
-        WARN_VERIFY("警告并验证", "弹窗 + 倒计时 + 生物认证"),
-        AUTO_BLOCK("自动拦截", "直接拒绝执行危险命令")
+    enum class ProtectionLevel(@StringRes val displayNameRes: Int, @StringRes val descriptionRes: Int) {
+        OFF(R.string.risk_level_off, R.string.risk_level_off_desc),
+        WARN_ONLY(R.string.risk_level_warn_only, R.string.risk_level_warn_only_desc),
+        WARN_VERIFY(R.string.risk_level_warn_verify, R.string.risk_level_warn_verify_desc),
+        AUTO_BLOCK(R.string.risk_level_auto_block, R.string.risk_level_auto_block_desc);
+
+        /** Localized label; requires an app context to be set via [setI18nContext]. */
+        val displayName: String
+            get() = i18nContext?.getString(displayNameRes) ?: ""
+
+        /** Localized description; requires [setI18nContext]. */
+        val description: String
+            get() = i18nContext?.getString(descriptionRes) ?: ""
+    }
+
+    /** Application context used to resolve [ProtectionLevel] labels. */
+    @Volatile
+    private var i18nContext: Context? = null
+
+    /** Records the context used to resolve [ProtectionLevel] labels. Safe to call repeatedly. */
+    fun setI18nContext(context: Context) {
+        i18nContext = context.applicationContext
     }
 
     /** 弹窗状态 */
@@ -256,7 +276,7 @@ object RiskConfirmManager {
 
     /** 显示"安全检测中"加载弹窗（SecuritySocketServer 脚本判定期间调用） */
     fun showAgentLoading(text: String? = null) {
-        _agentLoadingText.value = text ?: "正在检测脚本安全性..."
+        _agentLoadingText.value = text ?: i18nContext?.getString(R.string.risk_agent_checking_script) ?: ""
         _agentLoadingVisible.value = true
     }
 
@@ -478,7 +498,7 @@ object RiskConfirmManager {
         if (level == ProtectionLevel.OFF) {
             // 保护关闭 = 不检测，跳过即放行；给一次可见反馈，避免「点了没反应」
             _agentLoadingVisible.value = false
-            emitSnackbar("保护已关闭，脚本已直接放行")
+            emitSnackbar(i18nContext?.getString(R.string.risk_skip_protection_off) ?: "")
             return
         }
 
@@ -620,6 +640,8 @@ object RiskConfirmManager {
 
     /** 获取当前保护级别（优先从缓存读取） */
     fun getProtectionLevel(context: Context): ProtectionLevel {
+        // Capture context once so ProtectionLevel labels resolve in any locale.
+        if (i18nContext == null) setI18nContext(context)
         cachedProtectionLevel?.let { return it }
         migrateIfNeeded(context)
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -797,7 +819,7 @@ object RiskConfirmManager {
                     Handler(Looper.getMainLooper()).post {
                         SnackbarHelper.show(
                             context,
-                            "SSH远程: ${detection.description}",
+                            context.getString(R.string.risk_ssh_remote_label, detection.description),
                             Snackbar.LENGTH_SHORT
                         )
                     }
@@ -823,7 +845,7 @@ object RiskConfirmManager {
             Handler(Looper.getMainLooper()).post {
                 SnackbarHelper.show(
                     context,
-                    "Access Denied(权限拒绝)",
+                    context.getString(R.string.risk_access_denied),
                     Snackbar.LENGTH_LONG
                 )
             }
@@ -873,7 +895,7 @@ object RiskConfirmManager {
                 _dialogState.value = DialogState(
                     command = command,
                     riskDescription = detection.description,
-                    riskType = detection.riskType?.displayName ?: "高危操作",
+                    riskType = detection.riskType?.displayName ?: context.getString(R.string.risk_type_generic),
                     environmentType = environmentType,
                     requestId = requestId
                 )
@@ -947,7 +969,7 @@ object RiskConfirmManager {
                     Handler(Looper.getMainLooper()).post {
                         SnackbarHelper.show(
                             context,
-                            "SSH远程: ${detection.description}",
+                            context.getString(R.string.risk_ssh_remote_label, detection.description),
                             Snackbar.LENGTH_SHORT
                         )
                     }
@@ -973,7 +995,7 @@ object RiskConfirmManager {
             Handler(Looper.getMainLooper()).post {
                 SnackbarHelper.show(
                     context,
-                    "Access Denied(权限拒绝)",
+                    context.getString(R.string.risk_access_denied),
                     Snackbar.LENGTH_LONG
                 )
             }
@@ -1008,7 +1030,7 @@ object RiskConfirmManager {
         return doDialogConfirmationBlocking(
             context, command,
             detection.description,
-            detection.riskType?.displayName ?: "高危操作",
+            detection.riskType?.displayName ?: context.getString(R.string.risk_type_generic),
             environmentType
         )
     }
@@ -1055,7 +1077,7 @@ object RiskConfirmManager {
             ProtectionLevel.AUTO_BLOCK -> {
                 lastCommandAutoBlocked = true
                 Handler(Looper.getMainLooper()).post {
-                    emitSnackbar("已自动拒绝: $reason", Snackbar.LENGTH_LONG)
+                    emitSnackbar(context.getString(R.string.risk_auto_blocked_reason, reason), Snackbar.LENGTH_LONG)
                 }
                 false
             }
@@ -1066,7 +1088,7 @@ object RiskConfirmManager {
                     val latch = CountDownLatch(1)
                     CoroutineScope(Dispatchers.Default).launch {
                         result[0] = doDialogConfirmationBlocking(
-                            context, command, reason, riskType ?: "高危操作", environmentType
+                            context, command, reason, riskType ?: context.getString(R.string.risk_type_generic), environmentType
                         )
                         latch.countDown()
                     }
@@ -1078,7 +1100,7 @@ object RiskConfirmManager {
                     result[0]
                 } else {
                     doDialogConfirmationBlocking(
-                        context, command, reason, riskType ?: "高危操作", environmentType
+                        context, command, reason, riskType ?: context.getString(R.string.risk_type_generic), environmentType
                     )
                 }
             }
@@ -1098,7 +1120,7 @@ object RiskConfirmManager {
     ): Boolean {
         if (blockingRequestActive) {
             Handler(Looper.getMainLooper()).post {
-                SnackbarHelper.show(context, "Access Denied(权限拒绝)", Snackbar.LENGTH_LONG)
+                SnackbarHelper.show(context, context.getString(R.string.risk_access_denied), Snackbar.LENGTH_LONG)
             }
             return false
         }
@@ -1336,7 +1358,7 @@ fun RiskConfirmDialogHost(
     val context = LocalContext.current
     val snackbarScope = rememberCoroutineScope()
     val showBlockedMessage: () -> Unit = {
-        val msg = "请手动点击按钮完成操作，第三方无障碍服务无法执行此操作"
+        val msg = context.getString(R.string.risk_accessibility_blocked)
         if (snackbarHostState != null) {
             snackbarScope.launch {
                 snackbarHostState.showSnackbar(
@@ -1423,35 +1445,35 @@ fun RiskConfirmDialogHost(
     val showDialog = agentLoading || state != null || skipState != null
 
     val dialogTitle: String = when {
-        isSshPower -> "远程电源操作确认"
+        isSshPower -> stringResource(R.string.risk_command_ssh_power_title)
         skipState != null -> when (skipState.mode) {
-            RiskConfirmManager.AgentSkipState.Mode.SKIP -> "跳过 Agent 验证 - 二次确认"
-            RiskConfirmManager.AgentSkipState.Mode.TIMEOUT -> "Agent 判定超时 - 二次确认"
-            RiskConfirmManager.AgentSkipState.Mode.ABNORMAL -> "Agent 判定异常 - 二次确认"
+            RiskConfirmManager.AgentSkipState.Mode.SKIP -> stringResource(R.string.risk_agent_skip_title)
+            RiskConfirmManager.AgentSkipState.Mode.TIMEOUT -> stringResource(R.string.risk_agent_timeout_title)
+            RiskConfirmManager.AgentSkipState.Mode.ABNORMAL -> stringResource(R.string.risk_agent_abnormal_title)
         }
         state != null -> when (state.environmentType) {
-            RiskConfirmManager.EnvironmentType.NATIVE -> "即将执行风险命令"
-            RiskConfirmManager.EnvironmentType.CONTAINER -> "高危命令 - 容器环境"
-            RiskConfirmManager.EnvironmentType.VM -> "高危命令 - 虚拟机环境"
-            RiskConfirmManager.EnvironmentType.SSH -> "高危命令 - 远程系统 (SSH)"
+            RiskConfirmManager.EnvironmentType.NATIVE -> stringResource(R.string.risk_command_dialog_title)
+            RiskConfirmManager.EnvironmentType.CONTAINER -> stringResource(R.string.risk_command_env_container_title)
+            RiskConfirmManager.EnvironmentType.VM -> stringResource(R.string.risk_command_env_vm_title)
+            RiskConfirmManager.EnvironmentType.SSH -> stringResource(R.string.risk_command_env_ssh_title)
         }
-        else -> "安全检测中"
+        else -> ""
     }
     val envWarning: String? = when (state?.environmentType) {
         null -> null
         RiskConfirmManager.EnvironmentType.NATIVE -> null
-        RiskConfirmManager.EnvironmentType.CONTAINER -> "此命令正在容器环境中执行，可能会对容器系统造成不可逆的损害，包括但不限于：容器数据丢失、容器系统损坏、容器无法重新启动等。请在执行前仔细评估此命令的必要性和安全性。"
-        RiskConfirmManager.EnvironmentType.VM -> "此命令正在虚拟机环境中执行，可能会对虚拟机系统造成不可逆的损害，包括但不限于：虚拟机数据丢失、虚拟机系统损坏、虚拟机无法启动等。请在执行前仔细评估此命令的必要性和安全性。"
+        RiskConfirmManager.EnvironmentType.CONTAINER -> stringResource(R.string.risk_command_env_container_warning)
+        RiskConfirmManager.EnvironmentType.VM -> stringResource(R.string.risk_command_env_vm_warning)
         RiskConfirmManager.EnvironmentType.SSH -> {
             val isDiskCommand = state?.riskType in listOf("dd 磁盘写入", "格式化/分区")
             if (isDiskCommand) {
                 if (state?.isWindowsDiskCommand == true) {
-                    "此磁盘级命令将在通过 SSH 连接的远程 Windows 系统上执行。format、diskpart、bcdedit 等操作可格式化分区、擦除磁盘分区表、修改或删除系统启动配置。diskpart 的 clean / clean all 指令会清除磁盘全部分区信息，clean-all 将覆写磁盘全部扇区，数据几乎无法恢复。错误指定磁盘号、盘符会造成整块磁盘数据丢失；即使系统正在运行，管理员权限仍可摧毁非系统卷数据。如果远程系统为生产环境，执行此命令将造成大规模数据丢失、业务中断甚至系统无法启动，并可能带来法律风险。请在执行前仔细核对磁盘编号、盘符，评估执行必要性。"
+                    stringResource(R.string.risk_command_env_ssh_disk_windows_warning)
                 } else {
-                    "此磁盘级命令将在通过 SSH 连接的远程系统上执行。dd、mkfs、fdisk 和 parted 等操作可能会覆盖原始磁盘、破坏分区表并永久擦除所有数据。错误指定设备路径可能导致远程主机完全无法启动，且损坏的数据几乎无法恢复。如果远程系统为生产环境，执行此命令可能导致服务中断、大规模数据丢失，甚至带来法律风险。请在执行前仔细检查目标设备路径并评估执行的必要性。"
+                    stringResource(R.string.risk_command_env_ssh_disk_warning)
                 }
             } else {
-                "此命令正在通过 SSH 连接的远程系统上执行，可能会对远程系统造成不可逆的损害，包括但不限于：远程数据丢失、远程系统损坏、服务中断等。如果远程系统为生产环境，执行此命令可能导致服务中断、数据丢失，甚至带来法律风险。请在执行前仔细评估此命令的必要性和安全性。"
+                stringResource(R.string.risk_command_env_ssh_warning)
             }
         }
         else -> null
@@ -1460,26 +1482,26 @@ fun RiskConfirmDialogHost(
     buildString {
         when (skip.mode) {
             RiskConfirmManager.AgentSkipState.Mode.SKIP -> {
-                append("您手动选择跳过 Agent 安全检测。")
-                if (skip.detail.isNotBlank()) { append("\n\nAgent 返回原因：${skip.detail}") }
-                append("\n\n继续执行脚本意味着您将绕过 VorteX Guard Engine 的 AI 安全审查。脚本可能包含危险操作（磁盘破坏、远程连接、数据泄露等），这些风险将完全由您自己承担。")
+                append(stringResource(R.string.risk_skip_summary_intro))
+                if (skip.detail.isNotBlank()) { append(stringResource(R.string.risk_skip_summary_agent_reason, skip.detail)) }
+                append(stringResource(R.string.risk_skip_summary_skip_warning))
             }
             RiskConfirmManager.AgentSkipState.Mode.TIMEOUT -> {
-                append("Agent 判定在时限内未返回（可能是网络延迟或长脚本推理耗时过长）。")
-                if (skip.detail.isNotBlank()) { append("\n\n本地静态检测结果：${skip.detail}") }
-                append("\n\n继续执行脚本意味着您承认 Agent 判定未完成，同意自行确认脚本用途无害。")
+                append(stringResource(R.string.risk_skip_summary_timeout_intro))
+                if (skip.detail.isNotBlank()) { append(stringResource(R.string.risk_skip_summary_static_result, skip.detail)) }
+                append(stringResource(R.string.risk_skip_summary_timeout_warning))
             }
             RiskConfirmManager.AgentSkipState.Mode.ABNORMAL -> {
-                append("Agent 判定发生异常（如 API 调用失败、本地模型未就绪等）。")
-                if (skip.detail.isNotBlank()) { append("\n\nAgent 错误信息：${skip.detail}") }
-                append("\n\n继续执行脚本意味着您确认脚本用途无害，同意自行承担风险。")
+                append(stringResource(R.string.risk_skip_summary_abnormal_intro))
+                if (skip.detail.isNotBlank()) { append(stringResource(R.string.risk_skip_summary_agent_error, skip.detail)) }
+                append(stringResource(R.string.risk_skip_summary_abnormal_warning))
             }
         }
     }
 } ?: ""
 
     val dialogSummary: String = when {
-        isSshPower -> "您即将对通过 SSH 连接的远程系统执行关机或重新启动。\n\n您确认后，远程主机将终止全部正在运行的程序与服务并断开 SSH 会话。如您选择关机，如果没有相关人员物理接触此远程设备或此设备不具备网络开机能力，系统将要持续离线，您无法通过远程方式恢复运行。\n\n若此环境为生产环境，此操作会造成服务中断与可能的业务损失。\n\n请确认您确实需要执行电源操作再继续！"
+        isSshPower -> stringResource(R.string.risk_command_ssh_power_warning)
         state != null -> buildString {
             append(state.riskDescription)
             if (envWarning != null) {
@@ -1487,10 +1509,10 @@ fun RiskConfirmDialogHost(
                 append(envWarning)
             }
             append("\n\n")
-            append("该命令可能造成不可恢复的数据丢失、系统损坏或安全问题。您执行高危命令所造成的任何后果，本应用不承担任何责任，且不受理因高危操作产生的 Issue。")
+            append(stringResource(R.string.risk_command_dialog_disclaimer))
         }
         agentSkipState != null -> agentSkipSummary
-        else -> agentLoadingText.ifBlank { "正在检测脚本安全性..." }
+        else -> agentLoadingText
     }
 
     if (state != null) {
@@ -1524,7 +1546,7 @@ fun RiskConfirmDialogHost(
                         horizontalAlignment = Alignment.Start
                     ) {
                         Text(
-                            text = "命令" + ":",
+                            text = stringResource(R.string.risk_command_label) + ":",
                             style = androidx.compose.ui.text.TextStyle(
                                 fontSize = 13.sp,
                                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary
@@ -1537,7 +1559,7 @@ fun RiskConfirmDialogHost(
                                 .clip(RoundedCornerShape(8.dp))
                         ) {
                             Text(
-                                text = skip.command.ifBlank { "（未提供命令）" },
+                                text = skip.command.ifBlank { stringResource(R.string.risk_no_command_provided) },
                                 modifier = Modifier.padding(8.dp),
                                 style = androidx.compose.ui.text.TextStyle(
                                     fontSize = 13.sp,
@@ -1551,7 +1573,7 @@ fun RiskConfirmDialogHost(
                         Spacer(Modifier.height(12.dp))
 
                         Text(
-                            text = "警告：此操作将绕过或确认跳过 VorteX Guard Engine 的 AI 安全审查。请确认脚本用途确实无害后再继续。",
+                            text = stringResource(R.string.risk_skip_warning),
                             style = androidx.compose.ui.text.TextStyle(
                                 fontSize = 12.sp,
                                 color = MiuixTheme.colorScheme.error,
@@ -1575,7 +1597,7 @@ fun RiskConfirmDialogHost(
                                 )
                             ) {
                                 Text(
-                                    text = "取消",
+                                    text = stringResource(R.string.cancel),
                                     color = MiuixTheme.colorScheme.onSurface,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Medium
@@ -1591,7 +1613,7 @@ fun RiskConfirmDialogHost(
                                 )
                             ) {
                                 Text(
-                                    text = "确认通过",
+                                    text = stringResource(R.string.risk_confirm_pass),
                                     color = Color.White,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Medium
@@ -1610,7 +1632,7 @@ fun RiskConfirmDialogHost(
                         horizontalAlignment = Alignment.Start
                     ) {
                         Text(
-                            text = "命令" + ":",
+                            text = stringResource(R.string.risk_command_label) + ":",
                             style = androidx.compose.ui.text.TextStyle(
                                 fontSize = 13.sp,
                                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary
@@ -1666,7 +1688,7 @@ fun RiskConfirmDialogHost(
                                 )
                             ) {
                                 Text(
-                                    text = "是，关机/重启",
+                                    text = stringResource(R.string.risk_command_ssh_power_confirm_yes),
                                     color = Color.White,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Medium
@@ -1685,7 +1707,7 @@ fun RiskConfirmDialogHost(
                         horizontalAlignment = Alignment.Start
                     ) {
                         Text(
-                            text = "命令" + ":",
+                            text = stringResource(R.string.risk_command_label) + ":",
                             style = androidx.compose.ui.text.TextStyle(
                                 fontSize = 13.sp,
                                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary
@@ -1712,7 +1734,7 @@ fun RiskConfirmDialogHost(
                         Spacer(Modifier.height(12.dp))
 
                         Text(
-                            text = "警告：这是一项高危操作，可能导致不可逆的后果。",
+                            text = stringResource(R.string.risk_command_warning),
                             style = androidx.compose.ui.text.TextStyle(
                                 fontSize = 12.sp,
                                 color = MiuixTheme.colorScheme.error,
@@ -1723,7 +1745,7 @@ fun RiskConfirmDialogHost(
                         Spacer(Modifier.height(12.dp))
 
                         CheckboxPreference(
-                            title = "我自愿承担执行此命令的全部风险，继续执行",
+                            title = stringResource(R.string.risk_command_confirm_checkbox),
                             checked = checkboxChecked,
                             onCheckedChange = { checkboxChecked = it },
                             modifier = Modifier.fillMaxWidth()
@@ -1745,7 +1767,7 @@ fun RiskConfirmDialogHost(
                                 )
                             ) {
                                 Text(
-                                    text = "${"取消"}(${countdown}s)",
+                                    text = stringResource(R.string.risk_cancel_countdown, stringResource(R.string.cancel), countdown),
                                     color = MiuixTheme.colorScheme.onSurface,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Medium
@@ -1762,7 +1784,7 @@ fun RiskConfirmDialogHost(
                                 )
                             ) {
                                 Text(
-                                    text = "继续执行",
+                                    text = stringResource(R.string.risk_command_continue),
                                     color = Color.White,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Medium
@@ -1789,7 +1811,7 @@ fun RiskConfirmDialogHost(
                             }
                         ) {
                             Text(
-                                text = "跳过验证",
+                                text = stringResource(R.string.risk_skip_verification),
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
                             )
@@ -1822,15 +1844,15 @@ fun launchBiometricAuth(
     if (!hasBiometricAuthentication(activity)) {
         SnackbarHelper.show(
             activity,
-            "设备未设置生物验证或屏幕锁。已跳过验证。建议在系统设置中设置屏幕锁（PIN/图案）或生物验证以获得更好的安全性。",
+            activity.getString(R.string.risk_command_biometric_not_set),
             Snackbar.LENGTH_LONG
         )
         onResult(true)
         return
     }
 
-    val title = "请验证您的身份以继续"
-    val subtitle = "确认调整"
+    val title = activity.getString(R.string.risk_command_biometric_prompt)
+    val subtitle = activity.getString(R.string.risk_command_disable_confirm)
 
     RiskConfirmManager.countdownScope.launch {
         try {

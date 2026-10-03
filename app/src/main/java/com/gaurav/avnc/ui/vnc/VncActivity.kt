@@ -275,18 +275,18 @@ class VncActivity : AppCompatActivity() {
 
     private fun handleMissingStartupArgs() {
         debugCheck(false) // Crash debug builds
-        Toast.makeText(this, "Error: Missing Server Info", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, getString(R.string.vnc_error_missing_server_info), Toast.LENGTH_LONG).show()
         finish()
     }
 
     private fun handleServerUnlockFailure(msg: String) {
-        Toast.makeText(this, "Could not unlock server", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, getString(R.string.vnc_error_unlock_server), Toast.LENGTH_LONG).show()
         Log.e(TAG, "Server unlock failed: $msg")
         finish()
     }
 
     private fun handleInvalidProfileId(id: Long) {
-        Toast.makeText(this, "Error: Invalid Server ID", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, getString(R.string.vnc_error_invalid_server_id), Toast.LENGTH_LONG).show()
         Log.e(TAG, "Invalid profile ID passed via Intent: $id")
         finish()
     }

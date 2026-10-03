@@ -126,7 +126,7 @@ fun PluginDreamDialog(onDismiss: () -> Unit, onInstalled: () -> Unit) {
     fun installDraft() {
         val current = draft ?: return
         val file = runCatching { PluginAgentGenerator.writeTup(context, current) }.getOrElse {
-            SnackbarHelper.show(context, "打包失败: ${it.message}", Snackbar.LENGTH_LONG)
+            SnackbarHelper.show(context, context.getString(R.string.plugin_dream_package_failed, it.message ?: ""), Snackbar.LENGTH_LONG)
             return
         }
         val result = PluginManager.installPlugin(context, file)
@@ -160,12 +160,12 @@ fun PluginDreamDialog(onDismiss: () -> Unit, onInstalled: () -> Unit) {
             }
             // Solo permisos bajos: se concede sin interrumpir.
             PluginManager.enablePlugin(context, manifest.id)
-            SnackbarHelper.show(context, "插件「${manifest.name}」已安装并启用", Snackbar.LENGTH_SHORT)
+            SnackbarHelper.show(context, context.getString(R.string.plugin_dream_installed_enabled_named, manifest.name), Snackbar.LENGTH_SHORT)
             file.delete()
             onInstalled()
             onDismiss()
         } else {
-            SnackbarHelper.show(context, "安装失败: ${result.exceptionOrNull()?.message}", Snackbar.LENGTH_LONG)
+            SnackbarHelper.show(context, context.getString(R.string.plugin_install_failed_reason, result.exceptionOrNull()?.message ?: ""), Snackbar.LENGTH_LONG)
         }
     }
 
@@ -175,7 +175,7 @@ fun PluginDreamDialog(onDismiss: () -> Unit, onInstalled: () -> Unit) {
         val permissions = plugin.manifest.getParsedPermissions().toSet()
         PluginLoader.grantPermissions(context, plugin.id, permissions)
         PluginLoader.setPluginState(context, plugin.id, PluginState.ENABLED)
-        SnackbarHelper.show(context, "插件「${plugin.manifest.name}」已启用", Snackbar.LENGTH_SHORT)
+        SnackbarHelper.show(context, context.getString(R.string.plugin_enable_success_named, plugin.manifest.name), Snackbar.LENGTH_SHORT)
         pendingHighRiskPlugin = null
         onInstalled()
         onDismiss()
@@ -186,7 +186,7 @@ fun PluginDreamDialog(onDismiss: () -> Unit, onInstalled: () -> Unit) {
         val plugin = pendingHighRiskPlugin ?: return
         pendingHighRiskPlugin = null
         PluginManager.uninstallPlugin(context, plugin.id)
-        SnackbarHelper.show(context, "已取消安装，插件未启用", Snackbar.LENGTH_SHORT)
+        SnackbarHelper.show(context, context.getString(R.string.plugin_dream_install_cancelled), Snackbar.LENGTH_SHORT)
     }
 
     WindowDialog(

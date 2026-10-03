@@ -45,6 +45,7 @@ import com.termux.R
 import com.termux.app.TermuxService
 import com.termux.app.utils.SnackbarHelper
 import com.google.android.material.snackbar.Snackbar
+import androidx.compose.ui.res.stringResource
 
 data class ResourceItem(
     val title: String,
@@ -78,7 +79,7 @@ fun ResourcesScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
-                title = "功能中心",
+                title = stringResource(R.string.res_title),
                 navigationIcon = {
                     if (showBackButton) {
                         Box(
@@ -118,7 +119,7 @@ fun ResourcesScreen(
 
                 item {
                     SmallTitle(
-                        text = "快速入口",
+                        text = stringResource(R.string.res_quick_entries),
                         modifier = Modifier.padding(top = 8.dp)
                     )
                 }
@@ -131,8 +132,8 @@ fun ResourcesScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         EntryCard(
-                            title = "实用功能中心",
-                            subtitle = "官方维护",
+                            title = stringResource(R.string.res_utility_center),
+                            subtitle = stringResource(R.string.res_official_maintained),
                             iconRes = R.drawable.ic_server,
                             iconBackground = MiuixTheme.colorScheme.primary.copy(alpha = 0.15f),
                             iconTint = MiuixTheme.colorScheme.primary,
@@ -144,8 +145,8 @@ fun ResourcesScreen(
                             modifier = Modifier.weight(1f)
                         )
                         EntryCard(
-                            title = "第三方资源中心",
-                            subtitle = "社区资源",
+                            title = stringResource(R.string.res_third_party_center),
+                            subtitle = stringResource(R.string.res_community_resources),
                             iconRes = R.drawable.ic_code,
                             iconBackground = Color(0xFF7C4DFF).copy(alpha = 0.15f),
                             iconTint = Color(0xFF7C4DFF),
@@ -161,8 +162,8 @@ fun ResourcesScreen(
 
                 item {
                     EntryCard(
-                        title = "插件中心",
-                        subtitle = "扩展 Termux Ultra 功能的插件系统",
+                        title = stringResource(R.string.res_plugin_center),
+                        subtitle = stringResource(R.string.res_plugin_center_sub),
                         iconRes = R.drawable.ic_extension,
                         iconBackground = Color(0xFF00BCD4).copy(alpha = 0.15f),
                         iconTint = Color(0xFF00BCD4),
@@ -178,7 +179,7 @@ fun ResourcesScreen(
                 }
 
                 item {
-                    SmallTitle(text = "使用提示")
+                    SmallTitle(text = stringResource(R.string.res_usage_tips))
                 }
 
                 item {
@@ -316,7 +317,7 @@ fun ResourceCard(
                                 color = if (isDark) Color(0xFF424242) else Color(0xFFE0E0E0)
                             )
                         ) {
-                            Text(text = "说明", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = onSurfaceColor)
+                            Text(text = stringResource(R.string.res_notes), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = onSurfaceColor)
                         }
                     }
 
@@ -325,9 +326,9 @@ fun ResourceCard(
                             onClick = {
                                 if (isFeatureDisabled) { showDisabledDialog {}; return@Button }
                                 val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                val clip = android.content.ClipData.newPlainText("执行指令", item.scriptUrl)
+                                val clip = android.content.ClipData.newPlainText(context.getString(R.string.res_copy_cmd_label), item.scriptUrl)
                                 clipboard.setPrimaryClip(clip)
-                                SnackbarHelper.show(context, "指令已复制到剪贴板", Snackbar.LENGTH_SHORT)
+                                SnackbarHelper.show(context, context.getString(R.string.res_cmd_copied), Snackbar.LENGTH_SHORT)
                             },
                             modifier = Modifier.clip(RoundedCornerShape(8.dp)),
                             colors = ButtonDefaults.buttonColors(
@@ -336,15 +337,15 @@ fun ResourceCard(
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_copy),
-                                contentDescription = "复制指令",
+                                contentDescription = stringResource(R.string.res_copy_cmd),
                                 modifier = Modifier.size(16.dp),
                                 tint = if (isFeatureDisabled) disabledTextColor else Color.White
                             )
-                            Text(text = "复制指令", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (isFeatureDisabled) disabledTextColor else Color.White)
+                            Text(text = stringResource(R.string.res_copy_cmd), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (isFeatureDisabled) disabledTextColor else Color.White)
                         }
                     } else {
                         val isConfigType = item.type == "qemu_on_vnc"
-                        val buttonText = if (isExpanded) "收起" else if (isConfigType) "配置" else "执行"
+                        val buttonText = if (isExpanded) stringResource(R.string.res_collapse) else if (isConfigType) stringResource(R.string.res_configure) else stringResource(R.string.res_execute)
                         Button(
                             onClick = {
                                 if (isFeatureDisabled) { showDisabledDialog { onToggleExpand() }; return@Button }
@@ -376,7 +377,7 @@ fun ResourceCard(
                         .padding(12.dp)
                 ) {
                     Text(
-                        text = "选择执行方式",
+                        text = stringResource(R.string.res_choose_exec_mode),
                         style = TextStyle(
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
@@ -395,7 +396,7 @@ fun ResourceCard(
                             if (!runScript.exists() || !rootfsBash.exists()) {
                                 SnackbarHelper.show(
                                     context,
-                                    "请先安装 Ubuntu 容器！请到资源页点击\"Ubuntu 容器安装\"",
+                                    context.getString(R.string.res_need_ubuntu_container),
                                     Snackbar.LENGTH_LONG
                                 )
                                 return
@@ -416,11 +417,11 @@ fun ResourceCard(
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.ic_terminal),
-                            contentDescription = "新会话",
+                            contentDescription = stringResource(R.string.res_new_session),
                             modifier = Modifier.size(18.dp),
                             tint = Color.White
                         )
-                        Text(text = "在新会话执行", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(text = stringResource(R.string.res_run_in_new_session), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
 
                     if (canUseTmux) {
@@ -440,13 +441,13 @@ fun ResourceCard(
                                 modifier = Modifier.size(18.dp),
                                 tint = onSurfaceColor
                             )
-                            Text(text = "在新会话执行 (tmux)", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = onSurfaceColor)
+                            Text(text = stringResource(R.string.res_run_in_new_session_tmux), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = onSurfaceColor)
                         }
                     }
 
                     if (hasRunningSessions) {
                         Text(
-                            text = "在运行的会话内执行:",
+                            text = stringResource(R.string.res_run_in_running_sessions),
                             style = TextStyle(
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
@@ -474,7 +475,7 @@ fun ResourceCard(
                                         modifier = Modifier.size(18.dp),
                                         tint = onSurfaceColor
                                     )
-                                    Text(text = "复制到 \"${session.name}\"", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = onSurfaceColor)
+                                    Text(text = stringResource(R.string.res_copy_to_session, session.name), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = onSurfaceColor)
                                 }
                             }
                         }
@@ -708,7 +709,7 @@ fun HeroWelcomeCard(modifier: Modifier = Modifier) {
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "探索 Termux 的新可能",
+                text = stringResource(R.string.res_hero_title),
                 style = TextStyle(
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
@@ -717,7 +718,7 @@ fun HeroWelcomeCard(modifier: Modifier = Modifier) {
             )
             Spacer(Modifier.height(10.dp))
             Text(
-                text = "汇集官方维护工具与第三方脚本资源，按需选择，安全使用。",
+                text = stringResource(R.string.res_hero_subtitle),
                 style = TextStyle(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
@@ -783,7 +784,7 @@ fun EntryCard(
             Spacer(Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "进入",
+                    text = stringResource(R.string.res_enter),
                     style = TextStyle(
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -827,7 +828,7 @@ fun WarningNoteCard(modifier: Modifier = Modifier) {
                 )
             }
             Text(
-                text = "实用功能中心的功能由 Termux Ultra 官方维护；第三方资源中心的脚本由第三方开发者维护，使用前请自行评估安全性。",
+                text = stringResource(R.string.res_disclaimer),
                 style = TextStyle(
                     fontSize = 13.sp,
                     lineHeight = 20.sp,
@@ -915,7 +916,7 @@ fun AiTermuxEntryCard(modifier: Modifier = Modifier, horizontalMode: Boolean = f
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            text = "与 Agent 沟通并帮您处理终端事务",
+                            text = stringResource(R.string.res_agent_card_sub),
                             style = TextStyle(
                                 fontSize = 13.sp,
                                 color = Color.White.copy(alpha = 0.9f),
@@ -999,7 +1000,7 @@ fun AiTermuxEntryCard(modifier: Modifier = Modifier, horizontalMode: Boolean = f
                             )
                         )
                         Text(
-                            text = "与 Agent 沟通并帮您处理终端事务",
+                            text = stringResource(R.string.res_agent_card_sub),
                             style = TextStyle(
                                 fontSize = 14.sp,
                                 color = Color.White.copy(alpha = 0.85f),
@@ -1041,7 +1042,7 @@ fun AiTermuxEntryCard(modifier: Modifier = Modifier, horizontalMode: Boolean = f
                             )
                             Spacer(Modifier.height(3.dp))
                             Text(
-                                text = "与 Agent 沟通并帮您处理终端事务",
+                                text = stringResource(R.string.res_agent_card_sub),
                                 style = TextStyle(
                                     fontSize = 13.sp,
                                     color = Color.White.copy(alpha = 0.9f),
@@ -1059,7 +1060,7 @@ fun AiTermuxEntryCard(modifier: Modifier = Modifier, horizontalMode: Boolean = f
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(
-                                    text = "进入",
+                                    text = stringResource(R.string.res_enter),
                                     style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
                                 )
                                 Icon(

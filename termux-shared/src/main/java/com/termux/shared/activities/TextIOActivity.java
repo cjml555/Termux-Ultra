@@ -114,7 +114,7 @@ public class TextIOActivity extends AppCompatActivity {
             if (mTextIOInfo.getTitle() != null)
                 actionBar.setTitle(mTextIOInfo.getTitle());
             else
-                actionBar.setTitle("Text Input");
+                actionBar.setTitle(getString(R.string.textio_title));
 
             if (mTextIOInfo.shouldShowBackButtonInActionBar()) {
                 actionBar.setDisplayHomeAsUpEnabled(true);

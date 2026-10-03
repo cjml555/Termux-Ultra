@@ -750,7 +750,7 @@ private fun OobeEulaPage(
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = "请仔细阅读以下条款，继续使用即表示您同意受其约束。",
+            text = stringResource(R.string.oobe_eula_notice),
             style = TextStyle(
                 fontSize = 14.sp,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary
@@ -779,7 +779,7 @@ private fun OobeEulaPage(
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "在使用 Termux Ultra 前，您必须阅读并同意我们的用户协议和隐私政策。我们将依法保护您的个人信息。",
+                            text = stringResource(R.string.oobe_privacy_notice),
                             style = TextStyle(
                                 fontSize = 14.sp,
                                 color = MiuixTheme.colorScheme.onSurface
@@ -792,7 +792,7 @@ private fun OobeEulaPage(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Termux Ultra 用户许可条款",
+                text = stringResource(R.string.oobe_eula_title),
                 style = TextStyle(
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
@@ -801,7 +801,7 @@ private fun OobeEulaPage(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "最后修改: $eulaLastModified",
+                text = stringResource(R.string.oobe_eula_last_modified, eulaLastModified),
                 style = TextStyle(
                     fontSize = 12.sp,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary
@@ -855,64 +855,48 @@ private fun OobeEulaPage(
 
 @Composable
 private fun EulaContent() {
+    val heading1 = stringResource(R.string.oobe_eula_h1)
+    val heading2 = stringResource(R.string.oobe_eula_h2)
+    val heading3 = stringResource(R.string.oobe_eula_h3)
+    val heading4 = stringResource(R.string.oobe_eula_h4)
+    val heading5 = stringResource(R.string.oobe_eula_h5)
     val lines = listOf(
-        "欢迎使用 Termux Ultra（以下简称“本软件”）。在使用本软件前，请仔细阅读以下许可条款。通过安装、复制或使用本软件，即表示您已同意受本协议各项条款约束。",
-        "",
-        "一、服务内容",
-        "Termux Ultra 是一款基于 Android 平台的终端模拟器及 Linux 环境管理工具，提供命令行终端、文件管理、远程连接（SSH/VNC）、包管理等功能。本软件集成了 Termux 上游项目及多个第三方开源组件。",
-        "",
-        "二、风险提示与免责声明",
-        "",
-        "1. 命令执行风险：本软件允许用户执行任意命令行指令，包括但不限于文件操作、网络请求、进程管理等。用户需自行评估所执行命令的安全性和合法性。因执行恶意命令、误操作或不了解命令含义而导致的数据丢失、系统损坏或其他后果，开发者不承担任何责任。",
-        "",
-        "2. 文件系统访问：本软件可访问设备上的文件系统。用户在进行文件读写、删除、移动、重命名等操作时应格外谨慎。误删重要文件、覆盖系统文件导致设备异常的，责任由用户自行承担。",
-        "",
-        "3. 网络安全：本软件的网络请求、SSH/VNC 远程连接、HTTPS/HTTP 通信由用户自行配置和发起。开发者不对网络中间人攻击、密码泄露、数据传输安全问题承担责任。",
-        "",
-        "4. Root/SU 权限：若用户通过本软件执行需要 Root 权限的操作，应了解相关操作的固有风险（包括但不限于设备变砖、保修失效、安全漏洞）。开发者不对 Root 操作的任何后果负责。",
-        "",
-        "5. 第三方脚本与包：通过 pkg/apt 安装的第三方软件包或从外部获取的 Shell/Python/其他语言脚本，其内容、安全性和合法性由提供者和使用者自行负责。用户在执行任何来源不明的脚本前应进行充分审查。",
-        "",
-        "6. 系统修改：通过本软件执行的任何修改设备系统、引导程序、分区表、内核等操作均属于高风险行为，可能导致设备无法正常启动。这些操作完全由用户主动发起，开发者对此不承担任何责任。",
-        "",
-        "7. 数据与隐私：本软件本身不收集用户隐私数据。但用户通过本软件执行的命令、安装的工具、配置的网络连接可能涉及隐私信息。用户需自行负责管理和保护自己的数据与隐私。",
-        "",
-        "8. 安全漏洞：若您发现本软件存在安全漏洞，请通过合法渠道向开发者报告。开发者不对因漏洞被恶意利用而造成的损失承担责任，但会尽力修复合理报告的问题。",
-        "",
-        "9. AI 功能：本软件集成的 AI 助手功能依赖用户自行配置的大语言模型服务（本地或云端）。AI 输出内容可能不准确、过时或存在偏见，用户需自行判断其正确性。因 AI 建议导致的任何操作后果由用户自行承担。",
-        "",
-        "10. 不保证特定功能：由于 Android 系统版本差异、厂商定制、设备硬件差异、网络环境等因素，本软件的部分功能可能无法在所有设备上正常工作。开发者不保证所有功能在所有设备上的可用性。",
-        "",
-        "11. VorteX Guard 安全引擎：VorteX Guard 仅作为辅助风险提示与拦截工具，其规则基于已知特征与启发式判断，不可能识别所有潜在风险，亦不保证 100% 拦截恶意行为。当您将防护等级设置为「仅提示」「关闭」，或开启「仅审查 Root 命令」「自定义规则」等选项后，安全防护能力会相应降低，由此带来的风险由您自行承担。",
-        "",
-        "12. 插件与第三方扩展：本软件支持加载第三方插件。插件由其作者独立开发并承担责任，开发者不对第三方插件的安全性、正确性、合规性作出担保。您应在加载前自行审查插件来源与代码。",
-        "",
-        "13. 自定义脚本与规则：您导入的自定义安全规则、自定义启动脚本、Agent 提示词等内容，其合法性、安全性、有效性由您自行负责。因上述内容导致的虚拟机异常、数据损坏、安全绕过，开发者不承担责任。",
-        "",
-        "14. 开源组件声明：本软件基于 Termux 相关项目与 QEMU 等开源项目构建，受其上游许可条款约束。上游项目的 bug、安全问题与行为变更，按上游项目的政策处理，不属于本软件开发者的维护范围。",
-        "",
-        "15. 不提供担保：在适用法律允许的最大范围内，本软件按「现状」（AS IS）提供，不附带任何明示或默示担保，包括但不限于对适销性、特定用途适用性、不侵权的默示担保。",
-        "",
-        "16. 责任上限：在适用法律允许的最大范围内，开发者及其贡献者不对任何间接、附带、特殊、惩罚性或后果性损害（包括数据丢失、利润损失、业务中断、设备损坏）承担责任，即便已被告知该等损害的可能性。",
-        "",
-        "三、知识产权",
-        "本软件遵循 GNU General Public License v3.0（GPL-3.0）发布。",
-        "本软件中集成的各组件分别受其各自开源许可协议约束。",
-        "您有权依据 GPL-3.0 的条款使用、修改、再分发本软件源码；但再分发时必须同样以 GPL-3.0 开源，并保留原始版权声明与许可声明。您不得将本软件及其修改版本用于闭源、专有或商业分发目的，除非另行取得书面授权。",
-        "",
-        "四、协议修改",
-        "开发者保留随时修改本协议的权利。修改后的协议将在新版本中生效。继续使用本软件即视为同意修改后的条款。",
-        "",
-        "五、适用法律",
-        "本协议的订立、执行和解释及争议的解决均应适用中华人民共和国法律。"
+        stringResource(R.string.oobe_eula_intro),
+        stringResource(R.string.oobe_eula_h1),
+        stringResource(R.string.oobe_eula_s1),
+        stringResource(R.string.oobe_eula_h2),
+        stringResource(R.string.oobe_eula_r1),
+        stringResource(R.string.oobe_eula_r2),
+        stringResource(R.string.oobe_eula_r3),
+        stringResource(R.string.oobe_eula_r4),
+        stringResource(R.string.oobe_eula_r5),
+        stringResource(R.string.oobe_eula_r6),
+        stringResource(R.string.oobe_eula_r7),
+        stringResource(R.string.oobe_eula_r8),
+        stringResource(R.string.oobe_eula_r9),
+        stringResource(R.string.oobe_eula_r10),
+        stringResource(R.string.oobe_eula_r11),
+        stringResource(R.string.oobe_eula_r12),
+        stringResource(R.string.oobe_eula_r13),
+        stringResource(R.string.oobe_eula_r14),
+        stringResource(R.string.oobe_eula_r15),
+        stringResource(R.string.oobe_eula_r16),
+        stringResource(R.string.oobe_eula_h3),
+        stringResource(R.string.oobe_eula_ip1),
+        stringResource(R.string.oobe_eula_ip2),
+        stringResource(R.string.oobe_eula_ip3),
+        stringResource(R.string.oobe_eula_h4),
+        stringResource(R.string.oobe_eula_mod),
+        stringResource(R.string.oobe_eula_h5),
+        stringResource(R.string.oobe_eula_law),
     )
     
     Column {
         for (line in lines) {
             if (line.isEmpty()) {
                 Spacer(modifier = Modifier.height(6.dp))
-            } else if (line.startsWith("一、") || line.startsWith("二、") || line.startsWith("三、") || 
-                       line.startsWith("四、") || line.startsWith("五、")) {
+            } else if (line == heading1 || line == heading2 || line == heading3 ||
+                       line == heading4 || line == heading5) {
                 Text(
                     text = line,
                     style = TextStyle(
@@ -939,16 +923,14 @@ private fun EulaContent() {
 @Composable
 private fun Gpl3Summary() {
     val lines = listOf(
-        "本软件包含的部分组件采用 GNU General Public License v3.0 许可发布。以下是 GPL-3.0 的核心要点摘要（非法律条文）：",
-        "",
-        "• 您可以以任何目的运行该程序。",
-        "• 您可以复制并分发明程序的原始代码或修改后的代码。",
-        "• 分发时，您必须向接收者提供源代码，或提供书面要约以提供源代码。",
-        "• 分发的程序必须同样采用 GPL-3.0 许可。",
-        "• 分发时不得附加额外的限制或技术手段阻止他人行使上述权利。",
-        "• 本软件按“现状”分发，不附带任何明示或暗示的担保。",
-        "",
-        "完整的 GPL-3.0 条款文本可在 https://www.gnu.org/licenses/gpl-3.0.txt 获取。"
+        stringResource(R.string.oobe_gpl_intro),
+        stringResource(R.string.oobe_gpl_p1),
+        stringResource(R.string.oobe_gpl_p2),
+        stringResource(R.string.oobe_gpl_p3),
+        stringResource(R.string.oobe_gpl_p4),
+        stringResource(R.string.oobe_gpl_p5),
+        stringResource(R.string.oobe_gpl_p6),
+        stringResource(R.string.oobe_gpl_full),
     )
     
     Column {
@@ -1053,7 +1035,7 @@ private fun OobePermissionPage(
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = "授予所需权限以确保 Termux Ultra 正常运行",
+            text = stringResource(R.string.oobe_perm_intro),
             style = TextStyle(
                 fontSize = 14.sp,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary
@@ -1070,29 +1052,29 @@ private fun OobePermissionPage(
                 .verticalScroll(rememberScrollState())
         ) {
             PermissionItemCard(
-                title = "网络访问",
-                desc = "运行命令、下载包、远程连接",
+                title = stringResource(R.string.oobe_perm_network_title),
+                desc = stringResource(R.string.oobe_perm_network_desc),
                 granted = true,
                 icon = { MaterialIcon(imageVector = Icons.Default.Wifi, contentDescription = null, tint = MiuixTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp)) }
             )
             Spacer(modifier = Modifier.height(12.dp))
             PermissionItemCard(
-                title = "文件存储",
-                desc = "访问设备存储空间",
+                title = stringResource(R.string.oobe_perm_storage_title),
+                desc = stringResource(R.string.oobe_perm_storage_desc),
                 granted = true,
                 icon = { MaterialIcon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = MiuixTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp)) }
             )
             Spacer(modifier = Modifier.height(12.dp))
             PermissionItemCard(
-                title = "唤醒锁定",
-                desc = "后台运行时保持活跃",
+                title = stringResource(R.string.oobe_perm_wakelock_title),
+                desc = stringResource(R.string.oobe_perm_wakelock_desc),
                 granted = true,
                 icon = { MaterialIcon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = MiuixTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp)) }
             )
             Spacer(modifier = Modifier.height(12.dp))
             PermissionItemCard(
-                title = "震动反馈",
-                desc = "触觉反馈",
+                title = stringResource(R.string.oobe_perm_vibrate_title),
+                desc = stringResource(R.string.oobe_perm_vibrate_desc),
                 granted = true,
                 icon = { MaterialIcon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = MiuixTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp)) }
             )
@@ -1123,7 +1105,7 @@ private fun OobePermissionPage(
                 )
             ) {
                 Text(
-                    text = "授权所有",
+                    text = stringResource(R.string.oobe_grant_all),
                     color = MiuixTheme.colorScheme.onSurface
                 )
             }
@@ -1285,7 +1267,7 @@ private fun OobeInstallPage(
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = "首次安装需要下载并配置终端环境，通常需要几分钟",
+            text = stringResource(R.string.oobe_install_needs_download),
             style = TextStyle(
                 fontSize = 14.sp,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary
@@ -1308,12 +1290,12 @@ private fun OobeInstallPage(
                         CircularProgressIndicator(modifier = Modifier.size(56.dp))
                         Spacer(modifier = Modifier.height(24.dp))
                         Text(
-                            text = "正在下载终端运行环境...",
+                            text = stringResource(R.string.oobe_install_downloading),
                             style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Medium, color = MiuixTheme.colorScheme.onSurface)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "首次启动需下载基础运行环境（约 30MB），请保持网络畅通",
+                            text = stringResource(R.string.oobe_install_download_hint),
                             style = TextStyle(fontSize = 13.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                         )
                     }
@@ -1325,12 +1307,12 @@ private fun OobeInstallPage(
                         CircularProgressIndicator(modifier = Modifier.size(56.dp))
                         Spacer(modifier = Modifier.height(24.dp))
                         Text(
-                            text = "正在安装终端运行环境...",
+                            text = stringResource(R.string.oobe_install_installing),
                             style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Medium, color = MiuixTheme.colorScheme.onSurface)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "正在解压并配置文件，请稍候",
+                            text = stringResource(R.string.oobe_install_unpacking),
                             style = TextStyle(fontSize = 13.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                         )
                     }
@@ -1342,12 +1324,12 @@ private fun OobeInstallPage(
                         CircularProgressIndicator(modifier = Modifier.size(56.dp))
                         Spacer(modifier = Modifier.height(24.dp))
                         Text(
-                            text = "正在配置终端环境...",
+                            text = stringResource(R.string.oobe_install_configuring),
                             style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Medium, color = MiuixTheme.colorScheme.onSurface)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "请稍候，首次安装需要下载基础环境",
+                            text = stringResource(R.string.oobe_install_wait),
                             style = TextStyle(fontSize = 13.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                         )
                     }
@@ -1363,9 +1345,9 @@ private fun OobeInstallPage(
                             MaterialIcon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(40.dp))
                         }
                         Spacer(modifier = Modifier.height(24.dp))
-                        Text(text = "配置完成", style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.onSurface))
+                        Text(text = stringResource(R.string.oobe_install_done_title), style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.onSurface))
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(text = "终端环境已成功初始化", style = TextStyle(fontSize = 14.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary))
+                        Text(text = stringResource(R.string.oobe_install_done_sub), style = TextStyle(fontSize = 14.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary))
                     }
                 }
                 bootstrapError != null -> {
@@ -1387,7 +1369,7 @@ private fun OobeInstallPage(
                                 Text(text = bootstrapError, style = TextStyle(fontSize = 13.sp, color = MiuixTheme.colorScheme.onSurface),
                                     maxLines = 6, overflow = TextOverflow.Ellipsis)
                                 Spacer(modifier = Modifier.height(8.dp))
-                                Text(text = "可能原因：网络连接不稳定 / 存储空间不足 / 设备不支持", style = TextStyle(fontSize = 12.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary))
+                                Text(text = stringResource(R.string.oobe_install_failed_reason), style = TextStyle(fontSize = 12.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary))
                             }
                         }
                     }
@@ -1403,9 +1385,9 @@ private fun OobeInstallPage(
                             CircularProgressIndicator(modifier = Modifier.size(36.dp))
                         }
                         Spacer(modifier = Modifier.height(24.dp))
-                        Text(text = "准备安装", style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.onSurface))
+                        Text(text = stringResource(R.string.oobe_install_ready_title), style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.onSurface))
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(text = "点击下方按钮开始配置终端环境", style = TextStyle(fontSize = 14.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary))
+                        Text(text = stringResource(R.string.oobe_install_ready_sub), style = TextStyle(fontSize = 14.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary))
                     }
                 }
             }
@@ -1423,7 +1405,7 @@ private fun OobeInstallPage(
             bootstrapError != null -> {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(onClick = { onExitApp() }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(color = MiuixTheme.colorScheme.error)) {
-                        Text(text = "退出", fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(text = stringResource(R.string.oobe_exit), fontWeight = FontWeight.Bold, color = Color.White)
                     }
                     Button(onClick = { onRetryBootstrap() }, modifier = Modifier.weight(1f)) {
                         Text(text = stringResource(R.string.bootstrap_error_try_again), fontWeight = FontWeight.Bold, color = Color.White)
@@ -1434,7 +1416,7 @@ private fun OobeInstallPage(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(color = MiuixTheme.colorScheme.primary)) {
-                        Text(text = "正在配置...", fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.6f))
+                        Text(text = stringResource(R.string.oobe_configuring_ellipsis), fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.6f))
                     }
                 }
             }
@@ -1442,7 +1424,7 @@ private fun OobeInstallPage(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(onClick = { onStartBootstrap() }, modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(color = MiuixTheme.colorScheme.primary)) {
-                        Text(text = "开始安装", fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(text = stringResource(R.string.oobe_start_install), fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             }
@@ -1505,7 +1487,7 @@ private fun OobeReleaseNotesPage(
         }
 
         Text(
-            text = "版本更新日志",
+            text = stringResource(R.string.oobe_changelog_title),
             style = TextStyle(
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
@@ -1543,7 +1525,7 @@ private fun OobeReleaseNotesPage(
                     Column(modifier = Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         MaterialIcon(imageVector = Icons.Default.Info, contentDescription = null, tint = MiuixTheme.colorScheme.onSurfaceVariantSummary, modifier = Modifier.size(32.dp))
                         Spacer(modifier = Modifier.height(12.dp))
-                        Text(text = "暂无更新日志", style = TextStyle(fontSize = 14.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary))
+                        Text(text = stringResource(R.string.oobe_no_changelog), style = TextStyle(fontSize = 14.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary))
                     }
                 }
             }
@@ -1636,7 +1618,7 @@ private fun OobeCompletePage(
             Spacer(modifier = Modifier.height(36.dp))
 
             Text(
-                text = "配置完成",
+                text = stringResource(R.string.oobe_install_done_title),
                 style = TextStyle(
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,

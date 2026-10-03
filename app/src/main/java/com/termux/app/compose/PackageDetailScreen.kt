@@ -69,20 +69,27 @@ import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.ui.draw.alpha
 import com.termux.R
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import androidx.annotation.StringRes
 
 private val AccentBlue = Color(0xFF2563EB)
 private val DangerRed = Color(0xFFDC2626)
 private val SuccessGreen = Color(0xFF16A34A)
 
-private enum class DepStatus(val text: String, val color: Color) {
-    INSTALLED("已安装", SuccessGreen),
-    WILL_INSTALL("将安装", AccentBlue),
-    NOT_SATISFIED("不满足", DangerRed)
+private enum class DepStatus(@StringRes val textRes: Int, val color: Color) {
+    INSTALLED(R.string.pkgdetail_dep_installed, SuccessGreen),
+    WILL_INSTALL(R.string.pkgdetail_dep_will_install, AccentBlue),
+    NOT_SATISFIED(R.string.pkgdetail_dep_not_satisfied, DangerRed);
+
+    @Composable
+    fun text(): String = stringResource(textRes)
 }
 
-private enum class ConfStatus(val text: String, val color: Color) {
-    SATISFIED("已满足", SuccessGreen),
-    NOT_SATISFIED("不满足", DangerRed)
+private enum class ConfStatus(@StringRes val textRes: Int, val color: Color) {
+    SATISFIED(R.string.pkgdetail_dep_satisfied, SuccessGreen),
+    NOT_SATISFIED(R.string.pkgdetail_dep_not_satisfied, DangerRed);
+
+    @Composable
+    fun text(): String = stringResource(textRes)
 }
 
 @Composable
@@ -99,6 +106,11 @@ fun PackageDetailScreen(
     val scope = rememberCoroutineScope()
     val isDark = isSystemInDarkTheme()
     val colorScheme = MiuixTheme.colorScheme
+
+    // Resolved here because the LazyListScope below is not a @Composable context.
+    val maintainerLabel = stringResource(R.string.pkgdetail_maintainer)
+    val sizeLabel = stringResource(R.string.pkgdetail_size)
+    val licenseLabel = stringResource(R.string.pkgdetail_license)
 
     var detail by remember { mutableStateOf<PackageInfo?>(pkg) }
     var isLoading by remember { mutableStateOf(true) }
@@ -128,9 +140,9 @@ fun PackageDetailScreen(
                 if (snap != null) {
                     showProgressDialog = true
                     progressTitle = when (snap.operation) {
-                        LiveUpdateState.PkgOperation.INSTALL -> "正在安装 ${snap.packageName}"
-                        LiveUpdateState.PkgOperation.UNINSTALL -> "正在卸载 ${snap.packageName}"
-                        else -> "正在处理 ${snap.packageName}"
+                        LiveUpdateState.PkgOperation.INSTALL -> context.getString(R.string.pkgdetail_installing_named, snap.packageName)
+                        LiveUpdateState.PkgOperation.UNINSTALL -> context.getString(R.string.pkgdetail_uninstalling_named, snap.packageName)
+                        else -> context.getString(R.string.pkgdetail_processing_named, snap.packageName)
                     }
                     progressSuccess = null
                 }
@@ -168,7 +180,7 @@ fun PackageDetailScreen(
     }
 
     fun runInstallUninstall(isInstall: Boolean, forceRemoveLock: Boolean = false, backgrounded: Boolean = false) {
-        progressTitle = if (isInstall) "正在安装 ${pkg.name}" else "正在卸载 ${pkg.name}"
+        progressTitle = if (isInstall) context.getString(R.string.pkgdetail_installing_named, pkg.name) else context.getString(R.string.pkgdetail_uninstalling_named, pkg.name)
         progressLog = ""
         progressSuccess = null
         if (!backgrounded) showProgressDialog = true
@@ -217,7 +229,7 @@ fun PackageDetailScreen(
         try {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
         } catch (e: Exception) {
-            Toast.makeText(context, "无法打开链接", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.pkgdetail_cannot_open_link), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -235,7 +247,7 @@ fun PackageDetailScreen(
                 title = pkg.name,
                 subtitle = run {
                     val d = detail ?: pkg
-                    val statusText = if (d.isInstalled) "已安装" else "未安装"
+                    val statusText = if (d.isInstalled) stringResource(R.string.pkgdetail_installed) else stringResource(R.string.pkgdetail_not_installed)
                     val versionText = if (d.version.isNotBlank()) "v${d.version}" else ""
                     if (versionText.isNotBlank()) "$versionText | $statusText" else statusText
                 },
@@ -263,7 +275,7 @@ fun PackageDetailScreen(
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_link),
-                                contentDescription = "打开主页",
+                                contentDescription = stringResource(R.string.pkgdetail_open_homepage),
                                 tint = colorScheme.onSurface,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -287,7 +299,7 @@ fun PackageDetailScreen(
                     CircularProgressIndicator(color = AccentBlue)
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        text = "正在检查依赖和冲突项",
+                        text = stringResource(R.string.pkgdetail_checking_deps),
                         fontSize = 13.sp,
                         color = colorScheme.onSurfaceVariantSummary
                     )
@@ -357,7 +369,7 @@ fun PackageDetailScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 ArrowPreference(
-                                    title = "主页",
+                                    title = stringResource(R.string.pkgdetail_homepage),
                                     summary = summaryText,
                                     onClick = { openHomepage(d.homepage) },
                                     startAction = {
@@ -375,9 +387,9 @@ fun PackageDetailScreen(
 
                     // Maintainer / Size / License — 不可跳转，只 Card + 文本
                     val plainInfoFields = mutableListOf<Pair<String, String>>()
-                    if (d.maintainer.isNotBlank()) plainInfoFields.add("维护者" to d.maintainer)
-                    if (d.size.isNotBlank()) plainInfoFields.add("大小" to d.size)
-                    if (d.license.isNotBlank()) plainInfoFields.add("许可证" to d.license)
+                    if (d.maintainer.isNotBlank()) plainInfoFields.add(maintainerLabel to d.maintainer)
+                    if (d.size.isNotBlank()) plainInfoFields.add(sizeLabel to d.size)
+                    if (d.license.isNotBlank()) plainInfoFields.add(licenseLabel to d.license)
 
                     items(plainInfoFields) { (label, value) ->
                         Card(
@@ -410,7 +422,7 @@ fun PackageDetailScreen(
                     if (d.depends.isNotEmpty()) {
                         item {
                             SmallTitle(
-                                text = "依赖",
+                                text = stringResource(R.string.pkgdetail_dependencies),
                                 modifier = Modifier.padding(top = 6.dp)
                             )
                         }
@@ -425,9 +437,9 @@ fun PackageDetailScreen(
                                 val versionPart = depInfo.version.takeIf { it.isNotBlank() }?.let { "v$it" } ?: ""
                                 val sectionPart = depInfo.section.takeIf { it.isNotBlank() }
                                 val parts = listOfNotNull(versionPart, sectionPart)
-                                parts.joinToString(" · ").ifBlank { "暂无相关信息" }
+                                parts.joinToString(" · ").ifBlank { stringResource(R.string.pkgdetail_no_info) }
                             } else {
-                                "暂无相关信息"
+                                stringResource(R.string.pkgdetail_no_info)
                             }
 
                             Card(
@@ -442,12 +454,12 @@ fun PackageDetailScreen(
                                                 depInfo.copy(isInstalled = depName in installedNames)
                                             )
                                         } else {
-                                            Toast.makeText(context, "源内没有此软件包", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, context.getString(R.string.pkgdetail_not_in_repo), Toast.LENGTH_SHORT).show()
                                         }
                                     },
                                     endActions = {
                                         Text(
-                                            text = status.text,
+                                            text = status.text(),
                                             fontSize = 13.sp,
                                             color = status.color,
                                             fontWeight = FontWeight.Medium
@@ -462,7 +474,7 @@ fun PackageDetailScreen(
                     if (d.conflicts.isNotEmpty()) {
                         item {
                             SmallTitle(
-                                text = "冲突",
+                                text = stringResource(R.string.pkgdetail_conflicts),
                                 modifier = Modifier.padding(top = 6.dp)
                             )
                         }
@@ -477,9 +489,9 @@ fun PackageDetailScreen(
                                 val versionPart = confInfo.version.takeIf { it.isNotBlank() }?.let { "v$it" } ?: ""
                                 val sectionPart = confInfo.section.takeIf { it.isNotBlank() }
                                 val parts = listOfNotNull(versionPart, sectionPart)
-                                parts.joinToString(" · ").ifBlank { "暂无相关信息" }
+                                parts.joinToString(" · ").ifBlank { stringResource(R.string.pkgdetail_no_info) }
                             } else {
-                                "暂无相关信息"
+                                stringResource(R.string.pkgdetail_no_info)
                             }
 
                             Card(
@@ -494,12 +506,12 @@ fun PackageDetailScreen(
                                                 confInfo.copy(isInstalled = confName in installedNames)
                                             )
                                         } else {
-                                            Toast.makeText(context, "源内没有此软件包", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, context.getString(R.string.pkgdetail_not_in_repo), Toast.LENGTH_SHORT).show()
                                         }
                                     },
                                     endActions = {
                                         Text(
-                                            text = status.text,
+                                            text = status.text(),
                                             fontSize = 13.sp,
                                             color = status.color,
                                             fontWeight = FontWeight.Medium
@@ -536,7 +548,7 @@ fun PackageDetailScreen(
                                 color = DangerRed
                             )
                         ) {
-                            Text("卸载", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color.White)
+                            Text(stringResource(R.string.pkgdetail_uninstall), fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color.White)
                         }
                     } else {
                         Button(
@@ -555,8 +567,8 @@ fun PackageDetailScreen(
 
             OverlayDialog(
                 show = showUninstallConfirm,
-                title = "确认卸载",
-                summary = "确定要卸载 ${pkg.name} 吗？此操作不可撤销。",
+                title = stringResource(R.string.pkgdetail_confirm_uninstall),
+                summary = stringResource(R.string.pkgdetail_confirm_uninstall_msg, pkg.name),
                 onDismissRequest = { showUninstallConfirm = false },
                 content = {
                     Row(
@@ -576,7 +588,7 @@ fun PackageDetailScreen(
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(color = DangerRed)
                         ) {
-                            Text("确认卸载", color = Color.White, fontWeight = FontWeight.Medium)
+                            Text(stringResource(R.string.pkgdetail_confirm_uninstall), color = Color.White, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
@@ -585,7 +597,7 @@ fun PackageDetailScreen(
             OverlayDialog(
                 show = showLockDialog,
                 title = stringResource(R.string.pkg_manager_busy),
-                summary = "检测到 Termux 的 apt/dpkg 正在被其他进程占用。\n\n强行解除锁可能导致：\n• 正在进行的安装/升级进程被中断\n• 数据库状态不一致\n• 已下载的包文件残留\n\n建议：先关闭其他正在运行的 Termux 会话，然后再试。",
+                summary = stringResource(R.string.pkgdetail_lock_busy_summary),
                 onDismissRequest = {
                     showLockDialog = false
                     pendingAction = null
@@ -601,14 +613,14 @@ fun PackageDetailScreen(
                             modifier = Modifier.weight(1f)
                         )
                         TextButton(
-                            text = "强行解除",
+                            text = stringResource(R.string.pkgdetail_force_unlock),
                             onClick = {
                                 showLockDialog = false
                                 val action = pendingAction
                                 pendingAction = null
                                 scope.launch {
                                     PkgRepo.forceRemoveLocks(context)
-                                    Toast.makeText(context, "锁已解除，正在继续...", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.getString(R.string.pkgdetail_lock_released), Toast.LENGTH_SHORT).show()
                                     action?.invoke()
                                 }
                             },
@@ -620,7 +632,7 @@ fun PackageDetailScreen(
 
             OverlayDialog(
                 show = showProgressDialog,
-                title = progressTitle.ifBlank { "正在处理" },
+                title = progressTitle.ifBlank { stringResource(R.string.pkgdetail_processing) },
                 summary = "",
                 onDismissRequest = { if (progressSuccess != null) dismissProgress() },
                 content = {
@@ -648,7 +660,7 @@ fun PackageDetailScreen(
                             // 后台运行按钮
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(
-                                    text = "后台运行",
+                                    text = stringResource(R.string.pkgdetail_run_in_background),
                                     onClick = {
                                         LiveUpdateState.markPkgBackgrounded()
                                         showProgressDialog = false
@@ -662,7 +674,7 @@ fun PackageDetailScreen(
                         // Result text
                         if (progressSuccess != null) {
                             Text(
-                                text = if (progressSuccess == true) "操作成功" else "操作失败",
+                                text = if (progressSuccess == true) stringResource(R.string.pkgdetail_op_success) else stringResource(R.string.pkgdetail_op_failed),
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (progressSuccess == true) AccentBlue else DangerRed
@@ -737,11 +749,11 @@ private fun PackageInstallStatusCard(
             Icons.Rounded.ErrorOutline
         )
     }
-    val title = if (canInstall) "已准备好安装" else "暂时无法安装"
+    val title = if (canInstall) stringResource(R.string.pkgdetail_ready_to_install) else stringResource(R.string.pkgdetail_cannot_install_yet)
     val desc = if (canInstall) {
-        "点击安装按钮开始安装$pkgName，如有需要的依赖也将一并安装"
+        stringResource(R.string.pkgdetail_ready_desc, pkgName)
     } else {
-        "$pkgName 有依赖或冲突项无法满足，请检查"
+        stringResource(R.string.pkgdetail_cannot_install_desc, pkgName)
     }
 
     Card(modifier = Modifier.fillMaxWidth()) {

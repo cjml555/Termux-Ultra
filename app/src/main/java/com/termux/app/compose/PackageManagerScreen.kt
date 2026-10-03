@@ -89,7 +89,7 @@ object AppShell {
     suspend fun exec(context: Context, command: String, timeout: Int = 60): Pair<Int, String> =
         withContext(Dispatchers.IO) {
             val shell = resolveShell()
-            if (shell == null) return@withContext Pair(-1, "找不到 shell")
+            if (shell == null) return@withContext Pair(-1, context.getString(R.string.pkgmgr_shell_not_found))
 
             val ec = ExecutionCommand(
                 System.currentTimeMillis().toInt(),
@@ -101,7 +101,7 @@ object AppShell {
             val task = try {
                 TermuxTaskCompat.execute(context, ec, null, client, false)
             } catch (e: Exception) {
-                return@withContext Pair(-1, e.message ?: "执行失败")
+                return@withContext Pair(-1, e.message ?: context.getString(R.string.pkgmgr_exec_failed))
             }
 
             val deadline = System.currentTimeMillis() + timeout * 1000L
@@ -129,7 +129,7 @@ object AppShell {
         onOutput: (String) -> Unit
     ): Pair<Int, String> = withContext(Dispatchers.IO) {
         val shell = resolveShell()
-        if (shell == null) return@withContext Pair(-1, "找不到 shell")
+        if (shell == null) return@withContext Pair(-1, context.getString(R.string.pkgmgr_shell_not_found))
 
         val ec = ExecutionCommand(
             System.currentTimeMillis().toInt(),
@@ -141,7 +141,7 @@ object AppShell {
         val task = try {
             TermuxTaskCompat.execute(context, ec, null, client, false)
         } catch (e: Exception) {
-            return@withContext Pair(-1, e.message ?: "执行失败")
+            return@withContext Pair(-1, e.message ?: context.getString(R.string.pkgmgr_exec_failed))
         }
 
         var lastStdoutLen = 0
@@ -625,10 +625,10 @@ fun PackageManagerScreen(
                 if (snap != null) {
                     showProgressDialog = true
                     progressTitle = when (snap.operation) {
-                        LiveUpdateState.PkgOperation.UPDATE -> "正在刷新软件源"
-                        LiveUpdateState.PkgOperation.UPGRADE -> "正在升级所有包"
-                        LiveUpdateState.PkgOperation.INSTALL -> "正在安装 ${snap.packageName}"
-                        LiveUpdateState.PkgOperation.UNINSTALL -> "正在卸载 ${snap.packageName}"
+                        LiveUpdateState.PkgOperation.UPDATE -> context.getString(R.string.pkgmgr_refreshing_sources)
+                        LiveUpdateState.PkgOperation.UPGRADE -> context.getString(R.string.pkgmgr_upgrading_all)
+                        LiveUpdateState.PkgOperation.INSTALL -> context.getString(R.string.pkgmgr_installing, snap.packageName)
+                        LiveUpdateState.PkgOperation.UNINSTALL -> context.getString(R.string.pkgmgr_uninstalling, snap.packageName)
                     }
                     progressSuccess = null
                 }
@@ -707,9 +707,9 @@ fun PackageManagerScreen(
                         }
                     }
                     if (success) {
-                        Toast.makeText(context, "操作成功", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.pkgmgr_op_success), Toast.LENGTH_SHORT).show()
                     } else {
-                        Toast.makeText(context, "操作失败，请检查日志", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.pkgmgr_op_failed_check_log), Toast.LENGTH_SHORT).show()
                     }
                     showDetail = null
                 }
@@ -720,7 +720,7 @@ fun PackageManagerScreen(
                 topBar = {
                     TopAppBar(
                         title = if (navStack.size > 1) PkgRepo.sectionDisplayName(context, navStack.last().sectionKey ?: "")
-                                 else "软件包管理",
+                                 else stringResource(R.string.pkgmgr_title),
                         scrollBehavior = scrollBehavior,
                         navigationIcon = {
                             Box(
@@ -751,10 +751,10 @@ fun PackageManagerScreen(
                                         showProgressDialog = true
                                         progressSuccess = null
                                         progressTitle = when (pkgStateSnap!!.operation) {
-                                            LiveUpdateState.PkgOperation.UPDATE -> "正在刷新软件源"
-                                            LiveUpdateState.PkgOperation.UPGRADE -> "正在升级所有包"
-                                            LiveUpdateState.PkgOperation.INSTALL -> "正在安装 ${pkgStateSnap!!.packageName}"
-                                            LiveUpdateState.PkgOperation.UNINSTALL -> "正在卸载 ${pkgStateSnap!!.packageName}"
+                                            LiveUpdateState.PkgOperation.UPDATE -> context.getString(R.string.pkgmgr_refreshing_sources)
+                                            LiveUpdateState.PkgOperation.UPGRADE -> context.getString(R.string.pkgmgr_upgrading_all)
+                                            LiveUpdateState.PkgOperation.INSTALL -> context.getString(R.string.pkgmgr_installing, pkgStateSnap!!.packageName)
+                                            LiveUpdateState.PkgOperation.UNINSTALL -> context.getString(R.string.pkgmgr_uninstalling, pkgStateSnap!!.packageName)
                                         }
                                     }
                                 ) {
@@ -768,7 +768,7 @@ fun PackageManagerScreen(
                             }
                             IconButton(
                                 onClick = {
-                                    progressTitle = "正在刷新软件源"
+                                    progressTitle = context.getString(R.string.pkgmgr_refreshing_sources)
                                     progressLog = ""
                                     progressSuccess = null
                                     showProgressDialog = true
@@ -796,7 +796,7 @@ fun PackageManagerScreen(
                             }
                             IconButton(
                                 onClick = {
-                                    progressTitle = "正在升级所有包"
+                                    progressTitle = context.getString(R.string.pkgmgr_upgrading_all)
                                     progressLog = ""
                                     progressSuccess = null
                                     showProgressDialog = true
@@ -839,7 +839,7 @@ fun PackageManagerScreen(
                                 onSearch = { },
                                 expanded = searchBarActivated,
                                 onExpandedChange = { searchBarActivated = it },
-                                label = "搜索软件包"
+                                label = stringResource(R.string.pkgmgr_search_hint)
                             )
                         },
                         expanded = searchBarActivated,
@@ -848,7 +848,10 @@ fun PackageManagerScreen(
 
                     if (searchQuery.isBlank()) {
                         TabRowWithContour(
-                            tabs = listOf("已安装 (${installedList.size})", "未安装"),
+                            tabs = listOf(
+                                stringResource(R.string.pkgmgr_tab_installed_count, installedList.size),
+                                stringResource(R.string.pkgmgr_tab_not_installed)
+                            ),
                             selectedTabIndex = selectedTab,
                             onTabSelected = { selectedTab = it },
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
@@ -953,7 +956,7 @@ fun PackageManagerScreen(
 
                     OverlayDialog(
                         show = showProgressDialog,
-                        title = progressTitle.ifBlank { "正在处理" },
+                        title = progressTitle.ifBlank { stringResource(R.string.pkgmgr_processing) },
                         summary = "",
                         onDismissRequest = { if (progressSuccess != null) showProgressDialog = false },
                         content = {
@@ -985,7 +988,7 @@ fun PackageManagerScreen(
                                 }
                                 if (progressSuccess != null) {
                                     Text(
-                                        text = if (progressSuccess == true) "操作成功" else "操作失败",
+                                        text = if (progressSuccess == true) stringResource(R.string.pkgmgr_op_success) else stringResource(R.string.pkgmgr_op_failed),
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = if (progressSuccess == true) MiuixTheme.colorScheme.primary else Color(0xFFDC2626)
@@ -1044,7 +1047,7 @@ private fun PackageCard(
     ) {
         ArrowPreference(
             title = pkg.name,
-            summary = pkg.version.ifBlank { "未知版本" },
+            summary = pkg.version.ifBlank { stringResource(R.string.pkgmgr_unknown_version) },
             onClick = onClick,
             endActions = {
                 Box(
@@ -1057,7 +1060,7 @@ private fun PackageCard(
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = if (pkg.isInstalled) "已安装" else "可安装",
+                        text = if (pkg.isInstalled) stringResource(R.string.pkgmgr_installed) else stringResource(R.string.pkgmgr_installable),
                         fontSize = 12.sp,
                         color = if (pkg.isInstalled) AccentBlue else GrayColor
                     )
@@ -1105,7 +1108,7 @@ private fun CategoryEntry(
     ) {
         ArrowPreference(
             title = label,
-            summary = "$count 个软件包",
+            summary = stringResource(R.string.pkgmgr_pkg_count, count),
             onClick = onClick,
             startAction = {
                 Icon(

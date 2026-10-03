@@ -165,11 +165,11 @@ data class ResourceAction(
 
 // Available resource actions list
 object ResourceActions {
-    fun getUtilityCenterActions(): List<ResourceAction> = listOf(
+    fun getUtilityCenterActions(context: Context): List<ResourceAction> = listOf(
         ResourceAction(
             id = "qemu_vnc",
             name = "QEMU with VNC",
-            description = "在 Termux 中通过 VNC 运行虚拟机",
+            description = context.getString(R.string.main_res_qemu_vnc_desc),
             category = ResourceActionCategory.UTILITY_CENTER,
             iconRes = R.drawable.ic_server,
             type = "qemu_on_vnc"
@@ -177,7 +177,7 @@ object ResourceActions {
         ResourceAction(
             id = "debian_qemu",
             name = "Debian QEMU",
-            description = "在 QEMU 中安装 Debian Linux",
+            description = context.getString(R.string.main_res_debian_qemu_desc),
             category = ResourceActionCategory.UTILITY_CENTER,
             script = "debian_qemu",
             iconRes = R.drawable.ic_server,
@@ -185,8 +185,8 @@ object ResourceActions {
         ),
         ResourceAction(
             id = "ubuntu_container",
-            name = "Ubuntu 容器",
-            description = "安装 Ubuntu Linux 容器（PRoot）",
+            name = context.getString(R.string.main_res_ubuntu_container_name),
+            description = context.getString(R.string.main_res_ubuntu_container_desc),
             category = ResourceActionCategory.UTILITY_CENTER,
             script = "install_debian_container",
             iconRes = R.drawable.ic_ubuntu,
@@ -195,15 +195,15 @@ object ResourceActions {
         ResourceAction(
             id = "tmux",
             name = "tmux",
-            description = "后台执行任务，防止终端关闭导致进程结束",
+            description = context.getString(R.string.main_res_tmux_desc),
             category = ResourceActionCategory.UTILITY_CENTER,
             script = "pkg install tmux -y",
             iconRes = R.drawable.ic_terminal
         ),
         ResourceAction(
             id = "qemu_install",
-            name = "QEMU 安装",
-            description = "在 Linux 容器内安装 QEMU 虚拟机套件",
+            name = context.getString(R.string.main_res_qemu_install_name),
+            description = context.getString(R.string.main_res_qemu_install_desc),
             category = ResourceActionCategory.UTILITY_CENTER,
             script = "install_qemu",
             iconRes = R.drawable.ic_server,
@@ -238,7 +238,7 @@ object ResourceActions {
     }
     
     fun getAllActions(context: Context): List<ResourceAction> {
-        return getUtilityCenterActions() + getThirdPartyActions(context)
+        return getUtilityCenterActions(context) + getThirdPartyActions(context)
     }
     
     fun getActionById(context: Context, id: String): ResourceAction? {
@@ -267,16 +267,16 @@ data class ProcessInfo(
         if (state == "S" && (threadCount > 1 || hasRecentCpu)) return true
         return false
     }
-    val stateLabel: String
-        get() = when {
-            isFrozen -> "冻结"
-            isRunning -> "运行"
-            isBackgroundRunning -> "后台运行"
-            state == "S" -> "休眠"
-            state == "D" -> "磁盘等待"
-            state == "Z" -> "僵尸"
-            else -> "未知"
-        }
+    @Composable
+    fun stateLabel(): String = when {
+        isFrozen -> stringResource(R.string.main_state_frozen)
+        isRunning -> stringResource(R.string.main_state_running)
+        isBackgroundRunning -> stringResource(R.string.main_state_background)
+        state == "S" -> stringResource(R.string.main_state_sleeping)
+        state == "D" -> stringResource(R.string.main_state_disk_wait)
+        state == "Z" -> stringResource(R.string.main_state_zombie)
+        else -> stringResource(R.string.main_state_unknown)
+    }
 }
 
 // ============================================================
@@ -1024,20 +1024,20 @@ private fun TipsAgentCard(
                     Triple(
                         MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         Icons.Rounded.KeyboardArrowUp,
-                        "收起"
+                        stringResource(R.string.main_collapse)
                     )
                 } else when {
                     serviceStatus == ServiceStatus.WAKE_LOCK_ACTIVE -> Triple(
-                        Color(0xFF36D167), Icons.Rounded.Lock, "唤醒锁开启"
+                        Color(0xFF36D167), Icons.Rounded.Lock, stringResource(R.string.main_wakelock_active)
                     )
                     serviceStatus == ServiceStatus.SERVICE_STOPPED -> Triple(
-                        Color(0xFFFF5252), Icons.Rounded.ErrorOutline, "未运行"
+                        Color(0xFFFF5252), Icons.Rounded.ErrorOutline, stringResource(R.string.main_not_running)
                     )
                     serviceStatus == ServiceStatus.NORMAL || runningSessionsCount > 0 -> Triple(
                         Color(0xFF36D167), Icons.Rounded.CheckCircleOutline, stringResource(R.string.overview_running)
                     )
                     else -> Triple(
-                        Color(0xFFF59E0B), Icons.Rounded.Warning, "待启动"
+                        Color(0xFFF59E0B), Icons.Rounded.Warning, stringResource(R.string.main_pending_start)
                     )
                 }
 
@@ -1064,7 +1064,7 @@ private fun TipsAgentCard(
                     )
                 }
 
-                val uptimeText = formatUptime(uptimeSeconds)
+                val uptimeText = formatUptime(context, uptimeSeconds)
                 Text(
                     text = uptimeText,
                     fontSize = 12.sp,
@@ -1175,7 +1175,7 @@ private fun TipsAgentCard(
                     icon = Icons.Rounded.Archive,
                     iconColor = quickEntryAccent,
                     iconBgColor = quickEntryAccent.copy(alpha = 0.12f),
-                    label = "软件包管理",
+                    label = stringResource(R.string.main_quick_pkgmgr),
                     onClick = {
                         val intent = Intent(context, com.termux.app.activities.PackageManagerActivity::class.java)
                         context.startActivity(intent)
@@ -1185,7 +1185,7 @@ private fun TipsAgentCard(
                     icon = Icons.Rounded.Palette,
                     iconColor = quickEntryAccent,
                     iconBgColor = quickEntryAccent.copy(alpha = 0.12f),
-                    label = "主题外观",
+                    label = stringResource(R.string.main_quick_theming),
                     onClick = {
                         if (IntegratedTools.requireEnabled(context, IntegratedTools.Tool.TERMUX_STYLING)) {
                             val intent = Intent(context, com.termux.app.activities.TermuxStylingActivity::class.java)
@@ -1197,7 +1197,7 @@ private fun TipsAgentCard(
                     icon = Icons.Rounded.Edit,
                     iconColor = quickEntryAccent,
                     iconBgColor = quickEntryAccent.copy(alpha = 0.12f),
-                    label = "编辑文本",
+                    label = stringResource(R.string.main_quick_text_editor),
                     onClick = { val intent = Intent(context, com.termux.app.activities.TextEditorHomeActivity::class.java); context.startActivity(intent) }
                 ),
                 QuickEntryData(
@@ -1295,11 +1295,12 @@ private fun QuickEntryButton(
     }
 }
 
-private fun formatUptime(seconds: Long): String {
-    if (seconds <= 0) return "已运行 0m"
+private fun formatUptime(context: Context, seconds: Long): String {
+    if (seconds <= 0) return context.getString(R.string.main_uptime_zero)
     val h = seconds / 3600
     val m = (seconds % 3600) / 60
-    return if (h > 0) "已运行 ${h}h ${m}m" else "已运行 ${m}m"
+    return if (h > 0) context.getString(R.string.main_uptime_hm, h, m)
+           else context.getString(R.string.main_uptime_m, m)
 }
 
 @Composable
@@ -1359,7 +1360,7 @@ fun HorizontalTipsContent(
                     description = stringResource(R.string.keep_alive_warning_message),
                     titleColor = if (isDark) Color.White else Color.Black,
                     descriptionColor = if (isDark) Color.White.copy(alpha = 0.8f) else Color.Black.copy(alpha = 0.8f),
-                    statusBadgeText = "需注意",
+                    statusBadgeText = stringResource(R.string.main_needs_attention),
                     statusBadgeColor = if (isDark) Color(0xFFFCD34D) else Color(0xFFB45309),
                     statusBadgeBackgroundColor = if (isDark) Color(0xFFFCD34D).copy(alpha = 0.14f) else Color(0xFFF59E0B).copy(alpha = 0.14f),
                     onClose = onKeepAliveClose,
@@ -1461,10 +1462,10 @@ private fun ServiceStatusOverviewTipCard(status: ServiceStatus) {
     }
     val (badgeText, badgeColor) = when (status) {
         ServiceStatus.NORMAL, ServiceStatus.WAKE_LOCK_ACTIVE -> stringResource(R.string.overview_running) to Color(0xFF36D167)
-        ServiceStatus.SERVICE_STOPPED -> "已停止" to Color(0xFFFF5252)
-        ServiceStatus.MEMORY_WARNING -> "需注意" to Color(0xFFF59E0B)
-        ServiceStatus.MEMORY_KILL -> "内存不足" to Color(0xFFFF5252)
-        ServiceStatus.SESSION_KILLED -> "已终止" to Color(0xFFFF5252)
+        ServiceStatus.SERVICE_STOPPED -> stringResource(R.string.overview_stopped) to Color(0xFFFF5252)
+        ServiceStatus.MEMORY_WARNING -> stringResource(R.string.main_needs_attention) to Color(0xFFF59E0B)
+        ServiceStatus.MEMORY_KILL -> stringResource(R.string.main_memory_low) to Color(0xFFFF5252)
+        ServiceStatus.SESSION_KILLED -> stringResource(R.string.main_terminated) to Color(0xFFFF5252)
     }
 
     OverviewHorizontalTipCard(
@@ -2660,7 +2661,7 @@ private fun ProcessItemRow(process: ProcessInfo, compact: Boolean = false) {
                     .padding(horizontal = 4.dp, vertical = 1.dp)
             ) {
                 Text(
-                    text = process.stateLabel,
+                    text = process.stateLabel(),
                     fontSize = if (compact) 8.sp else 9.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = stateColor
@@ -2745,7 +2746,7 @@ private fun ProcessItemRow(process: ProcessInfo) {
             modifier = Modifier.weight(1f)
         )
         Text(
-            text = process.stateLabel,
+            text = process.stateLabel(),
             fontSize = 10.sp,
             fontWeight = FontWeight.SemiBold,
             color = stateColor,
@@ -2801,7 +2802,7 @@ private fun ProcessItemRowCompact(process: ProcessInfo) {
             modifier = Modifier.weight(1f)
         )
         Text(
-            text = process.stateLabel,
+            text = process.stateLabel(),
             fontSize = 9.sp,
             fontWeight = FontWeight.SemiBold,
             color = stateColor,
@@ -3798,7 +3799,7 @@ private fun ResourceActionSelectionDialog(
     onActionSelected: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val utilityActions = remember { ResourceActions.getUtilityCenterActions() }
+    val utilityActions = remember(context) { ResourceActions.getUtilityCenterActions(context) }
     val thirdPartyActions = remember { ResourceActions.getThirdPartyActions(context) }
     var selectedTab by remember { mutableStateOf(0) }
     

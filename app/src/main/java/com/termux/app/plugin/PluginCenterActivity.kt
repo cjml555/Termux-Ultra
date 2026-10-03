@@ -109,14 +109,14 @@ fun PluginCenterScreen() {
                 val result = PluginManager.installPlugin(context, tempFile)
                 if (result.isSuccess) {
                     val manifest = result.getOrThrow()
-                    SnackbarHelper.show(context, "插件「${manifest.name}」安装成功", Snackbar.LENGTH_SHORT)
+                    SnackbarHelper.show(context, context.getString(R.string.plugin_install_success_named, manifest.name), Snackbar.LENGTH_SHORT)
                     plugins = PluginManager.getInstalledPlugins(context)
                 } else {
-                    SnackbarHelper.show(context, "安装失败: ${result.exceptionOrNull()?.message}", Snackbar.LENGTH_LONG)
+                    SnackbarHelper.show(context, context.getString(R.string.plugin_install_failed_reason, result.exceptionOrNull()?.message ?: ""), Snackbar.LENGTH_LONG)
                 }
                 tempFile.delete()
             } catch (e: Exception) {
-                SnackbarHelper.show(context, "安装失败: ${e.message}", Snackbar.LENGTH_LONG)
+                SnackbarHelper.show(context, context.getString(R.string.plugin_install_failed_reason, e.message ?: ""), Snackbar.LENGTH_LONG)
             }
         }
     }
@@ -137,27 +137,27 @@ fun PluginCenterScreen() {
         val permissions = manifest.getParsedPermissions().toSet()
         PluginLoader.grantPermissions(context, plugin.id, permissions)
         PluginLoader.setPluginState(context, plugin.id, PluginState.ENABLED)
-        SnackbarHelper.show(context, "插件「${manifest.name}」已启用", Snackbar.LENGTH_SHORT)
+        SnackbarHelper.show(context, context.getString(R.string.plugin_enable_success_named, manifest.name), Snackbar.LENGTH_SHORT)
         plugins = PluginManager.getInstalledPlugins(context)
         showPermissionDialog = null
     }
 
     fun enablePlugin(plugin: InstalledPlugin) {
         if (PluginManager.enablePlugin(context, plugin.id)) {
-            SnackbarHelper.show(context, "插件已启用", Snackbar.LENGTH_SHORT)
+            SnackbarHelper.show(context, context.getString(R.string.plugin_enabled), Snackbar.LENGTH_SHORT)
             plugins = PluginManager.getInstalledPlugins(context)
         }
     }
 
     fun disablePlugin(plugin: InstalledPlugin) {
         PluginManager.disablePlugin(context, plugin.id)
-        SnackbarHelper.show(context, "插件已禁用", Snackbar.LENGTH_SHORT)
+        SnackbarHelper.show(context, context.getString(R.string.plugin_disabled), Snackbar.LENGTH_SHORT)
         plugins = PluginManager.getInstalledPlugins(context)
     }
 
     fun uninstallPlugin(plugin: InstalledPlugin) {
         PluginManager.uninstallPlugin(context, plugin.id)
-        SnackbarHelper.show(context, "插件已卸载", Snackbar.LENGTH_SHORT)
+        SnackbarHelper.show(context, context.getString(R.string.plugin_uninstalled), Snackbar.LENGTH_SHORT)
         plugins = PluginManager.getInstalledPlugins(context)
         showUninstallDialog = null
     }
@@ -385,7 +385,7 @@ fun PluginCenterScreen() {
         onDismiss = { showShareDialog = null },
         onShareMeta = { plugin ->
             runCatching { PluginShare.shareMeta(context, plugin) }
-                .onFailure { SnackbarHelper.show(context, "分享失败: ${it.message}", Snackbar.LENGTH_LONG) }
+                .onFailure { SnackbarHelper.show(context, context.getString(R.string.plugin_share_failed, it.message ?: ""), Snackbar.LENGTH_LONG) }
         },
         onSharePackage = { plugin ->
             PluginShare.sharePackage(context, plugin).onFailure {
