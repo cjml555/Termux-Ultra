@@ -159,9 +159,40 @@ def find_locales(res_dir: str) -> list[str]:
     return found
 
 
+# Un "\uXXXX" suelto en un strings.xml. Android NO lo interpreta: lo muestra
+# tal cual. "Todav\u00eda" aparece en pantalla con el "\u00ed" escrito, no como
+# "Todavía". En JSON sí valdría; en un recurso Android no.
+UNICODE_ESCAPE_RE = re.compile(r"\\u[0-9a-fA-F]{4}")
+
+
 def format_specs(text: str) -> set[str]:
-    """Extrae los especificadores de formato de un string, ignorando %%."""
-    return {m.group(0)[1:] for m in FORMAT_SPEC_RE.finditer(text) if m.group(0) != "%%"}
+    """Extrae los especificadores de formato reales de un string.
+
+    Ignora `%%` (literal) y los porcentajes que NO son especificadores.
+    El caso real: "blocking 100% of malicious" — la regex veía "% o" y lo
+    contaba como placeholder, así que el gate exigía un `% o` equivalente en
+    la traducción y marcaba divergencia donde no la hay. Lo mismo con
+    "el 100 % de los casos" → "% d".
+
+    Un especificador de verdad es `%` seguido deflags/anchura y una letra de
+    conversion, y NO puede tener un espacio antes de la letra.
+    """
+    out: set[str] = set()
+    for m in FORMAT_SPEC_RE.finditer(text):
+        spec = m.group(0)
+        if spec == "%%":
+            continue
+        # "%%d" no es un especificador: el primer % abre un literal %% y la "d"
+        # es texto corriente. Se detecta por posición, no por el texto casado
+        # (la regex ve "%d" porque consume el primer %).
+        if m.start() > 0 and text[m.start() - 1] == "%":
+            continue
+        # "% o" y "% d" no son especificadores: en uno real no puede haber
+        # espacio entre los flags y la letra de conversión.
+        if " " in spec:
+            continue
+        out.add(spec[1:])
+    return out
 
 
 def is_probably_untranslated(default: str, translated: str) -> bool:
@@ -260,6 +291,12 @@ def audit_module(module: str, res_dir: str, locales: list[str], verbose: bool) -
             if match:
                 broken_escapes.append((name, value))
 
+        # \uXXXX literal: Android lo muestra tal cual, no lo decodifica.
+        raw_unicode: list[tuple[str, str]] = []
+        for name, value in translated.items():
+            if UNICODE_ESCAPE_RE.search(value):
+                raw_unicode.append((name, value))
+
         covered = len(default_values) - len(missing)
         pct = (covered / len(default_values) * 100) if default_values else 0.0
 
@@ -271,6 +308,7 @@ def audit_module(module: str, res_dir: str, locales: list[str], verbose: bool) -
             "bad_placeholders": bad_placeholders,
             "untranslated": untranslated,
             "broken_escapes": broken_escapes,
+            "raw_unicode": raw_unicode,
         }
 
         if verbose:
@@ -285,6 +323,8 @@ def audit_module(module: str, res_dir: str, locales: list[str], verbose: bool) -
                 print(f"    sin traducir: {name}")
             for name, value in broken_escapes:
                 print(f"    escape roto: {name}  \"{value[:70]}\"" )
+            for name, value in raw_unicode:
+                print(f"    unicode literal: {name}  \"{value[:70]}\"")
 
     return result
 
@@ -417,6 +457,7 @@ def main() -> int:
             orphan_n = len(data["orphan"])
             ph_n = len(data["bad_placeholders"])
             esc_n = len(data.get("broken_escapes", []))
+            uni_n = len(data.get("raw_unicode", []))
             print(
                 f"{res['module']:<20} {locale:<8} "
                 f"{data['pct']:>6.1f}% ({data['covered']:>4}/{res['total']:<4}) "
@@ -425,8 +466,8 @@ def main() -> int:
             # Un placeholder divergente rompe en runtime (IllegalFormatException /
             # MissingFormatArgumentException), así que cuenta como fallo duro.
             hard_failures += ph_n
-            escape_failures += esc_n
-            failures += missing_n + ph_n + esc_n
+            escape_failures += esc_n + uni_n
+            failures += missing_n + ph_n + esc_n + uni_n
 
     print("=" * 78)
     if failures:
@@ -455,11 +496,22 @@ def main() -> int:
             #Va antes que los placeholders porque es el fallo que se confunde:
             # un "yamp;" pegado en medio de una frase es legible, el gate de
             # placeholders no lo ve y el mensaje atribuye otro motivo.
+            uni_total = sum(
+                len(d.get("raw_unicode", []))
+                for r in results for d in r["locales"].values()
+            )
+            detalle = ""
+            if uni_total:
+                detalle = (
+                    f"\n  De ellos, {uni_total} son \\uXXXX literal: Android NO "
+                    f"decodifica eso en un recurso, lo muestra tal cual.\n"
+                    f"    \"Todav\\u00eda\" -> \"Todavía\" (el caracter va literal)"
+                )
             print(
-                f"\n✗ GATE: {escape_failures} escape(s) XML roto(s) pegado a una "
-                f"palabra.\n  Suele ser un \"&amp;\" del original que al traducir "
-                f"cambió a \"y\" dejando el \"amp;\" pegado:\n"
-                f"    \"Consejos yamp; agente\" -> \"Consejos y agente\"\n"
+                f"\n✗ GATE: {escape_failures} escape(s)/unicode mal escrito(s).\n"
+                f"  Suele ser un \"&amp;\" del original que al traducir cambió a "
+                f"\"y\" dejando el \"amp;\" pegado:\n"
+                f"    \"Consejos yamp; agente\" -> \"Consejos y agente\"{detalle}\n"
                 f"  Ver con: python3 tools/i18n/check_translations.py --verbose"
             )
             return 1
