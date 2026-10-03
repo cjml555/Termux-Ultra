@@ -251,9 +251,20 @@ def main() -> int:
 
     print("-" * 78)
     print(f"Total: {total} literal(es), {cjk_total} con chino")
+
+    # Palabras clave de busqueda: caso aparte, no son UI visible.
+    kw = check_keywords()
+    if kw:
+        print()
+        print(f"Palabras clave de busqueda solo en chino/inglés: {len(kw)} línea(s)")
+        if args.verbose:
+            for path, lineno, chars in kw[:20]:
+                rel = os.path.relpath(path, ROOT)
+                print(f"    {rel}:{lineno}  {chars}")
+
     print()
 
-    if total == 0:
+    if total == 0 and not kw:
         print("✓ No hay literales de UI pendientes.")
         return 0
 
@@ -265,9 +276,41 @@ def main() -> int:
 
     if args.gate:
         print()
-        print(f"XX GATE: {total} literal(es) de UI sin traducir.", file=sys.stderr)
+        if total:
+            print(f"XX GATE: {total} literal(es) de UI sin traducir.", file=sys.stderr)
+        if kw:
+            print(f"XX GATE: {len(kw)} lista(s) de palabras clave de busqueda sin "
+                  f"términos en español/inglés.", file=sys.stderr)
         return 1
     return 0
+
+
+def check_keywords():
+    """Palabras clave de busqueda en un idioma que no es el del usuario.
+
+    No son UI visible (no se muestran), asi que el detector de literales no las
+    ve y check_translations tampoco las mira: no son claves de strings.xml. Pero
+    un usuario que escribe "agente" en el buscador de Ajustes no encuentra nada
+    si las palabras clave solo estan en chino e ingles. 28 de las 30 listas de
+    SettingsScreen estaban asi.
+    """
+    findings = []
+    for dirpath, _dirs, files in os.walk(ROOT):
+        for name in files:
+            if not name.endswith(".kt"):
+                continue
+            path = os.path.join(dirpath, name)
+            try:
+                text = read(path)
+            except Exception:
+                continue
+            for lineno, line in enumerate(text.splitlines(), 1):
+                if "keywords" not in line or "listOf" not in line:
+                    continue
+                cjk = CJK.findall(line)
+                if cjk:
+                    findings.append((path, lineno, "".join(sorted(set(cjk)))))
+    return findings
 
 
 def path_rel_line(rel: str) -> str:

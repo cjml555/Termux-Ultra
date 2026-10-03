@@ -644,7 +644,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
     val searchableItems = listOf(
         // ===== Appearance =====
         SearchableSetting(sec_appearance, context.getString(R.string.pref_material_you_title), context.getString(R.string.pref_material_you_summary),
-            keywords = listOf("material you", "monet", "动态取色", "配色", "主题", "theme", "dynamic color"),
+            keywords = listOf("material you", "monet", "color dinamico", "paleta", "tema", "theme", "dynamic color"),
             render = {
                 MaterialYouSwitch(
                     context = context,
@@ -653,7 +653,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_appearance, context.getString(R.string.language), context.getString(R.string.language_description),
-            keywords = listOf("语言", "language", "中文", "英文", "español", "es", "locale"),
+            keywords = listOf("idioma", "language", "chino", "ingles", "español", "es", "locale"),
             render = {
                 OverlayDropdownPreference(
                     title = context.getString(R.string.language),
@@ -665,7 +665,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_appearance, context.getString(R.string.navigation_bar_style), context.getString(R.string.navigation_bar_style_description),
-            keywords = listOf("导航栏", "navigation", "navbar", "玻璃", "classic", "liquid"),
+            keywords = listOf("barra de navegacion", "navigation", "navbar", "cristal", "classic", "liquid"),
             render = {
                 OverlayDropdownPreference(
                     title = context.getString(R.string.navigation_bar_style),
@@ -685,7 +685,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_appearance, context.getString(R.string.horizontal_tip_layout), context.getString(R.string.overview_horizontal_cards_desc),
-            keywords = listOf("横排", "布局", "layout", "horizontal", "cards"),
+            keywords = listOf("horizontal", "diseno", "layout", "horizontal", "cards"),
             render = {
                 SwitchPreference(
                     title = context.getString(R.string.horizontal_tip_layout),
@@ -696,7 +696,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_appearance, context.getString(R.string.pkg_view_mode), context.getString(R.string.pkg_view_mode_desc),
-            keywords = listOf("软件包", "包管理", "package", "分类", "列表", "view mode"),
+            keywords = listOf("paquete", "gestor de paquetes", "package", "categorias", "lista", "view mode"),
             render = {
                 OverlayDropdownPreference(
                     title = context.getString(R.string.pkg_view_mode),
@@ -710,7 +710,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
 
         // ===== Remote =====
         SearchableSetting(sec_remote, context.getString(R.string.vnc), context.getString(R.string.vnc_description),
-            keywords = listOf("vnc", "远程", "remote", "桌面"),
+            keywords = listOf("vnc", "remoto", "remote", "escritorio"),
             render = {
                 SwitchPreference(
                     title = context.getString(R.string.vnc),
@@ -730,7 +730,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
         // ===== Terminal =====
 
         SearchableSetting(sec_terminal, context.getString(R.string.log_level), context.getString(R.string.log_level_desc),
-            keywords = listOf("日志", "log", "调试", "debug", "verbose"),
+            keywords = listOf("registro", "log", "depuracion", "debug", "verbose"),
             render = {
                 OverlayDropdownPreference(
                     title = context.getString(R.string.log_level),
@@ -742,7 +742,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_terminal, context.getString(R.string.font_size), context.getString(R.string.font_size_desc),
-            keywords = listOf("字体", "font", "字号", "大小"),
+            keywords = listOf("fuente", "font", "tamano", "dimension"),
             render = {
                 OverlayDropdownPreference(
                     title = context.getString(R.string.font_size),
@@ -756,7 +756,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_terminal, context.getString(R.string.cursor_style), context.getString(R.string.cursor_style_desc),
-            keywords = listOf("光标", "cursor", "闪烁", "blink"),
+            keywords = listOf("cursor", "cursor", "parpadeo", "blink"),
             render = {
                 OverlayDropdownPreference(
                     title = context.getString(R.string.cursor_style),
@@ -772,13 +772,13 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_terminal, stringResource(R.string.editor_tools), "",
-            keywords = listOf("编辑器", "editor", "vim", "文本编辑"),
+            keywords = listOf("editor", "editor", "vim", "edicion de texto"),
             render = {
                 var editorToolIndex by remember { mutableStateOf(prefs.getString("editor_tool", "internal")?.let { if (it == "vim") 1 else 0 } ?: 0) }
                 OverlayDropdownPreference(
                     title = stringResource(R.string.editor_tools),
-                    summary = if (editorToolIndex == 0) "内置文本编辑器" else "Vim (终端中)",
-                    items = listOf("内置", "Vim"),
+                    summary = if (editorToolIndex == 0) stringResource(R.string.editor_tool_builtin) else stringResource(R.string.editor_tool_vim_in_terminal),
+                    items = listOf(stringResource(R.string.editor_tool_builtin_short), "Vim"),
                     selectedIndex = editorToolIndex,
                     onSelectedIndexChange = { idx ->
                         editorToolIndex = idx
@@ -788,7 +788,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_terminal, context.getString(R.string.enable_softkeyboard), "",
-            keywords = listOf("软键盘", "键盘", "keyboard", "输入法"),
+            keywords = listOf("teclado en pantalla", "teclado", "keyboard", "metodo de entrada"),
             render = {
                 SwitchPreference(
                     title = context.getString(R.string.enable_softkeyboard),
@@ -801,7 +801,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_terminal, context.getString(R.string.enable_soft_keyboard_no_hw), context.getString(R.string.soft_keyboard_only_if_no_hardware_desc),
-            keywords = listOf("物理键盘", "硬件键盘", "hardware keyboard"),
+            keywords = listOf("teclado fisico", "teclado fisico", "hardware keyboard"),
             render = {
                 SwitchPreference(
                     title = context.getString(R.string.enable_soft_keyboard_no_hw),
@@ -814,7 +814,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_terminal, context.getString(R.string.terminal_key_logging), context.getString(R.string.terminal_key_logging_desc),
-            keywords = listOf("按键", "日志", "key logging", "debug"),
+            keywords = listOf("teclas", "registro", "key logging", "debug"),
             render = {
                 SwitchPreference(
                     title = context.getString(R.string.terminal_key_logging),
@@ -827,7 +827,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_terminal, context.getString(R.string.use_custom_keyboard_layout), context.getString(R.string.use_custom_keyboard_layout_desc),
-            keywords = listOf("键盘", "布局", "自定义", "keyboard layout", "custom"),
+            keywords = listOf("teclado", "diseno", "personalizado", "keyboard layout", "custom"),
             render = {
                 SwitchPreference(
                     title = context.getString(R.string.use_custom_keyboard_layout),
@@ -859,7 +859,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_tools, context.getString(R.string.termux_boot_tool), context.getString(R.string.termux_boot_tool_summary),
-            keywords = listOf("termux-boot", "boot", "开机"),
+            keywords = listOf("termux-boot", "boot", "inicio"),
             render = {
                 IntegratedToolSwitch(
                     title = context.getString(R.string.termux_boot_tool),
@@ -876,7 +876,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_tools, context.getString(R.string.termux_tasker_tool), context.getString(R.string.termux_tasker_tool_summary),
-            keywords = listOf("termux-tasker", "tasker", "自动化"),
+            keywords = listOf("termux-tasker", "tasker", "automatizacion"),
             render = {
                 IntegratedToolSwitch(
                     title = context.getString(R.string.termux_tasker_tool),
@@ -893,7 +893,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_tools, context.getString(R.string.termux_styling_tool), context.getString(R.string.termux_styling_tool_summary),
-            keywords = listOf("termux-styling", "styling", "主题", "theme"),
+            keywords = listOf("termux-styling", "styling", "tema", "theme"),
             render = {
                 IntegratedToolSwitch(
                     title = context.getString(R.string.termux_styling_tool),
@@ -910,7 +910,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_tools, context.getString(R.string.termux_widget_tool), context.getString(R.string.termux_widget_tool_summary),
-            keywords = listOf("termux-widget", "widget", "小部件"),
+            keywords = listOf("termux-widget", "widget", "widget"),
             render = {
                 IntegratedToolSwitch(
                     title = context.getString(R.string.termux_widget_tool),
@@ -929,7 +929,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
 
         // ===== AI Agent =====
         SearchableSetting(sec_ai, "Termux Agent", context.getString(R.string.agent_entry_card_desc),
-            keywords = listOf("agent", "ai", "智能体", "大模型", "llm"),
+            keywords = listOf("agent", "ai", "agente", "modelo de lenguaje", "llm"),
             render = {
                 SwitchPreference(
                     title = "Termux Agent",
@@ -940,7 +940,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_ai, context.getString(R.string.trust_whitelist), "",
-            keywords = listOf("白名单", "whitelist", "信任", "trust"),
+            keywords = listOf("lista blanca", "whitelist", "confianza", "trust"),
             render = {
                 val whitelistCount = autoExecConfig.autoExecSkills.size
                 val whitelistSummary = when {
@@ -957,7 +957,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_ai, context.getString(R.string.reconfigure_ai), context.getString(R.string.reset_config_desc),
-            keywords = listOf("重新配置", "重置", "reset", "reconfigure", "重新设置", "恢复"),
+            keywords = listOf("reconfigurar", "restablecer", "reset", "reconfigure", "reconfigurar", "restaurar"),
             render = {
                 ArrowPreference(
                     title = context.getString(R.string.reconfigure_ai),
@@ -967,7 +967,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_ai, context.getString(R.string.clear_chat_history), context.getString(R.string.clear_agent_history_desc),
-            keywords = listOf("清除", "clear", "历史", "history", "聊天记录"),
+            keywords = listOf("limpiar", "clear", "historial", "history", "registro de chat"),
             render = {
                 ArrowPreference(
                     title = context.getString(R.string.clear_chat_history),
@@ -977,7 +977,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         *if (isLocalMode) listOf(SearchableSetting(sec_ai, context.getString(R.string.agent_online_config), context.getString(R.string.agent_online_config_desc),
-            keywords = listOf("在线", "online", "api", "key", "模型", "model", "地址", "url"),
+            keywords = listOf("en linea", "online", "api", "key", "modelo", "model", "direccion", "url"),
             render = {
                 ArrowPreference(
                     title = context.getString(R.string.agent_online_config),
@@ -987,7 +987,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             })).toTypedArray() else emptyArray(),
         SearchableSetting(sec_ai, context.getString(R.string.agent_profiles), context.getString(R.string.agent_profiles_desc),
-            keywords = listOf("配置档", "profile", "多模型", "切换", "switch"),
+            keywords = listOf("perfil", "profile", "multimodelo", "alternar", "switch"),
             render = {
                 ArrowPreference(
                     title = context.getString(R.string.agent_profiles),
@@ -997,7 +997,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_ai, context.getString(R.string.agent_chat_params), context.getString(R.string.agent_chat_params_desc),
-            keywords = listOf("上下文", "context", "压缩", "compress", "token", "参数"),
+            keywords = listOf("contexto", "context", "compresion", "compress", "token", "parametros"),
             render = {
                 ArrowPreference(
                     title = context.getString(R.string.agent_chat_params),
@@ -1007,7 +1007,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_ai, context.getString(R.string.agent_memory), context.getString(R.string.agent_memory_desc),
-            keywords = listOf("记忆", "memory", "md", "偏好", "长期"),
+            keywords = listOf("memoria", "memory", "md", "preferencias", "a largo plazo"),
             render = {
                 ArrowPreference(
                     title = context.getString(R.string.agent_memory),
@@ -1017,7 +1017,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
         SearchableSetting(sec_ai, context.getString(R.string.developer_mode), context.getString(R.string.developer_mode_desc),
-            keywords = listOf("开发者", "developer", "调试", "debug", "无限制", "unrestricted"),
+            keywords = listOf("desarrollador", "developer", "depuracion", "debug", "sin limite", "unrestricted"),
             render = {
                 SwitchPreference(
                     title = context.getString(R.string.developer_mode),
@@ -1033,7 +1033,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
 
         // ===== Security =====
         SearchableSetting(sec_security, context.getString(R.string.protection_level_title), "",
-            keywords = listOf("保护", "protection", "vortex", "guard", "安全等级"),
+            keywords = listOf("proteccion", "protection", "vortex", "guard", "nivel de seguridad"),
             render = {
                 val protectionItems = RiskConfirmManager.ProtectionLevel.entries.map { level ->
                     DropdownItem(text = level.displayName, summary = level.description)
@@ -1375,8 +1375,8 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                             var editorToolIndex by remember { mutableStateOf(prefs.getString("editor_tool", "internal")?.let { if (it == "vim") 1 else 0 } ?: 0) }
                             OverlayDropdownPreference(
                                 title = stringResource(R.string.editor_tools),
-                                summary = if (editorToolIndex == 0) "内置文本编辑器" else "Vim (终端中)",
-                                items = listOf("内置", "Vim"),
+                                summary = if (editorToolIndex == 0) stringResource(R.string.editor_tool_builtin) else stringResource(R.string.editor_tool_vim_in_terminal),
+                                items = listOf(stringResource(R.string.editor_tool_builtin_short), "Vim"),
                                 selectedIndex = editorToolIndex,
                                 onSelectedIndexChange = { idx ->
                                     editorToolIndex = idx
@@ -1386,13 +1386,13 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                             )
                             ArrowPreference(
                                 title = stringResource(R.string.auto_execute_new_session),
-                                summary = if (startupCmdText.isBlank()) "设置每次启动新会话自动运行的指令" else "已设置：${startupCmdText.take(40)}${if (startupCmdText.length > 40) "..." else ""}",
+                                summary = if (startupCmdText.isBlank()) stringResource(R.string.startup_cmd_summary) else stringResource(R.string.startup_cmd_set) + "${startupCmdText.take(40)}${if (startupCmdText.length > 40) "..." else ""}",
                                 onClick = { showStartupCmdDialog = true },
                                 startAction = { SettingIcon(Icons.Rounded.Terminal) }
                             )
                             ArrowPreference(
                                 title = stringResource(R.string.edit_welcome_motd),
-                                summary = "直接编辑 /data/data/com.termux/files/usr/etc/motd",
+                                summary = stringResource(R.string.motd_edit_summary),
                                 onClick = {
                                     val tool = prefs.getString("editor_tool", "internal") ?: "internal"
                                     if (tool == "vim") {
@@ -1418,7 +1418,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                     show = showStartupCmdDialog,
                     onDismissRequest = { showStartupCmdDialog = false },
                     title = stringResource(R.string.auto_execute_new_session),
-                    summary = "设置每次启动新会话自动运行的指令",
+                    summary = stringResource(R.string.startup_cmd_summary),
                     content = {
                                 TextField(
                             value = startupCmdText,
@@ -1859,12 +1859,12 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                             )
                         }
                         SwitchPreference(
-                            title = "脚本运行前 Agent 参与判定",
+                            title = stringResource(R.string.script_agent_judge_title),
                             summary = when {
-                                !agentJudgeEnabled -> "需开启VorteX Guard Engine后可用"
-                                !hasAgentCfg -> "需先在 Termux Agent 中配置模型"
-                                agentScriptJudge -> "已启用：执行脚本时 Agent 先判定，超时退回本地检测"
-                                else -> "关闭"
+                                !agentJudgeEnabled -> stringResource(R.string.script_agent_judge_needs_engine)
+                                !hasAgentCfg -> stringResource(R.string.script_agent_judge_needs_model)
+                                agentScriptJudge -> stringResource(R.string.script_agent_judge_enabled)
+                                else -> stringResource(R.string.script_agent_judge_off)
                             },
                             checked = agentScriptJudge && agentJudgeEnabled && hasAgentCfg,
                             onCheckedChange = {
@@ -1884,11 +1884,11 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                         }
                         var showAgentHistory by remember { mutableStateOf(false) }
                         ArrowPreference(
-                            title = "Agent 判定历史",
+                            title = stringResource(R.string.agent_judge_history_title),
                             summary = if (agentHistory.isEmpty()) {
-                                "暂无记录"
+                                stringResource(R.string.agent_history_empty)
                             } else {
-                                "共 ${agentHistory.size} 条（仅记录 Agent 实际判定的脚本）"
+                                stringResource(R.string.agent_history_count_all, agentHistory.size)
                             },
                             onClick = { showAgentHistory = true },
                             startAction = {
@@ -1897,18 +1897,18 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                         )
                         // ---------- Agent 判定历史 dialog ----------
                         OverlayDialog(
-                            title = "Agent 判定历史",
+                            title = stringResource(R.string.agent_judge_history_title),
                             summary = if (agentHistory.isEmpty()) {
-                                "暂无 Agent 参与判定的记录"
+                                stringResource(R.string.agent_history_empty)
                             } else {
-                                "共 ${agentHistory.size} 条，仅展示最近判定"
+                                stringResource(R.string.agent_history_count_recent, agentHistory.size)
                             },
                             show = showAgentHistory,
                             onDismissRequest = { showAgentHistory = false },
                             content = {
                                 if (agentHistory.isEmpty()) {
                                     Text(
-                                        text = "暂无记录",
+                                        text = stringResource(R.string.agent_history_empty),
                                         modifier = Modifier.padding(vertical = 16.dp),
                                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                                     )
@@ -1924,7 +1924,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                                     }
                                     Spacer(Modifier.height(12.dp))
                                     TextButton(
-                                        text = "清空历史",
+                                        text = stringResource(R.string.clear_history),
                                         onClick = {
                                             com.termux.app.compose.AgentScriptJudge.clearHistory(context)
                                             agentHistory = emptyList()
@@ -1962,7 +1962,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "没有找到匹配的设置项",
+                                text = stringResource(R.string.no_matching_settings),
                                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                             )
                         }
@@ -3196,7 +3196,7 @@ private fun AgentHistoryItem(entry: com.termux.app.compose.AgentScriptJudge.Judg
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = if (isDanger) "危险" else "安全",
+                text = if (isDanger) stringResource(R.string.danger_badge) else stringResource(R.string.safe_badge),
                 color = if (isDanger) Color(0xFFE53935) else Color(0xFF43A047),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold

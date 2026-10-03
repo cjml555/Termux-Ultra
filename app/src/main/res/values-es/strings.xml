@@ -1979,4 +1979,24 @@ Recomendación: cierra primero las demás sesiones de Termux en ejecución y vue
     <string name="agent_submit_answer">Enviar respuesta</string>
     <string name="agent_confirm_exec">Confirmar ejecución</string>
     <string name="fm_file_label">Archivo</string>
+
+    <!-- Ajustes: textos que estaban en chino dentro de SettingsScreen -->
+    <string name="editor_tool_builtin">Editor de texto integrado</string>
+    <string name="editor_tool_vim_in_terminal">Vim (en la terminal)</string>
+    <string name="editor_tool_builtin_short">Integrado</string>
+    <string name="startup_cmd_summary">Instrucción que se ejecuta al abrir cada sesión nueva</string>
+    <string name="startup_cmd_set">Configurado: </string>
+    <string name="motd_edit_summary">Editar directamente /data/data/com.termux/files/usr/etc/motd</string>
+    <string name="script_agent_judge_title">Participación del Agent antes de ejecutar un script</string>
+    <string name="script_agent_judge_needs_engine">Disponible tras activar VorteX Guard Engine</string>
+    <string name="script_agent_judge_needs_model">Primero configura un modelo en Termux Agent</string>
+    <string name="script_agent_judge_enabled">Activado: el Agent decide primero y, si tarda, pasa a la comprobación local</string>
+    <string name="script_agent_judge_off">Desactivado</string>
+    <string name="agent_judge_history_title">Historial de decisiones del Agent</string>
+    <string name="agent_history_empty">Todavía no hay registros</string>
+    <string name="agent_history_count_all">%1$d en total (solo scripts que el Agent evaluó de verdad)</string>
+    <string name="agent_history_count_recent">%1$d en total; solo se muestran las más recientes</string>
+    <string name="no_matching_settings">No se encontró ningún ajuste</string>
+    <string name="danger_badge">Peligro</string>
+    <string name="safe_badge">Seguro</string>
 </resources>

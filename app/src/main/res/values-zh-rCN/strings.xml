@@ -2141,4 +2141,24 @@
     <string name="agent_submit_answer">提交回答</string>
     <string name="agent_confirm_exec">确认执行</string>
     <string name="fm_file_label">文件</string>
+
+    <!-- Ajustes: textos que estaban en chino dentro de SettingsScreen -->
+    <string name="editor_tool_builtin">内置文本编辑器</string>
+    <string name="editor_tool_vim_in_terminal">Vim（终端中）</string>
+    <string name="editor_tool_builtin_short">内置</string>
+    <string name="startup_cmd_summary">设置每次启动新会话自动运行的指令</string>
+    <string name="startup_cmd_set">已设置：</string>
+    <string name="motd_edit_summary">直接编辑 /data/data/com.termux/files/usr/etc/motd</string>
+    <string name="script_agent_judge_title">脚本运行前 Agent 参与判定</string>
+    <string name="script_agent_judge_needs_engine">需开启VorteX Guard Engine后可用</string>
+    <string name="script_agent_judge_needs_model">需先在 Termux Agent 中配置模型</string>
+    <string name="script_agent_judge_enabled">已启用：执行脚本时 Agent 先判定，超时退回本地检测</string>
+    <string name="script_agent_judge_off">关闭</string>
+    <string name="agent_judge_history_title">Agent 判定历史</string>
+    <string name="agent_history_empty">暂无记录</string>
+    <string name="agent_history_count_all">共 %1$d 条（仅记录 Agent 实际判定的脚本）</string>
+    <string name="agent_history_count_recent">共 %1$d 条，仅展示最近判定</string>
+    <string name="no_matching_settings">没有找到匹配的设置项</string>
+    <string name="danger_badge">危险</string>
+    <string name="safe_badge">安全</string>
 </resources>

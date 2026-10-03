@@ -2147,4 +2147,24 @@ Recommendation: close other running Termux sessions first, then try again.</stri
     <string name="agent_submit_answer">Submit answer</string>
     <string name="agent_confirm_exec">Confirm execution</string>
     <string name="fm_file_label">File</string>
+
+    <!-- Ajustes: textos que estaban en chino dentro de SettingsScreen -->
+    <string name="editor_tool_builtin">Built-in text editor</string>
+    <string name="editor_tool_vim_in_terminal">Vim (in terminal)</string>
+    <string name="editor_tool_builtin_short">Built-in</string>
+    <string name="startup_cmd_summary">Command to run automatically on each new session</string>
+    <string name="startup_cmd_set">Set: </string>
+    <string name="motd_edit_summary">Edit /data/data/com.termux/files/usr/etc/motd directly</string>
+    <string name="script_agent_judge_title">Agent involvement before running a script</string>
+    <string name="script_agent_judge_needs_engine">Available once VorteX Guard Engine is enabled</string>
+    <string name="script_agent_judge_needs_model">Configure a model in Termux Agent first</string>
+    <string name="script_agent_judge_enabled">Enabled: the Agent judges first, falling back to local checks on timeout</string>
+    <string name="script_agent_judge_off">Off</string>
+    <string name="agent_judge_history_title">Agent judgement history</string>
+    <string name="agent_history_empty">Nothing recorded yet</string>
+    <string name="agent_history_count_all">%1$d total (only scripts the Agent actually judged)</string>
+    <string name="agent_history_count_recent">%1$d total, showing only the most recent</string>
+    <string name="no_matching_settings">No matching settings found</string>
+    <string name="danger_badge">Danger</string>
+    <string name="safe_badge">Safe</string>
 </resources>
