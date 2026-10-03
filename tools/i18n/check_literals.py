@@ -273,27 +273,40 @@ PROMPT_MARKERS = (
 # Una regex de deteccion: la cadena se usa como PATRON contra el que se
 # compara la respuesta del modelo, no como texto para el usuario. Traducirla
 # hace que el filtro deje de reconocer resultados fabricados.
-DETECTION_MARKERS = ("Regex(", "Pattern.compile", "matches(", "replace(")
+DETECTION_MARKERS = (
+    "Regex(", "Pattern.compile", "matches(", "replace(",
+    "fabricatedDataPatterns", "commonDescPatterns",
+)
 
 
 def is_hallucination_pattern(line: str, lines=None, lineno=None) -> bool:
     """True si la cadena se usa como patron de deteccion, no como texto.
 
-    Hay que mirar tambien la linea anterior: en Kotlin el Regex() suele abrir
-    en una linea y el texto chinois va en la siguiente, dentro de comillas
-    triples:
+    Hay que mirar tambien las lineas anteriores. En Kotlin el Regex() abre en
+    una linea y el texto chino va en la siguiente:
 
         val fakeResultPattern = Regex(
             "...texto chino que compara con la respuesta del modelo..."
 
-    Mirando solo la linea del texto, estos casos no se detectaban.
+    Y una lista de patrones empieza muchas lineas antes de sus entradas:
+
+        val fabricatedDataPatterns = listOf(
+            "...primera entrada...",
+            "...segunda entrada...",
+        )
+
+    Sin mirar hacia atras, las ~40 cadenas de AiTermuxEngine.kt entre las
+    lineas 392-430 se contaban como interfaz y no como patrones.
     """
     if any(m in line for m in DETECTION_MARKERS):
         return True
-    if lines and lineno and lineno >= 2:
-        prev = lines[lineno - 2]
-        if "Regex(" in prev or "Pattern.compile" in prev:
-            return True
+    if lines and lineno:
+        for k in range(max(0, lineno - 26), lineno):
+            prev = lines[k]
+            if any(m in prev for m in DETECTION_MARKERS):
+                return True
+            if re.search(r"\w*[Pp]attern\w*\s*=", prev):
+                return True
     return False
 
 

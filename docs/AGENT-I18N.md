@@ -2,7 +2,7 @@
 
 Los ficheros del agente (`AiTermuxModels.kt`, `AiTermuxEngine.kt`,
 `AiTermuxActivity.kt`, `AiLocalTrainer.kt`, `AiLocalModel.kt`,
-`AgentScriptJudge.kt`) tienen ~1200 cadenas en chino simplificado.
+`AgentScriptJudge.kt`) tienen unas 1800 cadenas en chino simplificado.
 `check_literals.py --gate` las reporta. **No es un olvido: es deliberado.**
 
 Este documento explica por qué, para que nadie las "arregle" después.
@@ -30,7 +30,7 @@ funcionar de forma distinta, sin que nada lo señale.
 cambio): 152 skillTypes, 6 apariciones de `[技能结果]`, 4 de `[END_TURN]`,
 6 de `tool_call`. Si alguna vez se tocan, estas cifras deben conservarse.
 
-### 2. Las regex de detección de alucinaciones
+### 2. Los patrones de detección de alucinaciones (149 líneas)
 
 En `AiTermuxEngine.kt`, alrededor de la línea 300, hay patrones que filtran
 resultados inventados por el modelo comparando contra texto chino
