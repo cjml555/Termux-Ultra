@@ -2237,4 +2237,13 @@ Recommendation: close other running Termux sessions first, then try again.</stri
     <string name="danger_script_op">Be careful running scripts: read the script first and check whether it does anything dangerous to the device. Running a dangerous script as ROOT can cause a kernel panic or leave the device unable to boot. Remember: greater power, greater responsibility. The Termux original authors and the Termux Ultra developers are not responsible for hardware damage or data loss caused by running unknown scripts.</string>
     <string name="items_label">Items</string>
     <string name="item_label">item</string>
+
+    <!-- Avisos de seguridad del agente -->
+    <string name="danger_delete_root">Deleting the root directory is not allowed</string>
+    <string name="danger_delete_termux_root">Deleting the Termux root directory is not allowed; it would erase all app data</string>
+    <string name="danger_recursive_delete">This deletes every file in the folder recursively and may lose data</string>
+    <string name="danger_close_all_sessions">This will close every running terminal session; anything unsaved will be lost</string>
+    <string name="danger_exit_termux">This will exit the Termux app; all running processes will be stopped</string>
+    <string name="danger_delete_termux_root2">Deleting the Termux root directory is not allowed!</string>
+    <string name="danger_delete_home">Deleting the home directory is not allowed!</string>
 </resources>

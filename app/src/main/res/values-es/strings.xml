@@ -2069,4 +2069,13 @@ Recomendación: cierra primero las demás sesiones de Termux en ejecución y vue
     <string name="danger_script_op">Ten cuidado al ejecutar scripts: lee el script antes y comprueba si hace algo peligroso con el dispositivo. Ejecutar un script peligroso como ROOT puede provocar un kernel panic o dejar el dispositivo sin arrancar. Recuerda: más poder, más responsabilidad. Los autores originales de Termux y los desarrolladores de Termux Ultra no se hacen responsables de los daños en hardware ni de la pérdida de datos causados por ejecutar scripts desconocidos.</string>
     <string name="items_label">Elementos</string>
     <string name="item_label">elemento</string>
+
+    <!-- Avisos de seguridad del agente -->
+    <string name="danger_delete_root">No se permite eliminar el directorio raíz</string>
+    <string name="danger_delete_termux_root">No se permite eliminar el directorio raíz de Termux: se perderían todos los datos de la app</string>
+    <string name="danger_recursive_delete">Esto elimina todos los archivos de la carpeta de forma recursiva y puede perder datos</string>
+    <string name="danger_close_all_sessions">Se cerrarán todas las sesiones de terminal en ejecución; se perderá lo que no esté guardado</string>
+    <string name="danger_exit_termux">Se saldrá de la app Termux; se detendrán todos los procesos en ejecución</string>
+    <string name="danger_delete_termux_root2">¡No se permite eliminar el directorio raíz de Termux!</string>
+    <string name="danger_delete_home">¡No se permite eliminar el directorio personal!</string>
 </resources>

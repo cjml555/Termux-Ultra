@@ -37,6 +37,25 @@ SCAN_DIRS = ["app/src/main/java", "termux-shared/src/main/java"]
 # Prefijos que son código de terceros: no se tocan (upstream que se re-mergea).
 VENDORED_PREFIXES = ("com/gaurav/avnc", "top/yukonga")
 
+# Ficheros donde gran parte del chino NO es traducible: son los System Prompts
+# del agente y las regex que comparan contra texto chino para detectar que el
+# modelo ha inventado un resultado. Traducirlas rompe el prompt y rompe la
+# deteccion de alucinaciones. Ver docs/AGENT-I18N.md para el detalle.
+#
+# Aun asi se escanean: los titulos, botones y avisos de seguridad de esos
+# mismos ficheros SI son interfaz y SI se traducen. Solo se cambia la
+# categoria de los que no lo son, para que el total no los mezcle con el
+# trabajo pendiente.
+AGENT_INTENT_FILES = (
+    "/AiTermuxModels.kt",
+    "/AiTermuxEngine.kt",
+    "/AiTermuxActivity.kt",
+    "/AiLocalTrainer.kt",
+    "/AiLocalModel.kt",
+    "/AiOllamaManager.kt",
+    "/AgentScriptJudge.kt",
+)
+
 # Directorios que no son UI. Los tests usan nombres de archivo como argumento
 # de un helper llamado igual que un campo de TextField, y salían como falsos
 # positivos.
@@ -231,6 +250,11 @@ def scan_file(path: str) -> list[tuple[str, int, str, str]]:
                 continue
             if is_prompt_context(lines, lineno):
                 found.append(("SystemPrompt", lineno, text, 3))
+            elif is_hallucination_pattern(line, lines, lineno):
+                # Patron de deteccion: se compara contra lo que responde el
+                # modelo para detectar resultados inventados. Traducirlo
+                # desactiva la deteccion.
+                found.append(("patron deteccion", lineno, text, 3))
             else:
                 found.append(("texto CJK", lineno, text, 1))
     return found
@@ -244,6 +268,33 @@ PROMPT_MARKERS = (
     "目标：", "步骤：", "示例：", "输出：", "输入：", "要求：", "准则", "守则",
     "核心", "扮演", "你的", "如果", "不要", "务必", "可以", "将把", "回答",
 )
+
+
+# Una regex de deteccion: la cadena se usa como PATRON contra el que se
+# compara la respuesta del modelo, no como texto para el usuario. Traducirla
+# hace que el filtro deje de reconocer resultados fabricados.
+DETECTION_MARKERS = ("Regex(", "Pattern.compile", "matches(", "replace(")
+
+
+def is_hallucination_pattern(line: str, lines=None, lineno=None) -> bool:
+    """True si la cadena se usa como patron de deteccion, no como texto.
+
+    Hay que mirar tambien la linea anterior: en Kotlin el Regex() suele abrir
+    en una linea y el texto chinois va en la siguiente, dentro de comillas
+    triples:
+
+        val fakeResultPattern = Regex(
+            "...texto chino que compara con la respuesta del modelo..."
+
+    Mirando solo la linea del texto, estos casos no se detectaban.
+    """
+    if any(m in line for m in DETECTION_MARKERS):
+        return True
+    if lines and lineno and lineno >= 2:
+        prev = lines[lineno - 2]
+        if "Regex(" in prev or "Pattern.compile" in prev:
+            return True
+    return False
 
 
 def is_prompt_context(lines: list[str], lineno: int) -> bool:
@@ -317,7 +368,21 @@ def main() -> int:
                 print(f"        {text[:100]}")
 
     print("-" * 78)
-    print(f"Total: {total} literal(es), {cjk_total} con chino")
+    # Las tres categorias por separado: mezcladas, el total no significa nada.
+    # Los System Prompts y los patrones de deteccion NO son trabajo
+    # pendiente (ver docs/AGENT-I18N.md); solo "texto CJK" lo es.
+    n_ui = n_prompt = n_pat = n_kw = 0
+    for path, found in by_file.items():
+        for f in found:
+            if f[0] == "SystemPrompt":
+                n_prompt += 1
+            elif f[0] == "patron deteccion":
+                n_pat += 1
+            elif f[0] == "texto CJK":
+                n_ui += 1
+    print(f"Interfaz sin traducir  : {n_ui}")
+    print(f"System Prompts         : {n_prompt}  (no traducibles, ver docs/AGENT-I18N.md)")
+    print(f"Patrones de deteccion  : {n_pat}  (no traducibles: se comparan con la respuesta del modelo)")
 
     # Palabras clave de busqueda: caso aparte, no son UI visible.
     kw = check_keywords()
@@ -343,12 +408,16 @@ def main() -> int:
 
     if args.gate:
         print()
-        if total:
-            print(f"XX GATE: {total} literal(es) de UI sin traducir.", file=sys.stderr)
+        # Solo la interfaz pendiente hace fallar el gate. Los System Prompts y
+        # los patrones de deteccion se declaran en vez de bloquear el CI: no
+        # son trabajo pendiente, son una decision (docs/AGENT-I18N.md).
+        if n_ui:
+            print(f"XX GATE: {n_ui} texto(s) de interfaz sin traducir.", file=sys.stderr)
         if kw:
             print(f"XX GATE: {len(kw)} lista(s) de palabras clave de busqueda sin "
                   f"términos en español/inglés.", file=sys.stderr)
-        return 1
+        if n_ui or kw:
+            return 1
     return 0
 
 

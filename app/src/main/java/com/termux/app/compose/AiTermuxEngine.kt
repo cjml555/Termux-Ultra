@@ -39,6 +39,7 @@ import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URLEncoder
 import java.net.URL
+import com.termux.R
 
 /** ---------- 技能执行器 ---------- */
 
@@ -88,11 +89,11 @@ object SkillExecutor {
                 val path = if (params.has("path")) params.get("path").asString else ""
                 when {
                     path.isBlank() -> null
-                    path == "/" || path == TERMUX_ROOT -> "禁止删除根目录"
+                    path == "/" || path == TERMUX_ROOT -> context.getString(R.string.danger_delete_root)
                     File(path).canonicalPath.let { it == TERMUX_ROOT || it == "/data/data" } ->
-                        "禁止删除 Termux 根目录，这会导致整个应用数据丢失"
+                        context.getString(R.string.danger_delete_termux_root)
                     path.endsWith("/*") || path.endsWith("/.*") ->
-                        "递归删除整个目录下的所有文件，可能导致数据丢失"
+                        context.getString(R.string.danger_recursive_delete)
                     else -> null
                 }
             }
@@ -101,8 +102,8 @@ object SkillExecutor {
             SkillType.CAPTURE_OUTPUT,
             SkillType.COMPILE_CODE,
             SkillType.SUB_AGENT -> detectCommandDanger(commandOf(skillType, params))
-            SkillType.CLOSE_ALL_SESSIONS -> "将关闭所有正在运行的终端会话，未保存的内容会丢失"
-            SkillType.EXIT_TERMUX -> "将退出 Termux 应用，所有运行中的进程会终止"
+            SkillType.CLOSE_ALL_SESSIONS -> context.getString(R.string.danger_close_all_sessions)
+            SkillType.EXIT_TERMUX -> context.getString(R.string.danger_exit_termux)
             else -> null
         }
     }
@@ -599,8 +600,8 @@ object SkillExecutor {
             SkillType.CONNECT_REMOTE_CONNECTION -> execConnectRemoteConnection(context, termuxService, params)
             SkillType.FILE_LIST -> execFileList(params)
             SkillType.FILE_READ -> execFileRead(params)
-            SkillType.FILE_WRITE -> execFileWrite(params)
-            SkillType.FILE_DELETE -> execFileDelete(params)
+            SkillType.FILE_WRITE -> execFileWrite(context, params)
+            SkillType.FILE_DELETE -> execFileDelete(context, params)
             SkillType.FILE_GENERATE -> execFileGenerate(params)
             SkillType.FILE_MODIFY -> execFileModify(params)
             SkillType.RUN_COMMAND -> execRunCommand(context, termuxService, params)
@@ -1404,7 +1405,7 @@ object SkillExecutor {
         }
     }
 
-    private suspend fun execFileWrite(params: JsonObject): SkillExecutionResult {
+    private suspend fun execFileWrite(context: Context, params: JsonObject): SkillExecutionResult {
         val pathParam = if (params.has("path")) params.get("path").asString else ""
         if (pathParam.isBlank()) return SkillExecutionResult(false, "未指定文件路径")
         val content = if (params.has("content")) params.get("content").asString else ""
@@ -1428,13 +1429,13 @@ object SkillExecutor {
         }
     }
 
-    private suspend fun execFileDelete(params: JsonObject): SkillExecutionResult {
+    private suspend fun execFileDelete(context: Context, params: JsonObject): SkillExecutionResult {
         val pathParam = if (params.has("path")) params.get("path").asString else ""
         if (pathParam.isBlank()) return SkillExecutionResult(false, "未指定文件路径")
         val path = resolvePath(pathParam)
         val canonical = File(path).canonicalPath
-        if (canonical == TERMUX_ROOT) return SkillExecutionResult(false, "禁止删除 Termux 根目录！")
-        if (canonical == HOME_DIR) return SkillExecutionResult(false, "禁止删除家目录！")
+        if (canonical == TERMUX_ROOT) return SkillExecutionResult(false, context.getString(R.string.danger_delete_termux_root2))
+        if (canonical == HOME_DIR) return SkillExecutionResult(false, context.getString(R.string.danger_delete_home))
         return try {
             val file = File(path)
             if (!file.exists()) return SkillExecutionResult(false, "文件不存在: $path")

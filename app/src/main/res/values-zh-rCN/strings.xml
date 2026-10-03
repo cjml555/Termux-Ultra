@@ -2231,4 +2231,13 @@
     <string name="new_label">新建</string>
     <string name="items_label">项</string>
     <string name="item_label">项</string>
+
+    <!-- Avisos de seguridad del agente -->
+    <string name="danger_delete_root">禁止删除根目录</string>
+    <string name="danger_delete_termux_root">禁止删除 Termux 根目录，这会导致整个应用数据丢失</string>
+    <string name="danger_recursive_delete">递归删除整个目录下的所有文件，可能导致数据丢失</string>
+    <string name="danger_close_all_sessions">将关闭所有正在运行的终端会话，未保存的内容会丢失</string>
+    <string name="danger_exit_termux">将退出 Termux 应用，所有运行中的进程会终止</string>
+    <string name="danger_delete_termux_root2">禁止删除 Termux 根目录！</string>
+    <string name="danger_delete_home">禁止删除家目录！</string>
 </resources>
