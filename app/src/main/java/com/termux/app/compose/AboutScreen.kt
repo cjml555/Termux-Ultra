@@ -63,6 +63,7 @@ import com.termux.app.utils.SnackbarHelper
 import com.google.android.material.snackbar.Snackbar
 import com.termux.BuildConfig
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -385,7 +386,7 @@ fun AboutScreen(onBack: () -> Unit) {
                                  ) {
                                      AsyncImage(
                                          model = "https://github.com/TiG-Kira.png",
-                                         contentDescription = "Developer Avatar",
+                                         contentDescription = stringResource(R.string.about_developer_avatar),
                                          modifier = Modifier.size(40.dp)
                                      )
                                  }
@@ -434,7 +435,7 @@ fun AboutScreen(onBack: () -> Unit) {
                                  ) {
                                      AsyncImage(
                                          model = "https://avatars.githubusercontent.com/u/133107732?v=4",
-                                         contentDescription = "Contributor Avatar",
+                                         contentDescription = stringResource(R.string.about_contributor_avatar),
                                          modifier = Modifier.size(40.dp)
                                      )
                                  }
@@ -475,7 +476,7 @@ fun AboutScreen(onBack: () -> Unit) {
                                      AsyncImage(
                                          model = "https://github.com/" +
                                              context.getString(R.string.contributor_yhlfurry_github) + ".png",
-                                         contentDescription = "Contributor Avatar",
+                                         contentDescription = stringResource(R.string.about_contributor_avatar),
                                          modifier = Modifier.size(40.dp)
                                      )
                                  }

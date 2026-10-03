@@ -2077,4 +2077,30 @@ Recommendation: close other running Termux sessions first, then try again.</stri
     <string name="main_memory_low">Low memory</string>
     <string name="main_terminated">Terminated</string>
 
+    <!-- agent: textos extraidos de AiTermuxActivity.kt -->
+    <string name="agent_export_no_conversation">No conversation to export</string>
+    <string name="agent_export_failed">Export failed: %1$s</string>
+    <string name="agent_engine_select">Select local inference engine</string>
+    <string name="agent_ollama_status">Ollama status</string>
+    <string name="agent_ollama_install_success">Ollama installed</string>
+    <string name="agent_ollama_install_failed">Ollama installation failed</string>
+    <string name="agent_ollama_install">Install Ollama</string>
+    <string name="agent_ollama_service_started">Ollama service started</string>
+    <string name="agent_ollama_models_refreshed">Model list refreshed</string>
+    <string name="agent_ollama_not_installed">Ollama is not installed</string>
+    <string name="agent_model_download_done">%1$s download complete</string>
+    <string name="agent_model_download_failed">Model download failed</string>
+    <string name="agent_no_profile_yet">No model profile yet</string>
+    <string name="agent_no_profile_desc">You can save the current configuration as a profile to switch between models quickly later.</string>
+    <string name="agent_profile_add">New profile</string>
+    <string name="agent_profile_add_hint">You can add your own requirements here, for example: \'answer in Traditional Chinese\', \'solve it with a one-line command\' and so on</string>
+
+    <!-- agent/accessibility: literales de Settings, FileManager y About -->
+    <string name="settings_agent_script_judge">Agent script judge</string>
+    <string name="settings_agent_judge_history">Agent decision history</string>
+    <string name="settings_profile_fallback_loaded">Fallback model loaded from profile “%1$s”</string>
+    <string name="settings_profile_quick_load">📋 Load from LLM profile (%1$s)</string>
+    <string name="filemanager_ftp_info">FTP information</string>
+    <string name="about_developer_avatar">Developer avatar</string>
+    <string name="about_contributor_avatar">Contributor avatar</string>
 </resources>

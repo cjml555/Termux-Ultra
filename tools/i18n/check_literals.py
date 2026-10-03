@@ -56,11 +56,28 @@ DETECTORS = [
     ("AlertDialog", re.compile(r'AlertDialog\(\s*[^)]*?title\s*=\s*"([^"\\]{2,})"'), 1),
     # setTitle("...") en activities Java/Kotlin
     ("setTitle", re.compile(r'\.setTitle\(\s*"([^"\\]{2,})"'), 1),
-    # TextField(label/placeholder = "texto")
+    # `label` de TextField y de las transiciones de Compose NO es texto de UI:
+    # `rememberInfiniteTransition(label = "breathingGradient")` y
+    # `AnimatedContent(label = "RemoteTabTransition")` son identificadores para
+    # el inspector de animaciones, nunca se muestran al usuario. Solo se
+    # considera UI el label de un TextField de verdad, que lleva `value =` o
+    # `onValueChange =` cerca.
     ("TextField", re.compile(r'(?:label|placeholder)\s*=\s*"([^"\\]{2,})"'), 2),
     # contentDescription = "texto" (accesibilidad, lo lee TalkBack)
     ("contentDescription", re.compile(r'contentDescription\s*=\s*"([^"\\]{2,})"'), 2),
 ]
+
+# `label = "..."` también aparece en las transiciones de Compose
+# (rememberInfiniteTransition, AnimatedContent), donde es un identificador para
+# el inspector de animaciones y NUNCA se muestra al usuario. Se distingue
+# mirando la línea: un label de TextField de verdad viene con value=/onValueChange=
+# o seguido de un Text.
+ANIM_LABEL_RE = re.compile(
+    r'(rememberInfiniteTransition|infiniteRepeatable|AnimatedContent|animateFloat'
+    r'|animateDp|animateColor|updateTransition|animateValue|animateInt'
+    r'|animateFloatAsState|animateDpAsState|animateColorAsState'
+    r'|animateIntAsState|animateValueAsState|Animatable)'
+)
 
 # Chinos/exentos que delatan un literal sin traducir cuando el resto del
 # proyecto está en otro idioma. No es un detector: es una etiqueta para el
@@ -118,7 +135,18 @@ def scan_file(path: str) -> list[tuple[str, int, str, str]]:
         # Un log no se marca: el usuario nunca lo ve.
         if strip_log_lines(lines, lineno):
             continue
+        # `label` dentro de una transicion de animacion: identificador, no UI.
+        # La llamada a la animacion puede estar 1-3 lineas antes del label:
+        #   val x by animateFloatAsState(
+        #       targetValue = ...,
+        #       label = "topBarAlpha"
+        #   )
+        window = "".join(lines[max(0, lineno - 4):lineno])
+        anim = ANIM_LABEL_RE.search(window)
+
         for name, pattern, weight in DETECTORS:
+            if anim and name == "TextField" and "label" in pattern.pattern:
+                continue
             for match in pattern.finditer(line):
                 text = match.group(1)
                 if not is_meaningful(text):

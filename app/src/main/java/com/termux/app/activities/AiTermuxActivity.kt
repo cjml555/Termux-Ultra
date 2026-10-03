@@ -48,6 +48,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -1480,7 +1481,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
     fun exportConversation(context: Context) {
         val snapshot = synchronized(messages) { messages.toList() }
         if (snapshot.isEmpty()) {
-            SnackbarHelper.show(context, "当前没有可导出的对话", Snackbar.LENGTH_SHORT)
+            SnackbarHelper.show(context, context.getString(R.string.agent_export_no_conversation), Snackbar.LENGTH_SHORT)
             return
         }
         val text = buildString {
@@ -1502,7 +1503,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
         runCatching {
             context.startActivity(Intent.createChooser(intent, "导出对话").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }.onFailure {
-            SnackbarHelper.show(context, "导出失败: ${it.message}", Snackbar.LENGTH_LONG)
+            SnackbarHelper.show(context, context.getString(R.string.agent_export_failed, it.message ?: ""), Snackbar.LENGTH_LONG)
         }
     }
 }
@@ -1820,7 +1821,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text("选择本地推理引擎", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.onSurface)
+                            Text(stringResource(R.string.agent_engine_select), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.onSurface)
                             Spacer(Modifier.height(8.dp))
                             Row(
                                 modifier = Modifier
@@ -1871,7 +1872,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text("Ollama 状态", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.onSurface)
+                                    Text(stringResource(R.string.agent_ollama_status), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.onSurface)
                                     Spacer(Modifier.width(8.dp))
                                     if (ollamaInstalled.value) {
                                         Text(
@@ -1914,16 +1915,16 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                                 ollamaInstalling.value = false
                                                 ollamaInstalled.value = AiOllamaManager.isOllamaInstalled()
                                                 if (ok) {
-                                                    SnackbarHelper.show(ctx, "Ollama 安装成功", Snackbar.LENGTH_SHORT, null)
+                                                    SnackbarHelper.show(ctx, ctx.getString(R.string.agent_ollama_install_success), Snackbar.LENGTH_SHORT, null)
                                                 } else {
-                                                    SnackbarHelper.show(ctx, "Ollama 安装失败", Snackbar.LENGTH_LONG, null)
+                                                    SnackbarHelper.show(ctx, ctx.getString(R.string.agent_ollama_install_failed), Snackbar.LENGTH_LONG, null)
                                                 }
                                             }
                                         },
                                         modifier = Modifier.fillMaxWidth(),
                                         colors = ButtonDefaults.buttonColors(color = MiuixTheme.colorScheme.primary)
                                     ) {
-                                        Text("安装 Ollama", color = Color.White, fontWeight = FontWeight.Bold)
+                                        Text(stringResource(R.string.agent_ollama_install), color = Color.White, fontWeight = FontWeight.Bold)
                                     }
                                 } else {
                                     Spacer(Modifier.height(10.dp))
@@ -1941,7 +1942,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                                         val ok = AiOllamaManager.startOllamaService()
                                                         ollamaRunning.value = ok
                                                         if (ok) {
-                                                            SnackbarHelper.show(ctx, "Ollama 服务已启动", Snackbar.LENGTH_SHORT, null)
+                                                            SnackbarHelper.show(ctx, ctx.getString(R.string.agent_ollama_service_started), Snackbar.LENGTH_SHORT, null)
                                                         }
                                                     }
                                                 }
@@ -1955,7 +1956,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                                 settingsScope.launch {
                                                         val installedModels = AiOllamaManager.getInstalledModels()
                                                         AiTermuxPrefs.saveInstalledOllamaModels(ctx, installedModels)
-    SnackbarHelper.show(ctx, "已刷新模型列表", Snackbar.LENGTH_SHORT, null)
+    SnackbarHelper.show(ctx, ctx.getString(R.string.agent_ollama_models_refreshed), Snackbar.LENGTH_SHORT, null)
                                                     }
                                             },
                                             modifier = Modifier.weight(1f)
@@ -1975,7 +1976,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
                             ) {
                                 Column(modifier = Modifier.padding(16.dp)) {
-                                    Text("Ollama 尚未安装", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.onSurface)
+                                    Text(stringResource(R.string.agent_ollama_not_installed), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.onSurface)
                                     Spacer(Modifier.height(6.dp))
                                     Text(
                                         text = "Ollama 是一个轻量级本地大模型运行器。请先安装 Ollama，然后下载所需模型。",
@@ -2082,12 +2083,12 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                                         }
                                                         ollamaPulling.value = false
                                                         if (ok) {
-                                                            SnackbarHelper.show(ctx, "${ollamaEntry.displayName} 下载完成", Snackbar.LENGTH_SHORT, null)
+                                                            SnackbarHelper.show(ctx, ctx.getString(R.string.agent_model_download_done, ollamaEntry.displayName), Snackbar.LENGTH_SHORT, null)
                                                             // Update installed models list
                                                             val updatedList = AiOllamaManager.getInstalledModels()
                                                             AiTermuxPrefs.saveInstalledOllamaModels(ctx, updatedList)
                                                         } else {
-                                                            SnackbarHelper.show(ctx, "模型下载失败", Snackbar.LENGTH_LONG, null)
+                                                            SnackbarHelper.show(ctx, ctx.getString(R.string.agent_model_download_failed), Snackbar.LENGTH_LONG, null)
                                                         }
                                                     }
                                                 },
@@ -2140,13 +2141,13 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                         if (llmProfiles.isEmpty()) {
                             Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
                                 Column(modifier = Modifier.padding(16.dp)) {
-                                    Text("还没有 LLM Profile", style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold))
+                                    Text(stringResource(R.string.agent_no_profile_yet), style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold))
                                     Spacer(Modifier.height(4.dp))
-                                    Text("可以把当前配置保存为 Profile，方便后续快速切换不同模型。",
+                                    Text(stringResource(R.string.agent_no_profile_desc),
                                         style = TextStyle(fontSize = 13.sp), color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                                     Spacer(Modifier.height(10.dp))
                                     Button(onClick = { editingProfile = null; showProfileEditor = true },
-                                        modifier = Modifier.height(48.dp)) { Text("新建 Profile", fontWeight = FontWeight.Bold) }
+                                        modifier = Modifier.height(48.dp)) { Text(stringResource(R.string.profile_new), fontWeight = FontWeight.Bold) }
                                 }
                             }
                         } else {
@@ -2183,7 +2184,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                 }
                             }
                             Button(onClick = { editingProfile = null; showProfileEditor = true },
-                                modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("＋ 新建 Profile", fontWeight = FontWeight.Bold) }
+                                modifier = Modifier.fillMaxWidth().height(48.dp)) { Text(stringResource(R.string.agent_profile_add), fontWeight = FontWeight.Bold) }
                         }
                     }
                 }
@@ -2208,7 +2209,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                 TextField(
                     value = customPrompt,
                     onValueChange = { customPrompt = it },
-                    label = "你可以添加自己的要求，例如：'用繁体字回答'、'尽量用一行命令解决' 等",
+                    label = stringResource(R.string.agent_profile_add_hint),
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 100.dp),

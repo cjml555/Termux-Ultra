@@ -2071,4 +2071,30 @@
     <string name="main_memory_low">内存不足</string>
     <string name="main_terminated">已终止</string>
 
+    <!-- agent: textos extraidos de AiTermuxActivity.kt -->
+    <string name="agent_export_no_conversation">当前没有可导出的对话</string>
+    <string name="agent_export_failed">导出失败：%1$s</string>
+    <string name="agent_engine_select">选择本地推理引擎</string>
+    <string name="agent_ollama_status">Ollama 状态</string>
+    <string name="agent_ollama_install_success">Ollama 安装成功</string>
+    <string name="agent_ollama_install_failed">Ollama 安装失败</string>
+    <string name="agent_ollama_install">安装 Ollama</string>
+    <string name="agent_ollama_service_started">Ollama 服务已启动</string>
+    <string name="agent_ollama_models_refreshed">已刷新模型列表</string>
+    <string name="agent_ollama_not_installed">Ollama 尚未安装</string>
+    <string name="agent_model_download_done">%1$s 下载完成</string>
+    <string name="agent_model_download_failed">模型下载失败</string>
+    <string name="agent_no_profile_yet">还没有 LLM Profile</string>
+    <string name="agent_no_profile_desc">可以把当前配置保存为 Profile，方便后续快速切换不同模型。</string>
+    <string name="agent_profile_add">新建 Profile</string>
+    <string name="agent_profile_add_hint">你可以添加自己的要求，例如：\'用繁体字回答\'、\'尽量用一行命令解决\' 等</string>
+
+    <!-- agent/accessibility: literales de Settings, FileManager y About -->
+    <string name="settings_agent_script_judge">Agent 脚本判定</string>
+    <string name="settings_agent_judge_history">Agent 判定历史</string>
+    <string name="settings_profile_fallback_loaded">已从 Profile「%1$s」载入备用大模型</string>
+    <string name="settings_profile_quick_load">📋 从 LLM Profile 一键载入（%1$s）</string>
+    <string name="filemanager_ftp_info">FTP 信息</string>
+    <string name="about_developer_avatar">开发者头像</string>
+    <string name="about_contributor_avatar">贡献者头像</string>
 </resources>

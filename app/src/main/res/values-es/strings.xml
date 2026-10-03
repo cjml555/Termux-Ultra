@@ -1909,4 +1909,30 @@ Recomendación: cierra primero las demás sesiones de Termux en ejecución y vue
     <string name="main_memory_low">Memoria baja</string>
     <string name="main_terminated">Terminado</string>
 
+    <!-- agent: textos extraidos de AiTermuxActivity.kt -->
+    <string name="agent_export_no_conversation">No hay ninguna conversación para exportar</string>
+    <string name="agent_export_failed">Error al exportar: %1$s</string>
+    <string name="agent_engine_select">Selecciona el motor de inferencia local</string>
+    <string name="agent_ollama_status">Estado de Ollama</string>
+    <string name="agent_ollama_install_success">Ollama instalado</string>
+    <string name="agent_ollama_install_failed">Falló la instalación de Ollama</string>
+    <string name="agent_ollama_install">Instalar Ollama</string>
+    <string name="agent_ollama_service_started">Servicio de Ollama iniciado</string>
+    <string name="agent_ollama_models_refreshed">Lista de modelos actualizada</string>
+    <string name="agent_ollama_not_installed">Ollama no está instalado</string>
+    <string name="agent_model_download_done">Descarga de %1$s completada</string>
+    <string name="agent_model_download_failed">Falló la descarga del modelo</string>
+    <string name="agent_no_profile_yet">Todavía no hay perfiles de modelo</string>
+    <string name="agent_no_profile_desc">Puedes guardar la configuración actual como perfil para alternar entre modelos rápidamente más adelante.</string>
+    <string name="agent_profile_add">Nuevo perfil</string>
+    <string name="agent_profile_add_hint">Puedes añadir aquí tus propios requisitos, por ejemplo: «responde en chino tradicional», «resuélvelo con una sola línea de comandos» y similares</string>
+
+    <!-- agent/accessibility: literales de Settings, FileManager y About -->
+    <string name="settings_agent_script_judge">Judge de scripts del Agent</string>
+    <string name="settings_agent_judge_history">Historial de decisiones del Agent</string>
+    <string name="settings_profile_fallback_loaded">Modelo de respaldo cargado del perfil «%1$s»</string>
+    <string name="settings_profile_quick_load">📋 Cargar desde el perfil LLM (%1$s)</string>
+    <string name="filemanager_ftp_info">Información del FTP</string>
+    <string name="about_developer_avatar">Avatar del desarrollador</string>
+    <string name="about_contributor_avatar">Avatar del colaborador</string>
 </resources>

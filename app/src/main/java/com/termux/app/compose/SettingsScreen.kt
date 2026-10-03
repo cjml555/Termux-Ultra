@@ -1875,7 +1875,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                             },
                             enabled = agentJudgeEnabled && hasAgentCfg,
                             startAction = {
-                                SettingIcon(Icons.Rounded.SmartToy, contentDescription = "Agent 脚本判定")
+                                SettingIcon(Icons.Rounded.SmartToy, contentDescription = stringResource(R.string.settings_agent_script_judge))
                             }
                         )
                         // ---------- Agent 判定历史 ----------
@@ -1892,7 +1892,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                             },
                             onClick = { showAgentHistory = true },
                             startAction = {
-                                SettingIcon(Icons.Rounded.Restore, contentDescription = "Agent 判定历史")
+                                SettingIcon(Icons.Rounded.Restore, contentDescription = stringResource(R.string.settings_agent_judge_history))
                             }
                         )
                         // ---------- Agent 判定历史 dialog ----------
@@ -2477,14 +2477,14 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                                                 com.termux.app.compose.AiTermuxPrefs.FallbackOnlineConfig(
                                                     enabled = true, apiKey = p.apiKey, baseUrl = p.apiBaseUrl,
                                                     model = p.model, temperature = p.temperature))
-                                            SnackbarHelper.show(context, "已从 Profile「" + p.name + "」载入备用大模型", Snackbar.LENGTH_SHORT, null)
+                                            SnackbarHelper.show(context, context.getString(R.string.settings_profile_fallback_loaded, p.name), Snackbar.LENGTH_SHORT, null)
                                             showFallbackEditor = false
                                         }
                                         .clip(RoundedCornerShape(12.dp))
                                         .background(MiuixTheme.colorScheme.primary.copy(alpha = 0.1f))
                                         .padding(horizontal = 14.dp),
                                         contentAlignment = Alignment.CenterStart) {
-                                        Text("📋 从 LLM Profile 一键载入 (" + profiles.first().name + ")",
+                                        Text(stringResource(R.string.settings_profile_quick_load, profiles.first().name),
                                             style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium),
                                             color = MiuixTheme.colorScheme.primary)
                                     }
