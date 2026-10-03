@@ -182,8 +182,8 @@ fun FileManagerScreen(
     }
 
     fun createNotificationChannel() {
-        val name = "FTP 服务"
-        val descriptionText = "FTP 服务通知"
+        val name = context.getString(R.string.ftp_service)
+        val descriptionText = context.getString(R.string.ftp_service_notification)
         val importance = NotificationManager.IMPORTANCE_LOW
         val channel = NotificationChannel(sftpChannelId, name, importance).apply {
             description = descriptionText
@@ -226,7 +226,7 @@ fun FileManagerScreen(
         )
 
         val notification = NotificationCompat.Builder(context, sftpChannelId)
-            .setContentTitle("正在使用 FTP 服务")
+            .setContentTitle(context.getString(R.string.ftp_in_use))
             .setContentText("地址: ftp://$ipAddress:$sftpPort\n点击通知显示 FTP 详情")
             .setSmallIcon(R.drawable.ic_web)
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -289,9 +289,9 @@ fun FileManagerScreen(
             onTopBarContent {
             TopAppBar(
                 title = if (isInSelectionMode) {
-                    "${selectedFiles.size} ${"项"}"
+                    stringResource(R.string.items_count, selectedFiles.size)
                 } else {
-                    "文件"
+                    stringResource(R.string.file_label)
                 },
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
@@ -398,7 +398,7 @@ fun FileManagerScreen(
                     if (clipboardMode != ClipboardMode.NONE && clipboardFiles.isNotEmpty()) {
                         IconButton(onClick = {
                             showOperationProgress = true
-                            operationProgressText = if (clipboardMode == ClipboardMode.CUT) "移动中..." else "复制中..."
+                            operationProgressText = if (clipboardMode == ClipboardMode.CUT) context.getString(R.string.moving) else context.getString(R.string.copying)
                             operationProgress = 0f
                             val filesToProcess = clipboardFiles.toList()
                             val modeAtStart = clipboardMode
@@ -513,7 +513,7 @@ fun FileManagerScreen(
                                 )
                             }
                             Text(
-                                text = "请谨慎操作文件，误操作可能会影响 Termux 容器内以外的文件。",
+                                text = stringResource(R.string.danger_file_op),
                                 fontSize = 14.sp,
                                 modifier = Modifier.weight(1f),
                                 color = MiuixTheme.colorScheme.onSurface,
@@ -698,7 +698,7 @@ fun FileManagerScreen(
                             Text(
                                 text = if (file.isDirectory) {
                                     val count = file.listFiles()?.size ?: 0
-                                    "${"文件夹"} · $count ${"项"}"
+                                    stringResource(R.string.folder_label) + " · " + stringResource(R.string.items_count, count)
                                 } else {
                                     "${context.getFileTypeDescription(file)} · ${android.text.format.Formatter.formatFileSize(context, file.length())}"
                                 },
@@ -733,7 +733,7 @@ fun FileManagerScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "路径",
+                                    text = stringResource(R.string.path_label),
                                     fontSize = 13.sp,
                                     color = dialogSubtextColor,
                                     modifier = Modifier.width(70.dp)
@@ -756,7 +756,7 @@ fun FileManagerScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "扩展名",
+                                    text = stringResource(R.string.extension_label),
                                     fontSize = 13.sp,
                                     color = dialogSubtextColor,
                                     modifier = Modifier.width(70.dp)
@@ -776,7 +776,7 @@ fun FileManagerScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "类型",
+                                    text = stringResource(R.string.type_label),
                                     fontSize = 13.sp,
                                     color = dialogSubtextColor,
                                     modifier = Modifier.width(70.dp)
@@ -795,7 +795,7 @@ fun FileManagerScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = if (file.isDirectory) "项" else "大小",
+                                    text = if (file.isDirectory) stringResource(R.string.items_label) else stringResource(R.string.size_label),
                                     fontSize = 13.sp,
                                     color = dialogSubtextColor,
                                     modifier = Modifier.width(70.dp)
@@ -803,7 +803,7 @@ fun FileManagerScreen(
                                 Text(
                                     text = if (file.isDirectory) {
                                         val count = file.listFiles()?.size ?: 0
-                                        "$count ${"项"}"
+                                        "$count ${stringResource(R.string.item_label)}"
                                     } else {
                                         android.text.format.Formatter.formatFileSize(context, file.length())
                                     },
@@ -819,7 +819,7 @@ fun FileManagerScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "权限",
+                                    text = stringResource(R.string.permission_label),
                                     fontSize = 13.sp,
                                     color = dialogSubtextColor,
                                     modifier = Modifier.width(70.dp)
@@ -838,7 +838,7 @@ fun FileManagerScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "修改时间",
+                                    text = stringResource(R.string.modified_label),
                                     fontSize = 13.sp,
                                     color = dialogSubtextColor,
                                     modifier = Modifier.width(70.dp)
@@ -883,7 +883,7 @@ fun FileManagerScreen(
                                     )
                                 }
                                 Text(
-                                    text = "请谨慎运行脚本，先查看脚本内是否存在针对设备的危险操作，特别是以 ROOT 权限执行脚本，执行危险脚本有可能导致内核 Panic 或设备无法启动。请记住：能力越大，责任越大。Termux 原作者或 Termux Ultra 开发人员不对用户执行未知脚本造成的软硬件损坏或数据丢失负责。",
+                                    text = stringResource(R.string.danger_script_op),
                                     fontSize = 12.sp,
                                     color = dialogTextColor,
                                     lineHeight = 18.sp,
@@ -924,7 +924,7 @@ fun FileManagerScreen(
                             )
                             Spacer(modifier = Modifier.width(16.dp))
                             Text(
-                                text = "打开目录",
+                                text = stringResource(R.string.open_folder),
                                 color = dialogTextColor,
                                 fontSize = 14.sp
                             )
@@ -957,7 +957,7 @@ fun FileManagerScreen(
                         )
                         Spacer(modifier = Modifier.width(16.dp))
                         Text(
-                            text = "查看内容 (cat)",
+                            text = stringResource(R.string.view_content),
                             color = dialogTextColor,
                             fontSize = 14.sp
                         )
@@ -998,7 +998,7 @@ fun FileManagerScreen(
                         )
                         Spacer(modifier = Modifier.width(16.dp))
                         Text(
-                            text = "编辑 (vi)",
+                            text = stringResource(R.string.edit_file),
                             color = dialogTextColor,
                             fontSize = 14.sp
                         )
@@ -1020,7 +1020,7 @@ fun FileManagerScreen(
                                 val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
                                 intent.setDataAndType(uri, "*/*")
                                 intent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                val chooser = android.content.Intent.createChooser(intent, "选择应用打开")
+                                val chooser = android.content.Intent.createChooser(intent, context.getString(R.string.open_with_app))
                                 context.startActivity(chooser)
                                 showOpenWithDialog = false
                                 fileToOpen = null
@@ -1036,7 +1036,7 @@ fun FileManagerScreen(
                         )
                         Spacer(modifier = Modifier.width(16.dp))
                         Text(
-                            text = "用其他方式打开",
+                            text = stringResource(R.string.open_with_app),
                             color = dialogTextColor,
                             fontSize = 14.sp
                         )
@@ -1130,7 +1130,7 @@ fun FileManagerScreen(
                                 )
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    text = "执行脚本",
+                                    text = stringResource(R.string.run_script),
                                     color = Color.White,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium
@@ -1156,8 +1156,8 @@ fun FileManagerScreen(
         OverlayDialog(
             show = showDeleteDialog,
             onDismissRequest = { showDeleteDialog = false },
-            title = "确认删除",
-            summary = "${"确定要删除此项目吗？"} (${selectedFiles.size})",
+            title = stringResource(R.string.confirm_delete),
+            summary = context.getString(R.string.confirm_delete_msg) + " (${selectedFiles.size})",
             content = {
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1174,7 +1174,7 @@ fun FileManagerScreen(
                         onClick = {
                             showDeleteDialog = false
                             showOperationProgress = true
-                            operationProgressText = "删除中..."
+                            operationProgressText = context.getString(R.string.deleting)
                             operationProgress = 0f
                             val filesToDelete = selectedFiles.toList()
                             coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
@@ -1231,9 +1231,9 @@ fun FileManagerScreen(
                                 // 目标已存在或名字含路径成分时会静默失败，UI 却照常显示成功
                                 val target = safeChildFile(renameFile.parentFile, newFileName)
                                 val failure = when {
-                                    target == null -> "文件名不合法"
-                                    target.exists() -> "已存在同名文件"
-                                    !renameFile.renameTo(target) -> "重命名失败"
+                                    target == null -> context.getString(R.string.invalid_filename)
+                                    target.exists() -> context.getString(R.string.name_already_exists)
+                                    !renameFile.renameTo(target) -> context.getString(R.string.rename_failed)
                                     else -> null
                                 }
                                 if (failure == null) {
@@ -1258,7 +1258,7 @@ fun FileManagerScreen(
         OverlayDialog(
             show = showNewFolderDialog,
             onDismissRequest = { showNewFolderDialog = false },
-            title = "文件夹",
+            title = stringResource(R.string.folder_label),
             content = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     TextField(
@@ -1284,7 +1284,7 @@ fun FileManagerScreen(
                             onClick = {
                                 showNewFolderDialog = false
                                 showOperationProgress = true
-                                operationProgressText = "创建文件夹中..."
+                                operationProgressText = context.getString(R.string.creating_folder)
                                 operationProgress = 0f
                                 coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                                     val target = safeChildFile(currentPath, newFolderName)
@@ -1296,7 +1296,8 @@ fun FileManagerScreen(
                                         showOperationProgress = false
                                         if (!ok) {
                                             android.widget.Toast.makeText(
-                                                context, "创建文件夹失败：文件名不合法或已存在",
+                                                context,
+                                                context.getString(R.string.create_folder_failed),
                                                 android.widget.Toast.LENGTH_SHORT
                                             ).show()
                                         }
@@ -1316,7 +1317,7 @@ fun FileManagerScreen(
         OverlayDialog(
             show = showNewFileDialog,
             onDismissRequest = { showNewFileDialog = false },
-            title = "新建文件",
+            title = stringResource(R.string.new_file),
             content = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     TextField(
@@ -1342,7 +1343,7 @@ fun FileManagerScreen(
                             onClick = {
                                 showNewFileDialog = false
                                 showOperationProgress = true
-                                operationProgressText = "创建文件中..."
+                                operationProgressText = context.getString(R.string.creating_file)
                                 operationProgress = 0f
                                 coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                                     val target = safeChildFile(currentPath, newFileInputName)
@@ -1354,7 +1355,8 @@ fun FileManagerScreen(
                                         showOperationProgress = false
                                         if (!ok) {
                                             android.widget.Toast.makeText(
-                                                context, "创建文件失败：文件名不合法或已存在",
+                                                context,
+                                                context.getString(R.string.create_file_failed),
                                                 android.widget.Toast.LENGTH_SHORT
                                             ).show()
                                         }
@@ -1375,7 +1377,7 @@ fun FileManagerScreen(
         OverlayDialog(
             show = showNewTypeDialog,
             onDismissRequest = { showNewTypeDialog = false },
-            title = "新建",
+            title = stringResource(R.string.new_label),
             content = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -1568,7 +1570,7 @@ private fun FileItem(
                 Text(
                     text = if (file.isDirectory) {
                         val count = file.listFiles()?.size ?: 0
-                        "$count ${"项"}"
+                        "$count ${stringResource(R.string.item_label)}"
                     } else {
                         "${formatFileSize(file.length())} · ${Date(file.lastModified()).toString()}"
                     },

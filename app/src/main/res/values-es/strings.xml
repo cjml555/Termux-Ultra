@@ -2035,4 +2035,38 @@ Recomendación: cierra primero las demás sesiones de Termux en ejecución y vue
     <string name="ft2_hoja_de_calculo">Hoja de cálculo %1$s</string>
     <string name="ft2_lenguaje">%1$s</string>
     <string name="ft2_pagina_web">Página web %1$s</string>
+
+    <!-- Explorador de archivos: textos que estaban en chino -->
+    <string name="ftp_service">Servicio FTP</string>
+    <string name="ftp_service_notification">Notificación del servicio FTP</string>
+    <string name="ftp_in_use">Usando el servicio FTP</string>
+    <string name="items_count">%1$s elementos</string>
+    <string name="file_label">Archivo</string>
+    <string name="moving">Moviendo...</string>
+    <string name="copying">Copiando...</string>
+    <string name="danger_file_op">Ten cuidado con los archivos: un error puede afectar a archivos de fuera del contenedor de Termux.</string>
+    <string name="folder_label">Carpeta</string>
+    <string name="path_label">Ruta</string>
+    <string name="extension_label">Extensión</string>
+    <string name="type_label">Tipo</string>
+    <string name="size_label">Tamaño</string>
+    <string name="permission_label">Permisos</string>
+    <string name="modified_label">Modificado</string>
+    <string name="open_folder">Abrir carpeta</string>
+    <string name="open_with_app">Abrir con otra aplicación</string>
+    <string name="run_script">Ejecutar script</string>
+    <string name="confirm_delete">Confirmar borrado</string>
+    <string name="confirm_delete_msg">¿Eliminar este elemento?</string>
+    <string name="deleting">Eliminando...</string>
+    <string name="invalid_filename">Nombre de archivo no válido</string>
+    <string name="name_already_exists">Ya existe un archivo con ese nombre</string>
+    <string name="rename_failed">No se pudo renombrar</string>
+    <string name="creating_folder">Creando carpeta...</string>
+    <string name="create_folder_failed">No se pudo crear la carpeta: nombre no válido o duplicado</string>
+    <string name="creating_file">Creando archivo...</string>
+    <string name="create_file_failed">No se pudo crear el archivo: nombre no válido o duplicado</string>
+    <string name="new_label">Nuevo</string>
+    <string name="danger_script_op">Ten cuidado al ejecutar scripts: lee el script antes y comprueba si hace algo peligroso con el dispositivo. Ejecutar un script peligroso como ROOT puede provocar un kernel panic o dejar el dispositivo sin arrancar. Recuerda: más poder, más responsabilidad. Los autores originales de Termux y los desarrolladores de Termux Ultra no se hacen responsables de los daños en hardware ni de la pérdida de datos causados por ejecutar scripts desconocidos.</string>
+    <string name="items_label">Elementos</string>
+    <string name="item_label">elemento</string>
 </resources>

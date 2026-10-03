@@ -2203,4 +2203,38 @@ Recommendation: close other running Termux sessions first, then try again.</stri
     <string name="ft2_hoja_de_calculo">Hoja de cálculo %1$s</string>
     <string name="ft2_lenguaje">%1$s</string>
     <string name="ft2_pagina_web">Página web %1$s</string>
+
+    <!-- Explorador de archivos: textos que estaban en chino -->
+    <string name="ftp_service">FTP service</string>
+    <string name="ftp_service_notification">FTP service notification</string>
+    <string name="ftp_in_use">Using FTP service</string>
+    <string name="items_count">%1$s items</string>
+    <string name="file_label">File</string>
+    <string name="moving">Moving...</string>
+    <string name="copying">Copying...</string>
+    <string name="danger_file_op">Be careful with files: a mistake can affect files outside the Termux container.</string>
+    <string name="folder_label">Folder</string>
+    <string name="path_label">Path</string>
+    <string name="extension_label">Extension</string>
+    <string name="type_label">Type</string>
+    <string name="size_label">Size</string>
+    <string name="permission_label">Permissions</string>
+    <string name="modified_label">Modified</string>
+    <string name="open_folder">Open folder</string>
+    <string name="open_with_app">Open with another app</string>
+    <string name="run_script">Run script</string>
+    <string name="confirm_delete">Confirm deletion</string>
+    <string name="confirm_delete_msg">Delete this item?</string>
+    <string name="deleting">Deleting...</string>
+    <string name="invalid_filename">Invalid filename</string>
+    <string name="name_already_exists">A file with that name already exists</string>
+    <string name="rename_failed">Rename failed</string>
+    <string name="creating_folder">Creating folder...</string>
+    <string name="create_folder_failed">Couldn\'t create the folder: invalid or duplicate name</string>
+    <string name="creating_file">Creating file...</string>
+    <string name="create_file_failed">Couldn\'t create the file: invalid or duplicate name</string>
+    <string name="new_label">New</string>
+    <string name="danger_script_op">Be careful running scripts: read the script first and check whether it does anything dangerous to the device. Running a dangerous script as ROOT can cause a kernel panic or leave the device unable to boot. Remember: greater power, greater responsibility. The Termux original authors and the Termux Ultra developers are not responsible for hardware damage or data loss caused by running unknown scripts.</string>
+    <string name="items_label">Items</string>
+    <string name="item_label">item</string>
 </resources>
