@@ -162,7 +162,27 @@ def find_locales(res_dir: str) -> list[str]:
 # Un "\uXXXX" suelto en un strings.xml. Android NO lo interpreta: lo muestra
 # tal cual. "Todav\u00eda" aparece en pantalla con el "\u00ed" escrito, no como
 # "Todavía". En JSON sí valdría; en un recurso Android no.
-UNICODE_ESCAPE_RE = re.compile(r"\\u[0-9a-fA-F]{4}")
+#
+# Excepción: los escapes de ESPACIO (\u0020) sí son válidos y se usan a
+# propósito para separar caracteres, p. ej. las migas de pan de
+# termux-tasker: "\u0020＞\u0020". Solo se marca cuando el escape produce un
+# carácter VISIBLE que el usuario debería leer.
+UNICODE_ESCAPE_RE = re.compile(r"\\u([0-9a-fA-F]{4})")
+
+
+def has_visible_unicode_escape(value: str) -> bool:
+    r"""True si hay un escape unicode que se mostraría literalmente en pantalla.
+
+    Descarta los escapes de espacios y de caracteres no imprimibles: son
+    legítimos y comunes (separadores, sangrías). Es un docstring crudo (r"")
+    porque un \u suelto en un docstring normal es un escape de Python.
+    """
+    for match in UNICODE_ESCAPE_RE.finditer(value):
+        char = chr(int(match.group(1), 16))
+        if char.isspace() or not char.isprintable():
+            continue
+        return True
+    return False
 
 
 def format_specs(text: str) -> set[str]:
@@ -294,7 +314,7 @@ def audit_module(module: str, res_dir: str, locales: list[str], verbose: bool) -
         # \uXXXX literal: Android lo muestra tal cual, no lo decodifica.
         raw_unicode: list[tuple[str, str]] = []
         for name, value in translated.items():
-            if UNICODE_ESCAPE_RE.search(value):
+            if has_visible_unicode_escape(value):
                 raw_unicode.append((name, value))
 
         covered = len(default_values) - len(missing)
