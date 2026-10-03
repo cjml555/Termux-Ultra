@@ -1488,7 +1488,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
             appendLine("# Termux Agent 对话记录")
             appendLine()
             for (msg in snapshot) {
-                val label = when (msg.role) { "user" -> "用户"; "assistant" -> "AI"; else -> msg.role }
+                val label = when (msg.role) { "user" -> context.getString(R.string.user_label); "assistant" -> "AI"; else -> msg.role }
                 val body = msg.content.ifBlank { msg.skillCard?.title.orEmpty() }
                 if (body.isBlank()) continue
                 appendLine("**$label**: $body")
@@ -1581,7 +1581,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
-                title = "Termux Agent 设置",
+                title = stringResource(R.string.agent_settings),
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
                     Box(
@@ -1649,13 +1649,13 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            text = "你的专属 Termux 智能助手",
+                            text = stringResource(R.string.agent_tagline),
                             color = Color.White,
                             style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold)
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = "支持管理终端会话、运行虚拟机、VNC/SSH 连接、文件操作等。只需用自然语言描述你的需求。",
+                            text = stringResource(R.string.agent_intro),
                             color = Color.White.copy(alpha = 0.9f),
                             style = TextStyle(fontSize = 13.sp, lineHeight = 19.sp)
                         )
@@ -1681,7 +1681,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    ProviderChip("在线模型", "online", provider, isDark) { provider = it }
+                    ProviderChip(stringResource(R.string.online_model), "online", provider, isDark) { provider = it }
                     ProviderChip("本地大模型", "local", provider, isDark) { provider = it }
                 }
             }
@@ -1704,7 +1704,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                 )
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    text = "资源占用较高",
+                                    text = stringResource(R.string.resource_heavy),
                                     fontSize = 14.sp, fontWeight = FontWeight.Bold,
                                     color = if (isDark) Color(0xFFFFB300) else Color(0xFFF57C00)
                                 )
@@ -1755,7 +1755,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                     Text(localProgressMsg, fontSize = 12.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                                 } else if (installed) {
                                     Text(
-                                        text = "已安装 · 已配置",
+                                        text = stringResource(R.string.installed_configured),
                                         fontSize = 13.sp, fontWeight = FontWeight.Medium,
                                         color = MiuixTheme.colorScheme.primary
                                     )
@@ -1876,13 +1876,13 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                     Spacer(Modifier.width(8.dp))
                                     if (ollamaInstalled.value) {
                                         Text(
-                                            text = if (ollamaRunning.value) "● 运行中" else "○ 已安装（未启动）",
+                                            text = if (ollamaRunning.value) stringResource(R.string.running) else stringResource(R.string.installed_not_started),
                                             fontSize = 12.sp,
                                             color = if (ollamaRunning.value) Color(0xFF16A34A) else MiuixTheme.colorScheme.onSurfaceVariantSummary
                                         )
                                     } else {
                                         Text(
-                                            text = "○ 未安装",
+                                            text = stringResource(R.string.not_installed),
                                             fontSize = 12.sp,
                                             color = Color(0xFFDC2626)
                                         )
@@ -1897,7 +1897,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                 } else if (!ollamaInstalled.value) {
                                     Spacer(Modifier.height(10.dp))
                                     Text(
-                                        text = "Ollama 是一个轻量级本地大模型运行器，支持多种开源模型。点击下方按钮自动安装。",
+                                        text = stringResource(R.string.ollama_intro_auto),
                                         fontSize = 12.sp,
                                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                                     )
@@ -1979,7 +1979,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                     Text(stringResource(R.string.agent_ollama_not_installed), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.onSurface)
                                     Spacer(Modifier.height(6.dp))
                                     Text(
-                                        text = "Ollama 是一个轻量级本地大模型运行器。请先安装 Ollama，然后下载所需模型。",
+                                        text = stringResource(R.string.ollama_intro_short),
                                         fontSize = 12.sp,
                                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                                     )
@@ -2103,7 +2103,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
                                                 Text(
-                                                    text = "✓ 已下载",
+                                                    text = stringResource(R.string.downloaded),
                                                     fontSize = 12.sp,
                                                     color = Color(0xFF16A34A),
                                                     modifier = Modifier.weight(1f)
@@ -2171,12 +2171,12 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                                 }
                                             }
                                             Row {
-                                                TextButton(text = "编辑", onClick = { editingProfile = prof; showProfileEditor = true })
-                                                TextButton(text = "删除", onClick = { pendingDeleteProfile = prof })
+                                                TextButton(text = stringResource(R.string.edit), onClick = { editingProfile = prof; showProfileEditor = true })
+                                                TextButton(text = stringResource(R.string.delete), onClick = { pendingDeleteProfile = prof })
                                             }
                                         }
                                         Text(
-                                            text = if (isActive) "当前激活 ✓ · 点击其他 Profile 可切换" else "👆 点击卡片快速切换",
+                                            text = if (isActive) stringResource(R.string.profile_switch) else stringResource(R.string.tap_card_switch),
                                             style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium),
                                             color = if (isActive) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onSurfaceVariantSummary
                                         )
@@ -2281,7 +2281,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                 val localCfg = AiTermuxConfig(
                                     providerConfig = AiProviderConfig(
                                         provider = "local", apiKey = "", apiBaseUrl = "",
-                                        model = AiLocalModel.getSelectedModel()?.displayName ?: "本地模型",
+                                        model = AiLocalModel.getSelectedModel()?.displayName ?: ctx.getString(R.string.local_model),
                                         temperature = temperature,
                                         localModelId = AiLocalModel.getSelectedModelId()
                                     ),
@@ -2328,8 +2328,8 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
             var editModel by remember(ep?.id) { mutableStateOf(ep?.model ?: "") }
             var editTemp by remember(ep?.id) { mutableStateOf(ep?.temperature ?: 0.7f) }
             OverlayDialog(
-                title = if (ep != null) "编辑 Profile" else "新建 Profile",
-                summary = "填写以下信息保存 LLM Profile",
+                title = if (ep != null) stringResource(R.string.profile_edit) else stringResource(R.string.profile_new),
+                summary = stringResource(R.string.profile_fill),
                 show = true,
                 onDismissRequest = { showProfileEditor = false },
                 content = {
@@ -2355,7 +2355,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                             valueRange = 0f..1.6f, steps = 15, modifier = Modifier.fillMaxWidth())
                         Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            TextButton(text = "取消", onClick = { showProfileEditor = false },
+                            TextButton(text = stringResource(R.string.cancel), onClick = { showProfileEditor = false },
                                 modifier = Modifier.weight(1f))
                             Button(onClick = {
                                 if (editName.isBlank()) editName = editModel.ifBlank { editProvider }
@@ -2384,14 +2384,14 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
         // ---- 删除确认 Dialog ----
         pendingDeleteProfile?.let { prof ->
             OverlayDialog(
-                title = "删除 Profile",
-                summary = "确定要删除 Profile「${prof.name}」吗？此操作不可恢复。",
+                title = stringResource(R.string.profile_delete),
+                summary = stringResource(R.string.profile_delete_confirm),
                 show = true,
                 onDismissRequest = { pendingDeleteProfile = null },
                 content = {
                     Row(modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        TextButton(text = "取消", onClick = { pendingDeleteProfile = null },
+                        TextButton(text = stringResource(R.string.cancel), onClick = { pendingDeleteProfile = null },
                             modifier = Modifier.weight(1f))
                         Button(onClick = {
                             com.termux.app.compose.AiTermuxPrefs.deleteLlmProfile(ctx, prof.id)
@@ -2503,14 +2503,14 @@ private fun AiChatScreen(vm: AiTermuxViewModel, onBack: () -> Unit, onOpenSetup:
         }
     }
     top.yukonga.miuix.kmp.overlay.OverlayDialog(
-        title = "让本地模型越用越懂 Termux 操作",
+        title = stringResource(R.string.train_local_hint),
         summary = "检测到您现在使用的是本地模型。可前往设置页 → Termux Agent → 「训练本地模型」进行 System Prompt 蒸馏训练：\n\n• 如果配置了备用在线大模型，将由在线老师全自动出题、批改、评分，并自动把每轮的教训追加到 System Prompt 末尾。\n• 如果没有备用在线大模型，您可以手动打分并给出改进建议，系统还会提供启发式参考评分。",
         show = showFirstTrainHint,
         onDismissRequest = { showFirstTrainHint = false; AiTermuxPrefs.markTrainHintShown(ctx) },
         content = {
             androidx.compose.foundation.layout.Column {
                 top.yukonga.miuix.kmp.basic.TextButton(
-                    text = "现在去训练（推荐）",
+                    text = stringResource(R.string.train_now),
                     onClick = {
                         showFirstTrainHint = false
                         AiTermuxPrefs.markTrainHintShown(ctx)
@@ -2521,7 +2521,7 @@ private fun AiChatScreen(vm: AiTermuxViewModel, onBack: () -> Unit, onOpenSetup:
                 )
                 androidx.compose.foundation.layout.Spacer(androidx.compose.ui.Modifier.height(6.dp))
                 top.yukonga.miuix.kmp.basic.TextButton(
-                    text = "稍后再说",
+                    text = stringResource(R.string.later),
                     onClick = { showFirstTrainHint = false; AiTermuxPrefs.markTrainHintShown(ctx) },
                     modifier = androidx.compose.ui.Modifier.fillMaxWidth()
                 )
@@ -2557,14 +2557,14 @@ private fun AiChatScreen(vm: AiTermuxViewModel, onBack: () -> Unit, onOpenSetup:
                         val isLocal = vm.useLocalModel
                         val cfg = vm.config.providerConfig
                         val modelName = if (isLocal) {
-                            cfg.localModelId.ifBlank { "本地模型" }
+                            cfg.localModelId.ifBlank { stringResource(R.string.local_model) }
                         } else if (cfg.provider == "local") {
                             // provider 为 local 时切到在线 = 使用备用在线模型，显示其真实名称
-                            AiTermuxPrefs.getFallbackOnlineConfig(ctx).model.ifBlank { "在线模型" }
+                            AiTermuxPrefs.getFallbackOnlineConfig(ctx).model.ifBlank { stringResource(R.string.online_model) }
                         } else {
-                            cfg.model.ifBlank { "在线模型" }
+                            cfg.model.ifBlank { stringResource(R.string.online_model) }
                         }
-                        val providerLabel = if (isLocal) "本地模型" else "在线模型"
+                        val providerLabel = if (isLocal) stringResource(R.string.local_model) else stringResource(R.string.online_model)
                         "$providerLabel · $modelName"
                     },
                     scrollBehavior = scrollBehavior,
@@ -2609,7 +2609,7 @@ private fun AiChatScreen(vm: AiTermuxViewModel, onBack: () -> Unit, onOpenSetup:
                                 tint = if (vm.useLocalModel) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onSurfaceVariantSummary
                             )
                             Text(
-                                text = if (vm.useLocalModel) "本地模型" else "在线模型",
+                                text = if (vm.useLocalModel) stringResource(R.string.local_model) else stringResource(R.string.online_model),
                                 style = TextStyle(fontSize = 13.sp, color = MiuixTheme.colorScheme.onSurface),
                                 modifier = Modifier.weight(1f)
                             )
@@ -2834,14 +2834,14 @@ private fun AiChatTopActions(vm: AiTermuxViewModel, onOpenSetup: () -> Unit) {
 
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 4.dp)) {
         TopActionButton(Icons.Rounded.Checklist, "任务列表", badge = pendingCount > 0) { showTaskList = true }
-        TopActionButton(Icons.Rounded.MoreVert, "更多操作") { showMoreMenu = true }
+        TopActionButton(Icons.Rounded.MoreVert, stringResource(R.string.more_actions)) { showMoreMenu = true }
     }
 
     OverlayDialog(
         show = showTaskList,
         onDismissRequest = { showTaskList = false },
-        title = "任务进度",
-        summary = if (tasks.isEmpty()) "当前没有任务" else "共 ${tasks.size} 个任务，其中 $pendingCount 个进行中",
+        title = stringResource(R.string.task_progress),
+        summary = if (tasks.isEmpty()) stringResource(R.string.tasks_none) else stringResource(R.string.tasks_total),
         content = {
             if (tasks.isEmpty()) return@OverlayDialog
             Box(modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
@@ -2868,9 +2868,9 @@ private fun AiChatTopActions(vm: AiTermuxViewModel, onOpenSetup: () -> Unit) {
             }
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                TextButton(text = "清空任务", onClick = { SkillExecutor.clearTasks(); showTaskList = false }, modifier = Modifier.weight(1f))
+                TextButton(text = stringResource(R.string.clear_tasks), onClick = { SkillExecutor.clearTasks(); showTaskList = false }, modifier = Modifier.weight(1f))
                 Spacer(Modifier.width(16.dp))
-                TextButton(text = "关闭", onClick = { showTaskList = false }, modifier = Modifier.weight(1f),
+                TextButton(text = stringResource(R.string.close), onClick = { showTaskList = false }, modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.textButtonColorsPrimary())
             }
         }
@@ -2879,7 +2879,7 @@ private fun AiChatTopActions(vm: AiTermuxViewModel, onOpenSetup: () -> Unit) {
     OverlayDialog(
         show = showMoreMenu,
         onDismissRequest = { showMoreMenu = false },
-        title = "更多操作",
+        title = stringResource(R.string.more_actions),
         content = {
             Column {
                 TopActionRow("Agent 设置") {
@@ -2890,7 +2890,7 @@ private fun AiChatTopActions(vm: AiTermuxViewModel, onOpenSetup: () -> Unit) {
                     showMoreMenu = false
                     vm.exportConversation(context)
                 }
-                TopActionRow("清空对话历史", danger = true) {
+                TopActionRow(stringResource(R.string.clear_chat), danger = true) {
                     showMoreMenu = false
                     showClearConfirm = true
                 }
@@ -2901,14 +2901,14 @@ private fun AiChatTopActions(vm: AiTermuxViewModel, onOpenSetup: () -> Unit) {
     OverlayDialog(
         show = showClearConfirm,
         onDismissRequest = { showClearConfirm = false },
-        title = "清空对话历史",
-        summary = "将删除当前所有对话内容，此操作不可撤销。",
+        title = stringResource(R.string.clear_chat),
+        summary = stringResource(R.string.clear_chat_warn),
         content = {
             Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                TextButton(text = "取消", onClick = { showClearConfirm = false }, modifier = Modifier.weight(1f))
+                TextButton(text = stringResource(R.string.cancel), onClick = { showClearConfirm = false }, modifier = Modifier.weight(1f))
                 Spacer(Modifier.width(16.dp))
                 TextButton(
-                    text = "清空",
+                    text = stringResource(R.string.clear),
                     onClick = {
                         vm.clearHistory()
                         showClearConfirm = false
@@ -2934,14 +2934,14 @@ private fun MessageActionDialog(
     OverlayDialog(
         show = true,
         onDismissRequest = onDismiss,
-        title = "消息操作",
+        title = stringResource(R.string.message_actions),
         content = {
             Column {
-                TopActionRow("复制") { onCopy(); onDismiss() }
+                TopActionRow(stringResource(R.string.copy)) { onCopy(); onDismiss() }
                 if (canRegenerate) {
                     TopActionRow("重新生成") { onRegenerate(); onDismiss() }
                 }
-                TopActionRow("删除", danger = true) { onDelete(); onDismiss() }
+                TopActionRow(stringResource(R.string.delete), danger = true) { onDelete(); onDismiss() }
             }
         }
     )
@@ -3135,7 +3135,7 @@ private fun AiDisclaimerCard(isDark: Boolean) {
             tint = MiuixTheme.colorScheme.onSurfaceVariantSummary
         )
         Text(
-            text = "内容由 AI 生成",
+            text = stringResource(R.string.ai_generated_notice),
             style = TextStyle(fontSize = 12.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
         )
     }
@@ -3527,7 +3527,7 @@ private fun ChatBubble(msg: ChatMessage, vm: AiTermuxViewModel) {
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    text = "🔍 点击查看原始 API 响应",
+                    text = stringResource(R.string.view_raw_api),
                     style = TextStyle(fontSize = 12.sp, color = Color(0xFF2563EB))
                 )
             }
@@ -3540,11 +3540,11 @@ private fun ChatBubble(msg: ChatMessage, vm: AiTermuxViewModel) {
         WindowDialog(
             show = showRawResponse,
             onDismissRequest = { showRawResponse = false },
-            title = "原始 API 响应",
+            title = stringResource(R.string.raw_api_response),
             content = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "这是从 API 收到的原始 SSE 数据，用于排查问题。",
+                        text = stringResource(R.string.raw_api_hint),
                         style = TextStyle(fontSize = 12.sp, color = Color.Gray)
                     )
                     Spacer(Modifier.height(8.dp))
@@ -3571,15 +3571,15 @@ private fun ChatBubble(msg: ChatMessage, vm: AiTermuxViewModel) {
                         horizontalArrangement = Arrangement.End
                     ) {
                         TextButton(
-                            text = "关闭",
+                            text = stringResource(R.string.close),
                             onClick = { showRawResponse = false }
                         )
                         Spacer(Modifier.width(8.dp))
                         TextButton(
-                            text = "复制",
+                            text = stringResource(R.string.copy),
                             onClick = {
                                 val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                val clip = android.content.ClipData.newPlainText("原始 API 响应", msg.rawResponse!!)
+                                val clip = android.content.ClipData.newPlainText(ctx.getString(R.string.raw_api_response), msg.rawResponse!!)
                                 clipboard.setPrimaryClip(clip)
                                 SnackbarHelper.show(ctx, ctx.getString(R.string.agent_copied_to_clipboard), Snackbar.LENGTH_SHORT, null)
                             }
@@ -3634,7 +3634,7 @@ private fun PreparingBlock(status: String, details: List<String>, isDark: Boolea
                 }
             }
             Text(
-                text = "正在准备本地调用",
+                text = stringResource(R.string.local_preparing),
                 style = TextStyle(
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -3644,12 +3644,12 @@ private fun PreparingBlock(status: String, details: List<String>, isDark: Boolea
             Spacer(Modifier.weight(1f))
             if (expanded && details.isNotEmpty()) {
                 Text(
-                    text = "${details.size} 条日志",
+                    text = stringResource(R.string.logs_count),
                     style = TextStyle(fontSize = 11.sp, color = headerColor.copy(alpha = 0.75f))
                 )
             } else if (!expanded) {
                 Text(
-                    text = "点击展开",
+                    text = stringResource(R.string.click_expand),
                     style = TextStyle(fontSize = 11.sp, color = headerColor.copy(alpha = 0.6f))
                 )
             }
@@ -3685,7 +3685,7 @@ private fun PreparingBlock(status: String, details: List<String>, isDark: Boolea
             Spacer(Modifier.height(8.dp))
             if (details.isEmpty()) {
                 Text(
-                    text = "运行信息收集中…通常 3 秒内会出现命令行和加载进度日志",
+                    text = stringResource(R.string.collecting_info),
                     style = TextStyle(
                         fontSize = 11.sp,
                         color = textColor.copy(alpha = 0.6f),
@@ -3719,7 +3719,7 @@ private fun PreparingBlock(status: String, details: List<String>, isDark: Boolea
                 if (details.size > 8) {
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "↑ 可上下滑动查看更多日志",
+                        text = stringResource(R.string.logs_scroll_hint),
                         style = TextStyle(
                             fontSize = 10.sp,
                             color = headerColor.copy(alpha = 0.6f)
@@ -3767,7 +3767,7 @@ private fun ReasoningBlock(reasoning: String, isDone: Boolean, isDark: Boolean) 
                 tint = accent
             )
             Text(
-                text = "深度思考",
+                text = stringResource(R.string.deep_thinking),
                 style = TextStyle(
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -3777,7 +3777,7 @@ private fun ReasoningBlock(reasoning: String, isDone: Boolean, isDark: Boolean) 
             Spacer(Modifier.weight(1f))
             if (!expanded) {
                 Text(
-                    text = if (isDone) "已完成" else "进行中",
+                    text = if (isDone) "已完成" else stringResource(R.string.in_progress),
                     style = TextStyle(fontSize = 11.sp, color = headerColor)
                 )
             }
@@ -4023,7 +4023,7 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = "点击卡片打开对应页面 / 会话",
+                            text = stringResource(R.string.tap_card_page),
                             style = TextStyle(fontSize = 11.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                         )
                     }
@@ -4188,7 +4188,7 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
                             Column(modifier = Modifier.padding(12.dp)) {
                                 card.dangerousAction?.let { action ->
                                     Text(
-                                        text = "即将执行：$action",
+                                        text = stringResource(R.string.about_to_run),
                                         style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MiuixTheme.colorScheme.onSurface),
                                         modifier = Modifier.padding(bottom = 10.dp)
                                     )
@@ -4337,7 +4337,7 @@ private fun AgentSkillCard(msgId: String, card: SkillCardData, errorMsg: String?
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = if (expanded) "收起 ▲" else "展开 ▼",
+                            text = if (expanded) stringResource(R.string.collapse) else stringResource(R.string.expand),
                             style = TextStyle(
                                 fontSize = 11.sp,
                                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary
@@ -4357,7 +4357,7 @@ private fun AgentSkillCard(msgId: String, card: SkillCardData, errorMsg: String?
                             ) {
                                 Text(text = "💭", fontSize = 13.sp)
                                 Text(
-                                    text = "执行过程",
+                                    text = stringResource(R.string.execution_process),
                                     style = TextStyle(
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Medium,
@@ -4443,7 +4443,7 @@ private fun AgentSkillCard(msgId: String, card: SkillCardData, errorMsg: String?
                                     tint = statusColor
                                 )
                                 Text(
-                                    text = "$agentLabel ${if (card.status == SkillStatus.COMPLETED) "执行完成" else "执行失败"}",
+                                    text = "$agentLabel ${if (card.status == SkillStatus.COMPLETED) stringResource(R.string.executed_done) else stringResource(R.string.executed_fail)}",
                                     style = TextStyle(fontSize = 12.sp, color = statusColor)
                                 )
                             }
