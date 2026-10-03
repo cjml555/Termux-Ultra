@@ -2103,4 +2103,20 @@ Recommendation: close other running Termux sessions first, then try again.</stri
     <string name="filemanager_ftp_info">FTP information</string>
     <string name="about_developer_avatar">Developer avatar</string>
     <string name="about_contributor_avatar">Contributor avatar</string>
+
+    <!-- agent: segunda tanda de literales de AiTermuxActivity -->
+    <string name="agent_local_model_ready">Local model configured. Opening the chat</string>
+    <string name="agent_config_saved_open">Configuration saved. Opening the chat</string>
+    <string name="agent_save_and_start">Save and start using</string>
+    <string name="agent_profile_name_label">Profile name</string>
+    <string name="agent_api_key_label">API key</string>
+    <string name="agent_base_url_label">Base URL</string>
+    <string name="agent_temperature">Temperature %.1f</string>
+    <string name="agent_profile_saved">Profile “%1$s” saved</string>
+    <string name="agent_profile_deleted">Profile “%1$s” deleted</string>
+    <string name="agent_attach_file">Attach a file or image</string>
+    <string name="agent_prompt_hint">What should the Agent do?</string>
+    <string name="agent_history_cleared">Conversation history cleared</string>
+    <string name="agent_copied_to_clipboard">Copied to clipboard</string>
+    <string name="logviewer_search_hint">Search log content or tag...</string>
 </resources>

@@ -154,7 +154,7 @@ fun LogViewerScreen(
                             value = searchQuery,
                             onValueChange = { searchQuery = it },
                             modifier = Modifier.fillMaxWidth(),
-                            label = "搜索日志内容或标签...",
+                            label = stringResource(R.string.logviewer_search_hint),
                             useLabelAsPlaceholder = true,
                             singleLine = true
                         )

@@ -1997,15 +1997,15 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                                 ollamaInstalling.value = false
                                                 ollamaInstalled.value = AiOllamaManager.isOllamaInstalled()
                                                 if (ok) {
-                                                    SnackbarHelper.show(ctx, "Ollama 安装成功", Snackbar.LENGTH_SHORT, null)
+                                                    SnackbarHelper.show(ctx, ctx.getString(R.string.agent_ollama_install_success), Snackbar.LENGTH_SHORT, null)
                                                 } else {
-                                                    SnackbarHelper.show(ctx, "Ollama 安装失败", Snackbar.LENGTH_LONG, null)
+                                                    SnackbarHelper.show(ctx, ctx.getString(R.string.agent_ollama_install_failed), Snackbar.LENGTH_LONG, null)
                                                 }
                                             }
                                         },
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Text("安装 Ollama")
+                                        Text(stringResource(R.string.agent_ollama_install))
                                     }
                                 }
                             }
@@ -2289,7 +2289,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                     isConfigured = true
                                 )
                                 vm.updateConfig(localCfg)
-                                SnackbarHelper.show(ctx, "本地大模型已配置，进入对话界面", Snackbar.LENGTH_SHORT, null)
+                                SnackbarHelper.show(ctx, ctx.getString(R.string.agent_local_model_ready), Snackbar.LENGTH_SHORT, null)
                                 return@Button
                             }
                             if (apiKey.isBlank()) {
@@ -2302,7 +2302,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                 isConfigured = true
                             )
                             vm.updateConfig(newCfg)
-                            SnackbarHelper.show(ctx, "配置已保存，进入对话界面", Snackbar.LENGTH_SHORT, null)
+                            SnackbarHelper.show(ctx, ctx.getString(R.string.agent_config_saved_open), Snackbar.LENGTH_SHORT, null)
                         },
                         modifier = Modifier
                             .weight(1f)
@@ -2310,7 +2310,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                             .clip(RoundedCornerShape(12.dp)),
                         colors = ButtonDefaults.buttonColors(color = MiuixTheme.colorScheme.primary)
                     ) {
-                        Text("保存并开始使用", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.agent_save_and_start), color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -2338,18 +2338,18 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         TextField(value = editName, onValueChange = { editName = it },
-                            label = "Profile 名称", modifier = Modifier.fillMaxWidth(),
+                            label = stringResource(R.string.agent_profile_name_label), modifier = Modifier.fillMaxWidth(),
                             useLabelAsPlaceholder = true, singleLine = true)
                         TextField(value = editKey, onValueChange = { editKey = it },
-                            label = "API Key", modifier = Modifier.fillMaxWidth(),
+                            label = stringResource(R.string.agent_api_key_label), modifier = Modifier.fillMaxWidth(),
                             useLabelAsPlaceholder = true, singleLine = true)
                         TextField(value = editUrl, onValueChange = { editUrl = it },
-                            label = "Base URL", modifier = Modifier.fillMaxWidth(),
+                            label = stringResource(R.string.agent_base_url_label), modifier = Modifier.fillMaxWidth(),
                             useLabelAsPlaceholder = true, singleLine = true)
                         TextField(value = editModel, onValueChange = { editModel = it },
                             label = "Model", modifier = Modifier.fillMaxWidth(),
                             useLabelAsPlaceholder = true, singleLine = true)
-                        Text("温度 %.1f".format(editTemp), style = TextStyle(fontSize = 13.sp))
+                        Text(stringResource(R.string.agent_temperature, editTemp), style = TextStyle(fontSize = 13.sp))
                         Slider(value = editTemp,
                             onValueChange = { editTemp = (it * 10).toInt() / 10f },
                             valueRange = 0f..1.6f, steps = 15, modifier = Modifier.fillMaxWidth())
@@ -2370,7 +2370,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                 provider = editProvider; apiKey = editKey
                                 baseUrl = editUrl; model = editModel; temperature = editTemp
                                 showProfileEditor = false
-                                SnackbarHelper.show(ctx, "Profile「${editName}」已保存", Snackbar.LENGTH_SHORT, null)
+                                SnackbarHelper.show(ctx, ctx.getString(R.string.agent_profile_saved, editName), Snackbar.LENGTH_SHORT, null)
                             }, modifier = Modifier.weight(1f).height(44.dp),
                                 colors = ButtonDefaults.buttonColors(color = MiuixTheme.colorScheme.primary)) {
                                 Text("保存", color = Color.White, fontWeight = FontWeight.Bold)
@@ -2411,7 +2411,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                 model = ""; temperature = 0.7f
                             }
                             pendingDeleteProfile = null
-                            SnackbarHelper.show(ctx, "Profile「${prof.name}」已删除", Snackbar.LENGTH_SHORT, null)
+                            SnackbarHelper.show(ctx, ctx.getString(R.string.agent_profile_deleted, prof.name), Snackbar.LENGTH_SHORT, null)
                         }, modifier = Modifier.weight(1f).height(44.dp),
                             colors = ButtonDefaults.buttonColors(color = Color(0xFFDC2626))) {
                             Text("删除", color = Color.White, fontWeight = FontWeight.Bold)
@@ -2694,7 +2694,7 @@ private fun AiChatScreen(vm: AiTermuxViewModel, onBack: () -> Unit, onOpenSetup:
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_upload),
-                                contentDescription = "上传文件/图片",
+                                contentDescription = stringResource(R.string.agent_attach_file),
                                 modifier = Modifier.size(20.dp),
                                 tint = MiuixTheme.colorScheme.onSurfaceVariantSummary
                             )
@@ -2702,7 +2702,7 @@ private fun AiChatScreen(vm: AiTermuxViewModel, onBack: () -> Unit, onOpenSetup:
                         TextField(
                             value = inputText,
                             onValueChange = { inputText = it },
-                            label = "需要 Agent 做什么…",
+                            label = stringResource(R.string.agent_prompt_hint),
                             modifier = Modifier
                                 .weight(1f)
                                 .focusRequester(focusRequester),
@@ -2912,7 +2912,7 @@ private fun AiChatTopActions(vm: AiTermuxViewModel, onOpenSetup: () -> Unit) {
                     onClick = {
                         vm.clearHistory()
                         showClearConfirm = false
-                        SnackbarHelper.show(context, "对话历史已清空", Snackbar.LENGTH_SHORT)
+                        SnackbarHelper.show(context, context.getString(R.string.agent_history_cleared), Snackbar.LENGTH_SHORT)
                     },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.textButtonColors(color = Color(0xFFF44336))
@@ -3581,7 +3581,7 @@ private fun ChatBubble(msg: ChatMessage, vm: AiTermuxViewModel) {
                                 val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                                 val clip = android.content.ClipData.newPlainText("原始 API 响应", msg.rawResponse!!)
                                 clipboard.setPrimaryClip(clip)
-                                SnackbarHelper.show(ctx, "已复制到剪贴板", Snackbar.LENGTH_SHORT, null)
+                                SnackbarHelper.show(ctx, ctx.getString(R.string.agent_copied_to_clipboard), Snackbar.LENGTH_SHORT, null)
                             }
                         )
                     }

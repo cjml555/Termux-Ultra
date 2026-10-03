@@ -2097,4 +2097,20 @@
     <string name="filemanager_ftp_info">FTP 信息</string>
     <string name="about_developer_avatar">开发者头像</string>
     <string name="about_contributor_avatar">贡献者头像</string>
+
+    <!-- agent: segunda tanda de literales de AiTermuxActivity -->
+    <string name="agent_local_model_ready">本地大模型已配置，进入对话界面</string>
+    <string name="agent_config_saved_open">配置已保存，进入对话界面</string>
+    <string name="agent_save_and_start">保存并开始使用</string>
+    <string name="agent_profile_name_label">Profile 名称</string>
+    <string name="agent_api_key_label">API Key</string>
+    <string name="agent_base_url_label">Base URL</string>
+    <string name="agent_temperature">温度 %.1f</string>
+    <string name="agent_profile_saved">Profile「%1$s」已保存</string>
+    <string name="agent_profile_deleted">Profile「%1$s」已删除</string>
+    <string name="agent_attach_file">上传文件/图片</string>
+    <string name="agent_prompt_hint">需要 Agent 做什么…</string>
+    <string name="agent_history_cleared">对话历史已清空</string>
+    <string name="agent_copied_to_clipboard">已复制到剪贴板</string>
+    <string name="logviewer_search_hint">搜索日志内容或标签...</string>
 </resources>

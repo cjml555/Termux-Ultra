@@ -1935,4 +1935,20 @@ Recomendación: cierra primero las demás sesiones de Termux en ejecución y vue
     <string name="filemanager_ftp_info">Información del FTP</string>
     <string name="about_developer_avatar">Avatar del desarrollador</string>
     <string name="about_contributor_avatar">Avatar del colaborador</string>
+
+    <!-- agent: segunda tanda de literales de AiTermuxActivity -->
+    <string name="agent_local_model_ready">Modelo local configurado. Abriendo el chat</string>
+    <string name="agent_config_saved_open">Configuración guardada. Abriendo el chat</string>
+    <string name="agent_save_and_start">Guardar y empezar a usarlo</string>
+    <string name="agent_profile_name_label">Nombre del perfil</string>
+    <string name="agent_api_key_label">Clave de API</string>
+    <string name="agent_base_url_label">URL base</string>
+    <string name="agent_temperature">Temperatura %.1f</string>
+    <string name="agent_profile_saved">Perfil «%1$s» guardado</string>
+    <string name="agent_profile_deleted">Perfil «%1$s» eliminado</string>
+    <string name="agent_attach_file">Adjuntar un archivo o imagen</string>
+    <string name="agent_prompt_hint">¿Qué debe hacer el Agent?</string>
+    <string name="agent_history_cleared">Historial de conversación borrado</string>
+    <string name="agent_copied_to_clipboard">Copiado al portapapeles</string>
+    <string name="logviewer_search_hint">Busca contenido o etiqueta en el registro...</string>
 </resources>
