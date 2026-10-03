@@ -14,6 +14,8 @@ on:
       - '**/res/values*/strings.xml'
       - 'app/build.gradle'
       - 'tools/i18n/**'
+      - '**/*.kt'
+      - '**/*.java'
   pull_request:
     branches:
       - main
@@ -21,6 +23,8 @@ on:
       - '**/res/values*/strings.xml'
       - 'app/build.gradle'
       - 'tools/i18n/**'
+      - '**/*.kt'
+      - '**/*.java'
   workflow_dispatch:
 
 permissions:
@@ -49,3 +53,11 @@ jobs:
       # pelado (sin --gate) sería inútil aquí: fallaría siempre con `es` al 43 %.
       - name: Auditar traducciones
         run: python3 tools/i18n/check_translations.py --gate
+
+      # check_translations mide que cada clave de values/ este traducida. NO
+      # mide que todo el texto que ve el usuario pase por values/: un literal
+      # en un Text()/Toast() se salta los tres idiomas y el gate de arriba
+      # sigue en verde. Eso fue exactamente lo que paso (130 literales, 90 en
+      # chino) y por eso este segundo gate existe.
+      - name: Detectar literales de UI sin pasar por strings.xml
+        run: python3 tools/i18n/check_literals.py --gate
