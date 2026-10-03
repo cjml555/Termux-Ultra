@@ -223,6 +223,12 @@ def scan_file(path: str) -> list[tuple[str, int, str, str]]:
             text = match.group(1)
             if len(text) < 2:
                 continue
+            # Formato parametrizado "PREFIX@@图片@@": la categoria se resuelve
+            # con una clave de recursos (ft_*), no es un literal pendiente. Sin
+            # esta excepcion el gate seguira reportando los 206 casos ya
+            # resueltos y no dira cuando queden los de verdad.
+            if text.count("@@") == 2:
+                continue
             if is_prompt_context(lines, lineno):
                 found.append(("SystemPrompt", lineno, text, 3))
             else:

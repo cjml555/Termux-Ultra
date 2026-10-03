@@ -2167,4 +2167,18 @@ Recommendation: close other running Termux sessions first, then try again.</stri
     <string name="no_matching_settings">No matching settings found</string>
     <string name="danger_badge">Danger</string>
     <string name="safe_badge">Safe</string>
+
+    <!-- Tipos de archivo: "Imagen JPEG" en vez de 206 literales por_extension -->
+    <string name="ft_imagen">Imagen %1$s</string>
+    <string name="ft_video">Vídeo %1$s</string>
+    <string name="ft_audio">Audio %1$s</string>
+    <string name="ft_archivo">Archivo %1$s</string>
+    <string name="ft_script">Script %1$s</string>
+    <string name="ft_fuente">Fuente %1$s</string>
+    <string name="ft_cabecera">Cabecera %1$s</string>
+    <string name="ft_documento">Documento %1$s</string>
+    <string name="ft_graficos">Gráficos %1$s</string>
+    <string name="ft_musica">Música %1$s</string>
+    <string name="ft_texto">Texto %1$s</string>
+    <string name="unknown_file">Unknown file</string>
 </resources>

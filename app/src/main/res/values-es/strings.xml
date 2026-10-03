@@ -1999,4 +1999,18 @@ Recomendación: cierra primero las demás sesiones de Termux en ejecución y vue
     <string name="no_matching_settings">No se encontró ningún ajuste</string>
     <string name="danger_badge">Peligro</string>
     <string name="safe_badge">Seguro</string>
+
+    <!-- Tipos de archivo: "Imagen JPEG" en vez de 206 literales por_extension -->
+    <string name="ft_imagen">Imagen %1$s</string>
+    <string name="ft_video">Vídeo %1$s</string>
+    <string name="ft_audio">Audio %1$s</string>
+    <string name="ft_archivo">Archivo %1$s</string>
+    <string name="ft_script">Script %1$s</string>
+    <string name="ft_fuente">Fuente %1$s</string>
+    <string name="ft_cabecera">Cabecera %1$s</string>
+    <string name="ft_documento">Documento %1$s</string>
+    <string name="ft_graficos">Gráficos %1$s</string>
+    <string name="ft_musica">Música %1$s</string>
+    <string name="ft_texto">Texto %1$s</string>
+    <string name="unknown_file">Archivo desconocido</string>
 </resources>
