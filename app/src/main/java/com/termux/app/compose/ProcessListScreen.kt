@@ -166,6 +166,10 @@ fun ProcessListScreen(
     onBackPressed: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    // Esta pantalla se abre como activity propia, sin pasar por Overview, así que
+    // es la primera en muchos recorridos: sin esto, ProcessInfo.stateLabel se
+    // quedaría sin contexto y saldría en blanco.
+    ensureI18nContext(context)
     val scrollBehavior = MiuixScrollBehavior()
     val isDark = isSystemInDarkTheme()
 

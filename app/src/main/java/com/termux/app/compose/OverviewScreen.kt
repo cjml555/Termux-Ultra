@@ -246,6 +246,25 @@ object ResourceActions {
     }
 }
 
+/**
+ * Application context used to resolve localized labels from non-composable call
+ * sites (e.g. [ProcessInfo.stateLabel], also read by ProcessListScreen).
+ *
+ * It is captured from the first screen that composes, and cached in the
+ * Application singleton so it survives screen changes. `ProcessListActivity` can
+ * be opened directly without ever showing Overview, so relying on Overview to
+ * set it would leave [ProcessInfo.stateLabel] blank in that case.
+ */
+@Volatile
+private var i18nContext: Context? = null
+
+internal fun ensureI18nContext(context: Context): Context {
+    i18nContext?.let { return it }
+    val app = context.applicationContext
+    i18nContext = app
+    return app
+}
+
 data class ProcessInfo(
     val pid: Int,
     val name: String,
@@ -267,16 +286,25 @@ data class ProcessInfo(
         if (state == "S" && (threadCount > 1 || hasRecentCpu)) return true
         return false
     }
-    @Composable
-    fun stateLabel(): String = when {
-        isFrozen -> stringResource(R.string.main_state_frozen)
-        isRunning -> stringResource(R.string.main_state_running)
-        isBackgroundRunning -> stringResource(R.string.main_state_background)
-        state == "S" -> stringResource(R.string.main_state_sleeping)
-        state == "D" -> stringResource(R.string.main_state_disk_wait)
-        state == "Z" -> stringResource(R.string.main_state_zombie)
-        else -> stringResource(R.string.main_state_unknown)
-    }
+    /**
+     * Localized state label. Kept as a property (not a @Composable function) because
+     * ProcessListScreen.kt also reads it from a non-composable call site.
+     */
+    val stateLabel: String
+        get() {
+            // Si aun no hay contexto, se muestra el estado crudo en vez de una
+            // cadena vacía: el usuario ve "S" o "D" en vez de un hueco.
+            val ctx = i18nContext ?: return state ?: ""
+            return when {
+                isFrozen -> ctx.getString(R.string.main_state_frozen)
+                isRunning -> ctx.getString(R.string.main_state_running)
+                isBackgroundRunning -> ctx.getString(R.string.main_state_background)
+                state == "S" -> ctx.getString(R.string.main_state_sleeping)
+                state == "D" -> ctx.getString(R.string.main_state_disk_wait)
+                state == "Z" -> ctx.getString(R.string.main_state_zombie)
+                else -> ctx.getString(R.string.main_state_unknown)
+            }
+        }
 }
 
 // ============================================================
@@ -399,6 +427,8 @@ fun OverviewScreen(
     active: Boolean = true
 ) {
     val context = LocalContext.current
+    // Lets non-composable readers such as ProcessInfo.stateLabel resolve localized text.
+    ensureI18nContext(context)
     val coroutineScope = rememberCoroutineScope()
     val cardManager = remember { OverviewCardManager.getInstance(context) }
     var isEditMode by remember { mutableStateOf(false) }
@@ -2661,7 +2691,7 @@ private fun ProcessItemRow(process: ProcessInfo, compact: Boolean = false) {
                     .padding(horizontal = 4.dp, vertical = 1.dp)
             ) {
                 Text(
-                    text = process.stateLabel(),
+                    text = process.stateLabel,
                     fontSize = if (compact) 8.sp else 9.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = stateColor
@@ -2746,7 +2776,7 @@ private fun ProcessItemRow(process: ProcessInfo) {
             modifier = Modifier.weight(1f)
         )
         Text(
-            text = process.stateLabel(),
+            text = process.stateLabel,
             fontSize = 10.sp,
             fontWeight = FontWeight.SemiBold,
             color = stateColor,
@@ -2802,7 +2832,7 @@ private fun ProcessItemRowCompact(process: ProcessInfo) {
             modifier = Modifier.weight(1f)
         )
         Text(
-            text = process.stateLabel(),
+            text = process.stateLabel,
             fontSize = 9.sp,
             fontWeight = FontWeight.SemiBold,
             color = stateColor,
