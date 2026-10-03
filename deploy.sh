@@ -197,8 +197,21 @@ fi
 same_signature=0
 if [ -n "$installed" ]; then
   say "Firma"
-  if [ -n "$installed_digest" ] && [ -n "$new_digest" ] && [ "$installed_digest" = "$new_digest" ]; then
-    same_signature=1
+  if [ -n "$installed_digest" ] && [ -n "$new_digest" ]; then
+    if [ "$installed_digest" = "$new_digest" ]; then
+      same_signature=1
+    fi
+    # Mostrar las dos huellas: sin ellas el mensaje siguiente solo dice
+    # "firma distinta" y no hay forma de saber cual es cual.
+    echo "   instalada: $installed_digest"
+    echo "   este APK : $new_digest"
+  else
+    # Sin apksigner o sin poder extraer el APK instalado no se puede
+    # comparar. Instalar encima puede fallar con UPDATE_INCOMPATIBLE, asi
+    # que se trata como no verificado, no como "son iguales".
+    warn "No se pudo verificar la firma instalada (apksigner ausente, o el"
+    warn "APK del dispositivo no se pudo extraer). Se asume DISTINTA: si"
+    warn "en realidad coincide, se perdieran datos innecesariamente."
   fi
 fi
 
@@ -219,9 +232,24 @@ if [ -n "$installed" ]; then
   else
     # Firma distinta o no verificable: instalar encima fallaría con
     # UPDATE_INCOMPATIBLE / signatures do not match. Hay que desinstalar.
+    # `installerPackageName` sale como "null" cuando la app se instaló por adb
+    # (no hay tienda que la instalara). Ese "null" es el INSTALADOR, no la
+    # firma: imprimirlo tras una flecha hacía creer que la firma era
+    # desconocida. Se distingue y se explica.
     src=$("${ADB[@]}" shell dumpsys package "$PKG" 2>/dev/null | grep -m1 -oE 'installerPackageName=[^ ]*' | cut -d= -f2)
-    conflicts=("$PKG (instalada por: ${src:-desconocido}, FIRMA DISTINTA)" "${conflicts[@]+"${conflicts[@]}"}")
-    echo "   PRESENTE: $PKG  ← ${src:-origen desconocido} (firma distinta, hay que reemplazarla)"
+    # installerPackageName=null significa instalada por adb, sin tienda.
+    case "$src" in null|"") src="adb (sin tienda)" ;; esac
+    conflicts=("$PKG (instalada por: $src, FIRMA DISTINTA)" "${conflicts[@]+"${conflicts[@]}"}")
+    echo "   PRESENTE: $PKG  ← $src"
+    if [ -n "$installed_digest" ] && [ -n "$new_digest" ]; then
+      echo "   La firma de esta app no coincide con la del APK, así que Android"
+      echo "   rechazaría instalarlo encima. Hay que desinstalarla antes."
+    else
+      echo "   No se pudo comparar la firma. Android rechazaría instalarlo encima"
+      echo "   si son distintas, y conservaría los datos si coinciden. Se trata"
+      echo "   como distinta y se desinstala; si los datos importan, compara las"
+      echo "   huellas a mano antes de seguir."
+    fi
   fi
 else
   echo "   $PKG no está instalada"
