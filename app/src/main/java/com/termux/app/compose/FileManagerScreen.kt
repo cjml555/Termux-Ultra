@@ -565,7 +565,7 @@ fun FileManagerScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "空文件夹",
+                            text = stringResource(R.string.empty_folder),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Medium,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
@@ -1083,7 +1083,7 @@ fun FileManagerScreen(
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                text = "复制路径",
+                                text = stringResource(R.string.copy_path),
                                 color = dialogTextColor,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
@@ -1164,13 +1164,13 @@ fun FileManagerScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     TextButton(
-                        text = "取消",
+                        text = stringResource(R.string.cancel),
                         onClick = { showDeleteDialog = false },
                         modifier = Modifier.weight(1f)
                     )
                     Spacer(Modifier.width(20.dp))
                     TextButton(
-                        text = "删除",
+                        text = stringResource(R.string.delete),
                         onClick = {
                             showDeleteDialog = false
                             showOperationProgress = true
@@ -1203,7 +1203,7 @@ fun FileManagerScreen(
         OverlayDialog(
             show = showRenameDialog,
             onDismissRequest = { showRenameDialog = false },
-            title = "重命名",
+            title = stringResource(R.string.rename),
             content = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     TextField(
@@ -1219,13 +1219,13 @@ fun FileManagerScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         TextButton(
-                            text = "取消",
+                            text = stringResource(R.string.cancel),
                             onClick = { showRenameDialog = false },
                             modifier = Modifier.weight(1f)
                         )
                         Spacer(Modifier.width(20.dp))
                         TextButton(
-                            text = "确定",
+                            text = stringResource(R.string.ok),
                             onClick = {
                                 // 旧实现既没净化文件名，也没判断 renameTo 的返回值：
                                 // 目标已存在或名字含路径成分时会静默失败，UI 却照常显示成功
@@ -1274,13 +1274,13 @@ fun FileManagerScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         TextButton(
-                            text = "取消",
+                            text = stringResource(R.string.cancel),
                             onClick = { showNewFolderDialog = false },
                             modifier = Modifier.weight(1f)
                         )
                         Spacer(Modifier.width(20.dp))
                         TextButton(
-                            text = "确定",
+                            text = stringResource(R.string.ok),
                             onClick = {
                                 showNewFolderDialog = false
                                 showOperationProgress = true
@@ -1332,13 +1332,13 @@ fun FileManagerScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         TextButton(
-                            text = "取消",
+                            text = stringResource(R.string.cancel),
                             onClick = { showNewFileDialog = false },
                             modifier = Modifier.weight(1f)
                         )
                         Spacer(Modifier.width(20.dp))
                         TextButton(
-                            text = "确定",
+                            text = stringResource(R.string.ok),
                             onClick = {
                                 showNewFileDialog = false
                                 showOperationProgress = true
@@ -1428,7 +1428,7 @@ fun FileManagerScreen(
                     Spacer(Modifier.height(12.dp))
 
                     TextButton(
-                        text = "取消",
+                        text = stringResource(R.string.cancel),
                         onClick = { showNewTypeDialog = false },
                         modifier = Modifier.fillMaxWidth()
                     )
