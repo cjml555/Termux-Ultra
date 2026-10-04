@@ -3,6 +3,7 @@ package com.termux.app.plugin
 import android.content.Context
 import android.content.Intent
 import com.google.gson.Gson
+import com.termux.R
 import com.termux.shared.shell.command.ExecutionCommand
 import com.termux.shared.compat.ShellEnvironmentCompat
 import com.termux.shared.compat.TermuxTaskCompat
@@ -192,7 +193,11 @@ object PluginManager {
         // 的插件可以直接执行 `rm -rf /`、`dd if=...`、`mkfs` 而没有任何拦截。
         val security = PluginSecurity.canExecuteShellCommand(context, pluginId, command)
         if (!security.allowed) {
-            return Result.failure(SecurityException(security.reason ?: "命令被插件安全策略拒绝"))
+            return Result.failure(
+                SecurityException(
+                    security.reason ?: context.getString(R.string.plugin_cmd_denied_policy)
+                )
+            )
         }
 
         return try {
@@ -219,7 +224,7 @@ object PluginManager {
 
             if (termuxTask == null || termuxTask.getExecutionCommand().isStateFailed()) {
                 val errMsg = executionCommand.resultData.errorsList?.firstOrNull()?.message
-                    ?: "命令执行失败: 无法启动 TermuxTask"
+                    ?: context.getString(R.string.plugin_cmd_start_failed)
                 Result.failure(Exception(errMsg))
             } else {
                 val stdout = executionCommand.resultData.stdout?.toString()?.trim() ?: ""
@@ -229,7 +234,11 @@ object PluginManager {
                 if (exitCode == 0) {
                     Result.success(stdout)
                 } else {
-                    Result.failure(Exception("命令执行失败 (exit=$exitCode): $stderr"))
+                    Result.failure(
+                        Exception(
+                            context.getString(R.string.plugin_cmd_failed_exit, exitCode, stderr)
+                        )
+                    )
                 }
             }
         } catch (e: Exception) {

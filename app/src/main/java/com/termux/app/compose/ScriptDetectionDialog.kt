@@ -75,9 +75,9 @@ fun ScriptDetectionDialog(
         },
         title = stringResource(R.string.script_detection),
         summary = buildString {
-            append("检测到 ${results.size} 条危险命令")
+            append(stringResource(R.string.script_detect_found, results.size))
             if (results.isNotEmpty()) {
-                append("，建议检查后再执行。")
+                append(stringResource(R.string.script_detect_advice))
             }
         },
         content = {
@@ -127,7 +127,7 @@ fun ScriptDetectionDialog(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "第 ${result.lineNumber} 行",
+                                        text = stringResource(R.string.script_detection_line_prefix, result.lineNumber),
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = MiuixTheme.colorScheme.onSurface

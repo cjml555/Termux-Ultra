@@ -284,7 +284,7 @@ fun CustomKeysEditorScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item {
-                SmallTitle(text = "选择要添加的按键")
+                SmallTitle(text = stringResource(R.string.custom_keys_select_to_add))
                 Spacer(modifier = Modifier.height(4.dp))
             }
 

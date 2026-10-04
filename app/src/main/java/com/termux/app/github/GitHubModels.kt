@@ -1,5 +1,21 @@
 package com.termux.app.github
 
+import android.content.Context
+import androidx.annotation.StringRes
+import com.termux.R
+import com.termux.app.compose.AiLocalModel
+
+/**
+ * Resuelve un recurso con el context de la app: las etiquetas de [RepoRole] y
+ * [MergeMethod] se pintan en tarjetas y dialogos, no en codigo, asi que pueden
+ * salir de hilos sin Activity. El context de la app es la unica via comun; si
+ * aun no esta inicializado se devuelve un guion en vez de reventar.
+ */
+private fun str(@StringRes res: Int): String {
+    val c = AiLocalModel.context() ?: return "-"
+    return c.getString(res)
+}
+
 /**
  * GitHub OAuth 与仓库交互的常量配置。
  *
@@ -103,13 +119,19 @@ data class GitHubIssueDetail(
  * 仓库协作者角色（来自 GitHub `/collaborators/{username}/permission` 的 `permission` 字段）。
  * 按权限从高到低：admin > maintain > write > triage > read。
  */
-enum class RepoRole(val label: String) {
-    ADMIN("管理员"),
-    MAINTAIN("协作者"),
-    WRITE("开发者"),
-    TRIAGE("访客"),
-    READ("只读"),
-    UNKNOWN("未知");
+enum class RepoRole(@StringRes val labelRes: Int) {
+    ADMIN(R.string.github_role_admin),
+    MAINTAIN(R.string.github_role_maintain),
+    WRITE(R.string.github_role_write),
+    TRIAGE(R.string.github_role_triage),
+    READ(R.string.github_role_read),
+    UNKNOWN(R.string.github_role_unknown);
+
+    /** 标签本地化。`label` era el campo que la UI leia; se conserva por compatibilidad. */
+    val label: String get() = str(labelRes)
+
+    /** Variante para los sitios donde ya hay un Context a mano. */
+    fun label(context: Context): String = context.getString(labelRes)
 
     /** 是否属于「管理员组」——仓库 owner / maintainer 拥有合并与关闭 PR 权限 */
     fun isAdminLike(): Boolean = this == ADMIN || this == MAINTAIN
@@ -129,10 +151,13 @@ data class RepoPermission(
 }
 
 /** PR 合并方式——映射 GitHub API `merge_method` 参数 */
-enum class MergeMethod(val apiValue: String, val display: String) {
-    MERGE("merge", "合并"),
-    SQUASH("squash", "压缩并合并"),
-    REBASE("rebase", "变基并合并");
+enum class MergeMethod(val apiValue: String, @StringRes val displayRes: Int) {
+    MERGE("merge", R.string.github_merge_method_merge),
+    SQUASH("squash", R.string.github_squash_button),
+    REBASE("rebase", R.string.github_rebase_button);
+
+    /** 标签本地izada para el boton de merge; `display` era el campo que la UI leia. */
+    val display: String get() = str(displayRes)
 
     companion object {
         fun fromApi(v: String?): MergeMethod = entries.firstOrNull { it.apiValue.equals(v, true) } ?: MERGE

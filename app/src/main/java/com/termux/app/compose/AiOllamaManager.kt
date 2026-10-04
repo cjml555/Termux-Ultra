@@ -1,5 +1,7 @@
 package com.termux.app.compose
 
+import androidx.annotation.StringRes
+import com.termux.R
 import android.content.Context
 import android.util.Log
 import com.termux.shared.shell.command.ExecutionCommand
@@ -15,56 +17,77 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/** Ollama模型条目 */
+/**
+ * 资源文本 helper：object 外（数据类 getter）没有 Context，
+ * 与 AiLocalModel 用同一个 app context，避免为翻译改字段类型。
+ */
+private fun localize(@StringRes res: Int, vararg args: Any): String {
+    val c = AiLocalModel.context() ?: return "-"
+    return if (args.isEmpty()) c.getString(res) else c.getString(res, *args)
+}
+
+/**
+ * Ollama模型条目。
+ *
+ * description / sizeDescription son getters que resuelven un recurso: se
+ * mantienen con esos nombres y tipos para no tocar las pantallas que ya los
+ * pintan (OLLAMA_MODELS se dibuja en AiTermuxActivity).
+ */
 data class OllamaModelEntry(
     val id: String,
     val displayName: String,
-    val description: String,
     val ollamaModelName: String,  // ollama pull 使用的模型名
-    val sizeDescription: String,
-    val recommendedRamMB: Int
-)
+    val recommendedRamMB: Int,
+    @StringRes val descRes: Int,
+    val sizeBytes: String
+) {
+    val description: String
+        get() = localize(descRes)
+
+    val sizeDescription: String
+        get() = localize(R.string.ollama_model_size, sizeBytes)
+}
 
 /** 内置可选Ollama模型列表 */
 val OLLAMA_MODELS: List<OllamaModelEntry> = listOf(
     OllamaModelEntry(
         id = "llama3.2-1b",
         displayName = "Llama 3.2 (1B)",
-        description = "Meta最新轻量模型，适合移动设备",
+        descRes = R.string.ollama_model_llama_desc,
         ollamaModelName = "llama3.2:1b",
-        sizeDescription = "约 1.3 GB",
+        sizeBytes = "1.3 GB",
         recommendedRamMB = 3072
     ),
     OllamaModelEntry(
         id = "qwen2.5-1.5b",
         displayName = "Qwen 2.5 (1.5B)",
-        description = "阿里云开源模型，中文能力强",
+        descRes = R.string.ollama_model_qwen_desc,
         ollamaModelName = "qwen2.5:1.5b",
-        sizeDescription = "约 1.1 GB",
+        sizeBytes = "1.1 GB",
         recommendedRamMB = 3072
     ),
     OllamaModelEntry(
         id = "gemma3-1b",
         displayName = "Gemma 3 (1B)",
-        description = "Google开源模型，性能优秀",
+        descRes = R.string.ollama_model_gemma_desc,
         ollamaModelName = "gemma3:1b",
-        sizeDescription = "约 1.0 GB",
+        sizeBytes = "1.0 GB",
         recommendedRamMB = 3072
     ),
     OllamaModelEntry(
         id = "phi3-mini",
         displayName = "Phi 3 Mini",
-        description = "微软轻量模型，推理速度快",
+        descRes = R.string.ollama_model_phi_desc,
         ollamaModelName = "phi3:mini",
-        sizeDescription = "约 2.0 GB",
+        sizeBytes = "2.0 GB",
         recommendedRamMB = 4096
     ),
     OllamaModelEntry(
         id = "deepseek-r1-1.5b",
         displayName = "DeepSeek R1 (1.5B)",
-        description = "深度思考模型，推理能力强",
+        descRes = R.string.ollama_model_deepseek_desc,
         ollamaModelName = "deepseek-r1:1.5b",
-        sizeDescription = "约 1.2 GB",
+        sizeBytes = "1.2 GB",
         recommendedRamMB = 3072
     )
 )
@@ -84,6 +107,17 @@ object AiOllamaManager {
     }
 
     private fun context(): Context? = appContext
+
+    /**
+     * Texto localizado del recurso [res]. El object ya guarda el context que
+     * pasa init(); se resuelve por ahi en lugar de propagar un parametro por
+     * cada firma de progreso. Sin context devuelve un guion en vez de reventar
+     * la corrutina de descarga con una excepcion.
+     */
+    private fun str(@StringRes res: Int, vararg args: Any): String {
+        val c = context() ?: return "-"
+        return if (args.isEmpty()) c.getString(res) else c.getString(res, *args)
+    }
 
     /** Termux PREFIX 目录 */
     private fun prefixDir(): String = TermuxConstants.TERMUX_PREFIX_DIR_PATH
@@ -180,14 +214,14 @@ object AiOllamaManager {
 
     /** 运行 shell 命令 */
     private suspend fun runShellCommand(command: String, timeoutSeconds: Int = 300): ShellResult = withContext(Dispatchers.IO) {
-        val ctx = context() ?: return@withContext ShellResult(false, null, "", "Context 未初始化")
+        val ctx = context() ?: return@withContext ShellResult(false, null, "", str(R.string.ollama_err_context_missing))
         
         Log.i(TAG, "runShellCommand: command=${command.take(100)}, timeout=${timeoutSeconds}s")
         
         val shellPath = resolveTermuxShell()
         if (shellPath == null) {
-            Log.e(TAG, "runShellCommand: 找不到 shell 环境")
-            return@withContext ShellResult(false, null, "", "找不到 shell 环境")
+            Log.e(TAG, "runShellCommand: no shell environment found")
+            return@withContext ShellResult(false, null, "", str(R.string.ollama_err_no_shell))
         }
         Log.i(TAG, "runShellCommand: using shell=$shellPath")
 
@@ -211,11 +245,11 @@ object AiOllamaManager {
                 false
             )
         } catch (e: Exception) {
-            Log.e(TAG, "TermuxTask 创建失败", e)
-            return@withContext ShellResult(false, null, "", "TermuxTask 创建失败: ${e.message}")
+            Log.e(TAG, "TermuxTask creation failed", e)
+            return@withContext ShellResult(false, null, "", str(R.string.ollama_err_task_create, e.message ?: ""))
         }
 
-        Log.i(TAG, "runShellCommand: 开始执行命令")
+        Log.i(TAG, "runShellCommand: executing command")
         
         val startTime = System.currentTimeMillis()
         val timeoutMs = timeoutSeconds * 1000L
@@ -225,20 +259,20 @@ object AiOllamaManager {
             delay(200)
             if (executionCommand.hasExecuted() || executionCommand.resultData.exitCode != null) {
                 completed = true
-                Log.i(TAG, "runShellCommand: 命令执行完成, exitCode=${executionCommand.resultData.exitCode}")
+                Log.i(TAG, "runShellCommand: command finished, exitCode=${executionCommand.resultData.exitCode}")
                 break
             }
             // 每30秒输出一次状态
             val elapsed = (System.currentTimeMillis() - startTime) / 1000
             if (elapsed > 0 && elapsed % 30 == 0L) {
-                Log.d(TAG, "runShellCommand: 已等待 ${elapsed}s，命令仍在执行...")
+                Log.d(TAG, "runShellCommand: waited ${elapsed}s, still running...")
             }
         }
 
         if (!completed) {
-            Log.w(TAG, "runShellCommand: 命令超时 (${timeoutSeconds}s)")
+            Log.w(TAG, "runShellCommand: command timed out (${timeoutSeconds}s)")
             runCatching { termuxTask?.killIfExecuting(ctx, false) }
-            return@withContext ShellResult(false, null, "", "命令执行超时（${timeoutSeconds}秒）")
+            return@withContext ShellResult(false, null, "", str(R.string.ollama_err_command_timeout, timeoutSeconds))
         }
 
         val resultData = executionCommand.resultData
@@ -275,7 +309,7 @@ object AiOllamaManager {
             for (shellBinary in arrayOf("bash", "login", "zsh", "sh", "dash")) {
                 val shellFile = File(binDir, shellBinary)
                 if (shellFile.canExecute()) {
-                    Log.i(TAG, "找到 shell: ${shellFile.absolutePath}")
+                    Log.i(TAG, "shell found: ${shellFile.absolutePath}")
                     return shellFile.absolutePath
                 }
             }
@@ -287,7 +321,7 @@ object AiOllamaManager {
             for (shellBinary in arrayOf("bash", "login", "zsh", "sh", "dash")) {
                 val shellFile = File(prefixBinDir, shellBinary)
                 if (shellFile.canExecute()) {
-                    Log.i(TAG, "从 prefix/bin 找到 shell: ${shellFile.absolutePath}")
+                    Log.i(TAG, "shell found in prefix/bin: ${shellFile.absolutePath}")
                     return shellFile.absolutePath
                 }
             }
@@ -296,7 +330,7 @@ object AiOllamaManager {
         // 方法3: 使用系统 shell
         val systemShell = File("/system/bin/sh")
         if (systemShell.canExecute()) {
-            Log.i(TAG, "使用系统 shell: ${systemShell.absolutePath}")
+            Log.i(TAG, "using system shell: ${systemShell.absolutePath}")
             return systemShell.absolutePath
         }
         
@@ -310,12 +344,12 @@ object AiOllamaManager {
         for (path in altPaths) {
             val file = File(path)
             if (file.canExecute()) {
-                Log.i(TAG, "找到备用 shell: $path")
+                Log.i(TAG, "fallback shell found: $path")
                 return path
             }
         }
         
-        Log.e(TAG, "找不到可用的 shell 环境")
+        Log.e(TAG, "no usable shell environment found")
         return null
     }
 
@@ -323,34 +357,34 @@ object AiOllamaManager {
     suspend fun installOllama(onProgress: (Float, String) -> Unit): Boolean = withContext(Dispatchers.IO) {
         val ctx = context()
         if (ctx == null) {
-            Log.e(TAG, "installOllama: Context 未初始化")
-            onProgress(0f, "内部错误：Context 未初始化，请重启应用")
+            Log.e(TAG, "installOllama: context not initialized")
+            onProgress(0f, str(R.string.ollama_err_context_missing_restart))
             return@withContext false
         }
 
-        Log.i(TAG, "installOllama: 开始安装 Ollama")
+        Log.i(TAG, "installOllama: installing Ollama")
         Log.i(TAG, "installOllama: prefixDir=${prefixDir()}")
         Log.i(TAG, "installOllama: homeDir=${homeDir().absolutePath}")
         
-        onProgress(0f, "正在更新 Termux 包索引…")
+        onProgress(0f, str(R.string.ollama_install_updating_index))
         val updateResult = runShellCommand("pkg update -y 2>&1", timeoutSeconds = 300)
         Log.i(TAG, "pkg update: exit=${updateResult.exitCode}, success=${updateResult.success}")
         if (!updateResult.success) {
-            Log.w(TAG, "pkg update 失败: ${updateResult.stderr.take(300)}")
-            onProgress(0f, "包索引更新失败，可能网络异常")
+            Log.w(TAG, "pkg update failed: ${updateResult.stderr.take(300)}")
+            onProgress(0f, str(R.string.ollama_install_index_failed))
             // 即使更新失败也继续尝试安装
         }
 
-        onProgress(0.2f, "正在安装 Ollama 依赖（curl、tar）…")
+        onProgress(0.2f, str(R.string.ollama_install_deps))
         val depsResult = runShellCommand("pkg install -y curl tar 2>&1", timeoutSeconds = 300)
         Log.i(TAG, "deps install: exit=${depsResult.exitCode}, success=${depsResult.success}")
         if (!depsResult.success) {
-            Log.e(TAG, "依赖安装失败: ${depsResult.stderr.take(300)}")
-            onProgress(0f, "依赖安装失败: ${depsResult.stderr.take(100)}")
+            Log.e(TAG, "dependency install failed: ${depsResult.stderr.take(300)}")
+            onProgress(0f, str(R.string.ollama_install_deps_failed, depsResult.stderr.take(100)))
             return@withContext false
         }
 
-        onProgress(0.4f, "正在下载 Ollama 二进制文件…")
+        onProgress(0.4f, str(R.string.ollama_install_downloading_bin))
         val installScript = """
             set -e
             cd '${homeDir().absolutePath}'
@@ -408,7 +442,7 @@ object AiOllamaManager {
             echo 'DONE'
         """.trimIndent()
 
-        Log.i(TAG, "installOllama: 执行安装脚本")
+        Log.i(TAG, "installOllama: running install script")
         val result = runShellCommand(installScript, timeoutSeconds = 600)
         Log.i(TAG, "ollama install: exit=${result.exitCode}, success=${result.success}")
         Log.i(TAG, "ollama install: stdout=${result.stdout.take(300)}")
@@ -417,12 +451,12 @@ object AiOllamaManager {
         }
 
         if (result.success && isOllamaInstalled()) {
-            Log.i(TAG, "ollama install: 安装成功")
-            onProgress(1f, "Ollama 安装完成")
+            Log.i(TAG, "ollama install: success")
+            onProgress(1f, str(R.string.agent_ollama_install_success))
             true
         } else {
-            Log.e(TAG, "ollama install: 安装失败, success=${result.success}, isInstalled=${isOllamaInstalled()}")
-            onProgress(0f, "Ollama 安装失败：${result.stderr.take(200)}")
+            Log.e(TAG, "ollama install: failed, success=${result.success}, isInstalled=${isOllamaInstalled()}")
+            onProgress(0f, str(R.string.ollama_install_failed, result.stderr.take(200)))
             false
         }
     }
@@ -432,31 +466,31 @@ object AiOllamaManager {
         Log.i(TAG, "pullModel: start, model=$modelName")
         
         if (!isOllamaInstalled()) {
-            Log.e(TAG, "pullModel: Ollama 未安装，无法下载模型")
-            onProgress(0f, "请先安装 Ollama")
+            Log.e(TAG, "pullModel: Ollama not installed, cannot download model")
+            onProgress(0f, str(R.string.agent_ollama_not_installed))
             return@withContext false
         }
 
         // 确保 Ollama 服务在运行，不运行就启动
         if (!isOllamaRunning()) {
-            Log.i(TAG, "pullModel: Ollama 未运行，启动服务...")
-            onProgress(0f, "正在启动 Ollama 服务…")
+            Log.i(TAG, "pullModel: Ollama not running, starting service...")
+            onProgress(0f, str(R.string.ollama_starting_service))
             val started = startOllamaService()
             if (!started) {
-                Log.e(TAG, "pullModel: Ollama 服务启动失败，尝试直接运行 ollama pull")
+                Log.e(TAG, "pullModel: service start failed, falling back to direct ollama pull")
             } else {
-                Log.i(TAG, "pullModel: Ollama 服务启动成功，等待初始化...")
+                Log.i(TAG, "pullModel: service started, waiting for init...")
                 delay(3000)
             }
         } else {
-            Log.i(TAG, "pullModel: Ollama 已在运行")
+            Log.i(TAG, "pullModel: Ollama already running")
         }
 
-        onProgress(0.05f, "正在下载模型 $modelName …")
+        onProgress(0.05f, str(R.string.agent_downloading, modelName))
         
         // 方案1: 通过 HTTP API 下载（服务在运行时）
         if (isOllamaRunning()) {
-            Log.i(TAG, "pullModel: 使用 HTTP API 下载模型")
+            Log.i(TAG, "pullModel: downloading model via HTTP API")
             try {
                 val url = java.net.URL("http://127.0.0.1:$OLLAMA_PORT/api/pull")
                 val bodyMap = mapOf("name" to modelName, "stream" to true)
@@ -513,25 +547,25 @@ object AiOllamaManager {
                     val installedNow = getInstalledModels()
                     val ok = installedNow.any { it.startsWith(modelName) || modelName.startsWith(it) }
                     if (ok) {
-                        onProgress(1f, "模型 $modelName 下载完成")
-                        Log.i(TAG, "pullModel: HTTP 下载成功, model=$modelName")
+                        onProgress(1f, str(R.string.agent_model_download_done, modelName))
+                        Log.i(TAG, "pullModel: HTTP download success, model=$modelName")
                         return@withContext true
                     } else {
-                        Log.w(TAG, "pullModel: HTTP 下载完成但验证失败，重试命令行方式")
+                        Log.w(TAG, "pullModel: HTTP download done but verification failed, retrying via CLI")
                     }
                 } else {
                     val err = conn.errorStream?.bufferedReader()?.readText() ?: "HTTP $code"
-                    Log.e(TAG, "pullModel: HTTP 错误: $err")
+                    Log.e(TAG, "pullModel: HTTP error: $err")
                     conn.disconnect()
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "pullModel: HTTP API 异常", e)
+                Log.e(TAG, "pullModel: HTTP API exception", e)
             }
         }
         
         // 方案2: 命令行 fallback
-        Log.i(TAG, "pullModel: 使用命令行 fallback")
-        onProgress(0.05f, "通过命令行下载模型 $modelName …")
+        Log.i(TAG, "pullModel: using CLI fallback")
+        onProgress(0.05f, str(R.string.ollama_pull_downloading_cli, modelName))
         val script = """
             export OLLAMA_HOST=127.0.0.1:$OLLAMA_PORT
             echo "开始 pull $modelName ..."
@@ -547,11 +581,11 @@ object AiOllamaManager {
         }
         
         if (result.success && (result.stdout.contains("pulling") || result.stdout.contains("success") || result.exitCode == 0)) {
-            onProgress(1f, "模型 $modelName 下载完成")
+            onProgress(1f, str(R.string.agent_model_download_done, modelName))
             true
         } else {
             val errMsg = buildString {
-                append("模型下载失败")
+                append(str(R.string.agent_model_download_failed))
                 if (result.stderr.isNotEmpty()) append(": ${result.stderr.take(200)}")
                 else if (result.stdout.isNotEmpty()) append(": ${result.stdout.take(200)}")
             }
@@ -564,21 +598,21 @@ object AiOllamaManager {
     /** 启动 Ollama 服务 */
     suspend fun startOllamaService(): Boolean = withContext(Dispatchers.IO) {
         if (!isOllamaInstalled()) {
-            Log.e(TAG, "startOllamaService: Ollama 未安装 at ${ollamaPath()}")
+            Log.e(TAG, "startOllamaService: Ollama not installed at ${ollamaPath()}")
             return@withContext false
         }
         if (isOllamaRunning()) {
-            Log.i(TAG, "startOllamaService: Ollama 已在运行")
+            Log.i(TAG, "startOllamaService: Ollama already running")
             return@withContext true
         }
 
         val ctx = context()
         if (ctx == null) {
-            Log.e(TAG, "startOllamaService: Context 未初始化")
+            Log.e(TAG, "startOllamaService: context not initialized")
             return@withContext false
         }
         
-        Log.i(TAG, "startOllamaService: 正在启动 Ollama 服务...")
+        Log.i(TAG, "startOllamaService: starting Ollama service...")
         Log.i(TAG, "startOllamaService: ollamaPath=${ollamaPath()}")
         
         // 先杀掉可能残留的旧进程
@@ -613,18 +647,18 @@ object AiOllamaManager {
         }
         
         if (isOllamaRunning()) {
-            Log.i(TAG, "startOllamaService: Ollama 服务启动成功")
+            Log.i(TAG, "startOllamaService: Ollama service started")
             return@withContext true
         }
         
         // 再等几秒重试检查
         delay(3000)
         if (isOllamaRunning()) {
-            Log.i(TAG, "startOllamaService: Ollama 服务启动成功 (第二次检查)")
+            Log.i(TAG, "startOllamaService: Ollama service started (second check)")
             return@withContext true
         }
         
-        Log.e(TAG, "startOllamaService: Ollama 服务启动失败")
+        Log.e(TAG, "startOllamaService: Ollama service failed to start")
         false
     }
 
@@ -655,7 +689,7 @@ object AiOllamaManager {
             // 尝试启动服务
             val started = startOllamaService()
             if (!started) {
-                emit(StreamChunk.Error("Ollama 服务启动失败"))
+                emit(StreamChunk.Error(str(R.string.ollama_err_service_start)))
                 return@flow
             }
             delay(1000)
@@ -696,7 +730,7 @@ object AiOllamaManager {
             if (code != 200) {
                 val err = runCatching { conn.errorStream?.bufferedReader()?.readText() }.getOrNull() ?: "HTTP $code"
                 Log.e(TAG, "Ollama API error: $err")
-                emit(StreamChunk.Error("Ollama 推理服务异常: $err"))
+                emit(StreamChunk.Error(str(R.string.ollama_err_infer_service, err)))
                 return@flow
             }
 
@@ -729,8 +763,8 @@ object AiOllamaManager {
             
             emit(StreamChunk.Done(fullText = fullText.toString()))
         } catch (e: Exception) {
-            Log.e(TAG, "Ollama 流式推理失败", e)
-            emit(StreamChunk.Error("Ollama 推理失败: ${e.message ?: e.javaClass.simpleName}"))
+            Log.e(TAG, "Ollama streaming inference failed", e)
+            emit(StreamChunk.Error(str(R.string.ollama_err_infer_failed, e.message ?: e.javaClass.simpleName)))
         } finally {
             runCatching { conn?.disconnect() }
         }

@@ -89,7 +89,7 @@ fun VncScreen(
             item {
                 EmptyConnectionsState(
                     iconRes = R.drawable.ic_vnc,
-                    message = "没有 VNC 连接"
+                    message = stringResource(R.string.vnc_no_connections)
                 )
             }
         } else {
@@ -186,7 +186,7 @@ fun VncConnectionCard(
                 if (connection.isFromTermux) {
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "来自 Termux",
+                        text = stringResource(R.string.vnc_from_termux),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         color = MiuixTheme.colorScheme.primary
@@ -269,7 +269,7 @@ fun VncEditDialog(
             showDialog.value = false
             onDismiss()
         },
-        title = if (isEdit) "编辑连接" else "添加连接",
+        title = if (isEdit) stringResource(R.string.ssh_edit_connection) else stringResource(R.string.ssh_add_connection),
         content = {
             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 TextField(

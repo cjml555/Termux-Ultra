@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Build
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.termux.R
 import java.util.UUID
 
 /**
@@ -1187,7 +1188,7 @@ object QemuVmManager {
             process.waitFor()
             stdout
         } catch (e: Exception) {
-            errors.add("迁移脚本执行失败: ${e.message}")
+            errors.add(context.getString(R.string.vm_migration_script_failed, e.message ?: ""))
             ""
         }
 

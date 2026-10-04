@@ -237,17 +237,20 @@ class PluginWebViewActivity : ComponentActivity() {
                                 loadUrl("$baseUrl$entryPath")
                             } else {
                                 val pluginFiles = pluginDir.listFiles()?.joinToString(", ") { it.name } ?: "empty"
+                                // ctx es el Context del factory: aqui no se puede
+                                // llamar a stringResource, asi que se resuelve con
+                                // getString sobre el contexto que ya esta a mano.
                                 loadDataWithBaseURL(
                                     "file://${pluginDir.absolutePath}/",
                                     "<html><body style='color:#333;font-family:sans-serif;padding:20px;text-align:center;'>" +
-                                        "<h3>插件页面未找到</h3>" +
-                                        "<p>缺少文件: $entryPath</p>" +
+                                        "<h3>${ctx.getString(R.string.plugin_webview_page_not_found_title)}</h3>" +
+                                        "<p>${ctx.getString(R.string.plugin_webview_missing_file, entryPath)}</p>" +
                                         "<p style='color:#888;font-size:12px;margin-top:16px;'>" +
-                                        "插件目录: ${pluginDir.absolutePath}</p>" +
+                                        "${ctx.getString(R.string.plugin_webview_plugin_dir, pluginDir.absolutePath)}</p>" +
                                         "<p style='color:#888;font-size:12px;'>" +
-                                        "目录内容: $pluginFiles</p>" +
+                                        "${ctx.getString(R.string.plugin_webview_dir_contents, pluginFiles)}</p>" +
                                         "<p style='color:#aaa;font-size:11px;margin-top:20px;'>" +
-                                        "请重新安装插件或检查插件包是否完整</p>" +
+                                        "${ctx.getString(R.string.plugin_webview_reinstall_hint)}</p>" +
                                         "</body></html>",
                                     "text/html",
                                     "UTF-8",

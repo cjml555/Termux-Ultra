@@ -381,7 +381,7 @@ fun RemoteScreen(
                                                     val tag = when (conn.connectionType) {
                                                         "openpilot" -> "[OpenPilot] "
                                                         "comma" -> "[Comma] "
-                                                        "local" -> "[本地] "
+                                                        "local" -> context.getString(R.string.remote_conn_tag_local)
                                                         else -> ""
                                                     }
                                                     val detail = when (conn.connectionType) {
@@ -607,7 +607,7 @@ fun RemoteScreen(
                                             val tag = when (conn.connectionType) {
                                                 "openpilot" -> "[OpenPilot] "
                                                 "comma" -> "[Comma] "
-                                                "local" -> "[本地] "
+                                                "local" -> context.getString(R.string.remote_conn_tag_local)
                                                 else -> ""
                                             }
                                             val detail = when (conn.connectionType) {

@@ -129,7 +129,7 @@ fun QuickCommandWindowSheet(
 
     WindowDialog(
         show = show,
-        title = "快捷指令",
+        title = stringResource(R.string.quickcmd_title),
         summary = "",
         onDismissRequest = onDismiss,
         content = {
@@ -185,7 +185,7 @@ private fun QuickCommandPanelContent(
         // OverlayBottomSheet 下 title=""，让我们自己的标题栏占主导
         // WindowDialog 用参数 title，不再画自定义标题栏
         Text(
-            text = "快捷指令",
+            text = stringResource(R.string.quickcmd_title),
             fontSize = 18.sp,
             fontWeight = FontWeight.Medium,
             color = MiuixTheme.colorScheme.onSurface,
@@ -217,7 +217,7 @@ private fun QuickCommandPanelContent(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.End
         ) {
-            TextButton(text = "添加 +", onClick = onAddClick)
+            TextButton(text = stringResource(R.string.quickcmd_add_button), onClick = onAddClick)
         }
     }
 }
@@ -275,13 +275,13 @@ private fun EmptyCommandsHint() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "还没有快捷指令",
+            text = stringResource(R.string.quickcmd_empty),
             fontSize = 14.sp,
             color = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.5f)
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            text = "点击右下角「添加 +」开始",
+            text = stringResource(R.string.quickcmd_empty_hint),
             fontSize = 13.sp,
             color = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.4f)
         )
@@ -301,7 +301,7 @@ private fun AddQuickCommandDialog(
     // 不依赖 Scaffold 的 MiuixPopupHost，避免 WindowDialog 承载时 "添加 +" 无响应。
     WindowDialog(
         show = true,
-        title = "添加快捷指令",
+        title = stringResource(R.string.quickcmd_add_title),
         summary = "",
         onDismissRequest = onDismiss,
         content = {
@@ -342,7 +342,7 @@ private fun AddQuickCommandDialog(
                         modifier = Modifier.size(22.dp)
                     )
                     Text(
-                        text = "添加后自动执行",
+                        text = stringResource(R.string.quickcmd_auto_execute),
                         fontSize = 14.sp,
                         color = MiuixTheme.colorScheme.onSurface
                     )
@@ -352,10 +352,10 @@ private fun AddQuickCommandDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(text = "取消", onClick = onDismiss)
+                    TextButton(text = stringResource(R.string.cancel), onClick = onDismiss)
                     Spacer(Modifier.width(8.dp))
                     TextButton(
-                        text = "添加",
+                        text = stringResource(R.string.action_add),
                         onClick = {
                             if (label.isNotBlank() && command.isNotBlank()) {
                                 onConfirm(label.trim(), command, autoExecute)

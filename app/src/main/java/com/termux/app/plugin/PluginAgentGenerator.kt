@@ -1,7 +1,9 @@
 package com.termux.app.plugin
 
 import android.content.Context
+import androidx.annotation.StringRes
 import com.termux.R
+import com.termux.app.compose.AiLocalModel
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.termux.app.compose.AiApiClient
@@ -41,6 +43,15 @@ data class PluginFile(val path: String, val content: String)
  * 本地模式下必须开启并配置好备用在线模型，且实际调用的就是备用模型。
  */
 object PluginAgentGenerator {
+
+    /**
+     * Los motivos de fallo viajan en PluginGenProgress.Failed hasta el dialogo,
+     * asi que se resuelven por el context de la app y no por el del Activity.
+     */
+    private fun str(@StringRes res: Int, vararg args: Any): String {
+        val c = AiLocalModel.context() ?: return "-"
+        return if (args.isEmpty()) c.getString(res) else c.getString(res, *args)
+    }
 
     /** 校验结果：要么给出实际会用的配置，要么给出明确的修复指引 */
     sealed class ResolveResult {
@@ -100,7 +111,7 @@ object PluginAgentGenerator {
                     }
                     is StreamChunk.Cancelled -> {
                         failed = true
-                        emit(PluginGenProgress.Failed("已取消", full))
+                        emit(PluginGenProgress.Failed(str(R.string.cancelled), full))
                     }
                     is StreamChunk.Error -> {
                         failed = true
@@ -110,13 +121,13 @@ object PluginAgentGenerator {
                 }
             }
         } catch (e: Exception) {
-            emit(PluginGenProgress.Failed(e.message ?: "生成异常", full))
+            emit(PluginGenProgress.Failed(e.message ?: str(R.string.plugin_dream_gen_error), full))
             return@flow
         }
         if (failed) return@flow
 
         val draft = runCatching { parseDraft(full) }.getOrElse {
-            emit(PluginGenProgress.Failed(it.message ?: "解析失败", full))
+            emit(PluginGenProgress.Failed(it.message ?: str(R.string.plugin_dream_parse_error), full))
             return@flow
         }
         emit(PluginGenProgress.Done(draft))
@@ -125,9 +136,9 @@ object PluginAgentGenerator {
     /** 从模型输出中抠出 JSON 并做本地校验 */
     fun parseDraft(raw: String): PluginDraft {
         val json = extractJsonObject(raw)
-            ?: throw IllegalArgumentException("未找到 JSON 输出")
+            ?: throw IllegalArgumentException(str(R.string.plugin_dream_no_json))
         val filesArray = json.getAsJsonArray("files")
-            ?: throw IllegalArgumentException("JSON 缺少 files 字段")
+            ?: throw IllegalArgumentException(str(R.string.plugin_dream_no_files_field))
 
         val files = mutableListOf<PluginFile>()
         for (element in filesArray) {
@@ -136,17 +147,17 @@ object PluginAgentGenerator {
             val content = obj.get("content")?.asString.orEmpty()
             if (path.isBlank()) continue
             val normalized = path.trimStart('/')
-            if (normalized.contains("..")) throw IllegalArgumentException("非法文件路径: $path")
+            if (normalized.contains("..")) throw IllegalArgumentException(str(R.string.plugin_dream_bad_path, path))
             files.add(PluginFile(normalized, content))
         }
-        if (files.isEmpty()) throw IllegalArgumentException("files 为空")
+        if (files.isEmpty()) throw IllegalArgumentException(str(R.string.plugin_dream_files_empty))
 
         val manifestRaw = files.firstOrNull { it.path == "manifest.json" }?.content
-            ?: throw IllegalArgumentException("缺少 manifest.json")
+            ?: throw IllegalArgumentException(str(R.string.plugin_dream_manifest_missing))
 
         // parse() 内部已做 id/name/version 与 id 正则校验
         val manifest = PluginManifestParser.parse(manifestRaw)
-            .getOrElse { throw IllegalArgumentException("manifest.json 校验失败: ${it.message}") }
+            .getOrElse { throw IllegalArgumentException(str(R.string.plugin_dream_manifest_invalid, it.message ?: "")) }
 
         // entry 指向的文件必须都在包里，否则安装时才会失败，提前在这里拦住
         val present = files.map { it.path }.toSet()
@@ -160,7 +171,7 @@ object PluginAgentGenerator {
             if (entry != null && entry !in present) missing.add(entry)
         }
         if (missing.isNotEmpty()) {
-            throw IllegalArgumentException("以下 entry 文件缺失: ${missing.joinToString("、")}")
+            throw IllegalArgumentException(str(R.string.plugin_dream_entries_missing, missing.joinToString(", ")))
         }
 
         return PluginDraft(files, manifest)

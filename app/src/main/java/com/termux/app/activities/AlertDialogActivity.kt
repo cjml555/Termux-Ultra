@@ -286,7 +286,7 @@ private fun StopConfirmDialogContent(
                 horizontalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 TextButton(
-                    text = "否",
+                    text = stringResource(R.string.action_no),
                     onClick = guardedOnClick(context, thirdPartyBlocked) {
                         showDialog = false
                         onDismiss()
@@ -294,7 +294,7 @@ private fun StopConfirmDialogContent(
                     modifier = Modifier.weight(1f)
                 )
                 TextButton(
-                    text = "是",
+                    text = stringResource(R.string.action_yes),
                     onClick = guardedOnClick(context, thirdPartyBlocked) {
                         showDialog = false
                         onConfirm()
@@ -365,7 +365,7 @@ private fun DisableWarningDialogContent(
                         )
                     ) {
                         Text(
-                            text = "取消",
+                            text = stringResource(R.string.cancel),
                             color = MiuixTheme.colorScheme.onSurface,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Medium
@@ -412,9 +412,11 @@ private fun buildStopConfirmSummary(ctx: Context, qemuCount: Int, containerRunni
     return buildString {
         append(ctx.getString(R.string.adj_vortex_message))
         if (qemuCount > 0 || containerRunning) {
-            append("\n\n当前检测到：")
-            if (qemuCount > 0) append("\n· 运行中的虚拟机：").append(qemuCount).append(" 台")
-            if (containerRunning) append("\n· proot 容器正在运行")
+            append(ctx.getString(R.string.adj_detected_header))
+            if (qemuCount > 0) {
+                append(ctx.getString(R.string.adj_detected_vms, qemuCount))
+            }
+            if (containerRunning) append(ctx.getString(R.string.adj_detected_container))
         }
     }
 }
@@ -543,7 +545,7 @@ private fun CrashErrorDialogContent(
                         modifier = Modifier.fillMaxWidth()
                     )
                     TextButton(
-                        text = "确认",
+                        text = stringResource(R.string.confirm),
                         onClick = guardedOnClick(context, thirdPartyBlocked) {
                             deleteCrashLog()
                             showDialog = false
@@ -654,7 +656,7 @@ private fun CrashPostDialogContent(
                             val reportInfo = com.termux.shared.models.ReportInfo(
                                 userActionName,                                                          // userAction
                                 "CrashPostDialog",                                                       // sender
-                                "崩溃报告"                           // reportTitle
+                                context.getString(R.string.title_crash_report)                     // reportTitle
                             )
                             reportInfo.reportString = if (fullCrashReport.isNotBlank()) fullCrashReport else errorMessage
                             reportInfo.reportStringSuffix = "\n\n" + com.termux.shared.termux.TermuxUtils.getReportIssueMarkdownString(context)
@@ -681,7 +683,7 @@ private fun CrashPostDialogContent(
                     modifier = Modifier.fillMaxWidth()
                 )
                 TextButton(
-                    text = "确认",
+                    text = stringResource(R.string.confirm),
                     onClick = guardedOnClick(context, thirdPartyBlocked) {
                         showDialog = false
                         onDismiss()

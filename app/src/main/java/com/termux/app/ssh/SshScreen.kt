@@ -279,7 +279,7 @@ private fun EmptySshState() {
         }
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "没有 SSH 连接",
+            text = stringResource(R.string.ssh_no_connections),
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
@@ -670,7 +670,7 @@ fun SshConfigDialog(
     if (showInternalFilePicker.value) {
         TermuxInternalFilePicker(
             show = showInternalFilePicker.value,
-            title = "选择 SSH 私钥文件",
+            title = stringResource(R.string.ssh_private_key_select),
             onDismiss = { showInternalFilePicker.value = false },
             onFileSelected = { path ->
                 showInternalFilePicker.value = false
@@ -822,7 +822,7 @@ private suspend fun generateSshKey(
     isError.value = false
 
     try {
-        message.value = "正在安装 openssh..."
+        message.value = context.getString(R.string.ssh_installing_openssh)
 
         val installProcess = ProcessBuilder("pkg", "install", "-y", "openssh")
             .redirectErrorStream(true)
@@ -831,7 +831,7 @@ private suspend fun generateSshKey(
 
         val sshKeygenFile = File("/data/data/com.termux/files/usr/bin/ssh-keygen")
         if (!sshKeygenFile.exists()) {
-            message.value = context.getString(R.string.ssh_private_key_create_failed) + ": ssh-keygen 未找到，请手动安装 openssh"
+            message.value = context.getString(R.string.ssh_private_key_create_failed) + ": " + context.getString(R.string.ssh_sshkeygen_not_found)
             isError.value = true
             isGenerating.value = false
             return@withContext

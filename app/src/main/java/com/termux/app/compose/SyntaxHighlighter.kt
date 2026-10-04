@@ -1,5 +1,7 @@
 package com.termux.app.compose
 
+import androidx.annotation.StringRes
+import com.termux.R
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -13,6 +15,16 @@ import java.util.Locale
  * 返回 List<HighlightToken(start, end, type)> 供 BasicTextField 叠加 SpanStyle 绘制。
  */
 object SyntaxHighlighter {
+
+    /**
+     * Texto localizado del recurso [res] con el context de la app.
+     * El highlighter vive en un object sin Context propio, asi que se resuelve
+     * por aqui en lugar de propagar un parametro por [fileInfo].
+     */
+    private fun str(@StringRes res: Int, vararg args: Any): String {
+        val c = AiLocalModel.context() ?: return "-"
+        return if (args.isEmpty()) c.getString(res) else c.getString(res, *args)
+    }
 
     data class Token(val start: Int, val end: Int, val type: Type)
     enum class Type { KEYWORD, STRING, COMMENT, NUMBER, FUNCTION, OPERATOR, BRACE, DEFAULT }
@@ -148,8 +160,8 @@ object SyntaxHighlighter {
     }
 
     fun fileInfo(file: File?): String {
-        if (file == null) return "新建文件"
-        val ext = file.extension.ifBlank { "(无扩展名)" }
+        if (file == null) return str(R.string.new_file)
+        val ext = file.extension.ifBlank { str(R.string.no_file_extension) }
         val size = file.length()
         val sizeStr = when {
             size < 1024 -> "$size B"

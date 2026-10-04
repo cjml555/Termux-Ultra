@@ -2,6 +2,7 @@ package com.termux.app.compose
 
 import android.content.Context
 import com.google.gson.Gson
+import com.termux.R
 
 /** AI 提供商配置 */
 data class AiProviderConfig(
@@ -605,7 +606,7 @@ object AiTermuxPrefs {
         val temperature = prefs.getFloat("temperature", 0.7f)
         if (provider.isNotBlank() && provider != "local" && apiKey.isNotBlank()) {
             val migrated = LlmProfile(
-                name = "默认配置（已迁移）",
+                name = context.getString(R.string.llm_profile_migrated_default),
                 provider = provider,
                 apiKey = apiKey,
                 apiBaseUrl = baseUrl,

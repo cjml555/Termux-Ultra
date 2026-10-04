@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,7 +57,7 @@ import java.io.File
 @Composable
 fun TermuxInternalFilePicker(
     show: Boolean,
-    title: String = "选择文件",
+    title: String = "",
     startDir: String = TERMUX_HOME_ABS,
     fileExtensions: List<String> = emptyList(),
     allowFolders: Boolean = false,
@@ -67,6 +68,11 @@ fun TermuxInternalFilePicker(
     var currentDir by remember(show) { mutableStateOf(File(startDir)) }
     var entries by remember(show) { mutableStateOf<List<FileEntry>>(emptyList()) }
     var isLoading by remember(show) { mutableStateOf(true) }
+
+    // El titulo por defecto se resuelve aqui y no en el parametro: una llamada
+    // composable en el valor por defecto de un @Composable no la admiten todas
+    // las versiones del compiler plugin.
+    val sheetTitle = if (title.isNotEmpty()) title else stringResource(R.string.file_picker_default_title)
 
     fun toDisplayPath(f: File): String {
         return f.absolutePath.replace(TERMUX_HOME_ABS, "\$HOME")
@@ -117,7 +123,7 @@ fun TermuxInternalFilePicker(
     OverlayBottomSheet(
         show = show,
         onDismissRequest = onDismiss,
-        title = title,
+        title = sheetTitle,
         content = {
             Column(
                 modifier = Modifier
@@ -171,7 +177,7 @@ fun TermuxInternalFilePicker(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "加载中...",
+                            text = stringResource(R.string.common_loading),
                             fontSize = 13.sp,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                         )
@@ -185,8 +191,11 @@ fun TermuxInternalFilePicker(
                     ) {
                         Text(
                             text = if (fileExtensions.isNotEmpty())
-                                "当前目录没有匹配的文件 (${fileExtensions.joinToString("/") { ".$it" }})"
-                                else "当前目录为空",
+                                stringResource(
+                                    R.string.file_picker_no_match,
+                                    fileExtensions.joinToString("/") { ".$it" }
+                                )
+                                else stringResource(R.string.file_picker_empty_dir),
                             fontSize = 13.sp,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                         )
@@ -255,7 +264,7 @@ fun TermuxInternalFilePicker(
                                                 val subCount = try {
                                                     entry.file.listFiles()?.size ?: 0
                                                 } catch (_: Exception) { 0 }
-                                                append("$subCount 项")
+                                                append(stringResource(R.string.file_picker_item_count, subCount))
                                             } else {
                                                 append(formatFileSize(entry.file.length()))
                                             }
@@ -266,7 +275,7 @@ fun TermuxInternalFilePicker(
                                 }
                                 if (allowFolders && entry.isFolder) {
                                     TextButton(
-                                        text = "选此目录",
+                                        text = stringResource(R.string.file_picker_pick_this_dir),
                                         onClick = { onFileSelected(toSavedPath(entry.file)) },
                                         modifier = Modifier.wrapContentWidth()
                                     )
@@ -287,7 +296,7 @@ fun TermuxInternalFilePicker(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             androidx.compose.material3.Text(
-                                text = "当前: ${toDisplayPath(currentDir)}",
+                                text = stringResource(R.string.file_picker_current, toDisplayPath(currentDir)),
                                 fontSize = 11.sp,
                                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                 maxLines = 1
@@ -295,7 +304,7 @@ fun TermuxInternalFilePicker(
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         TextButton(
-                            text = "确认此目录",
+                            text = stringResource(R.string.file_picker_confirm_dir),
                             onClick = { onFileSelected(toSavedPath(currentDir)) }
                         )
                     }

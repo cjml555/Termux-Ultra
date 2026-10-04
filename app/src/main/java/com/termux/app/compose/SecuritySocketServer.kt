@@ -1,5 +1,7 @@
 package com.termux.app.compose
 
+import androidx.annotation.StringRes
+import com.termux.R
 import android.content.Context
 import android.util.Base64
 import android.util.Log
@@ -63,6 +65,24 @@ object SecuritySocketServer {
     @Volatile
     private var running = false
 
+    @Volatile
+    private var appContext: Context? = null
+
+    /**
+     * Texto localizado del recurso [res].
+     *
+     * El server es un object sin Context propio (lo recibe por parametro en
+     * start()); los textos que llegan al usuario —el reason que el hook
+     * imprime en la terminal y el rotulo del dialogo de carga— se resuelven
+     * por ahi. Las claves del protocolo (ALLOW / DENY / reason= / error=) y
+     * los metodos (CHECK_CMD / CHECK_SCRIPT / PING) NO se traducen: el hook
+     * los parsea por nombre.
+     */
+    private fun str(@StringRes res: Int, vararg args: Any): String {
+        val c = appContext ?: return "-"
+        return if (args.isEmpty()) c.getString(res) else c.getString(res, *args)
+    }
+
     private var serverThread: Thread? = null
     private var serverSocket: ServerSocket? = null
     @Volatile
@@ -98,6 +118,7 @@ object SecuritySocketServer {
             return
         }
         running = true
+        appContext = context.applicationContext
 
         // 上次 stop() 可能已 shutdownNow()，必须重建全部线程池
         shutdownPools()
@@ -304,7 +325,7 @@ object SecuritySocketServer {
             Log.w(TAG, "judge pool saturated (${pool.activeCount}/${JUDGE_POOL_MAX}), fail-closed: ${request.method}")
             try {
                 val writer = PrintWriter(OutputStreamWriter(client.getOutputStream(), Charsets.UTF_8), true)
-                writeResponse(writer, DetectResult.Deny("安全检测服务繁忙，本次执行已被拒绝，请稍后重试"))
+                writeResponse(writer, DetectResult.Deny(str(R.string.sec_detect_busy)))
             } catch (_: Exception) {}
             closeQuietly(client)
         }
@@ -424,7 +445,7 @@ object SecuritySocketServer {
                 }
             }
         } catch (e: Exception) {
-            Log.w(TAG, "读取脚本失败: ${e.message}")
+            Log.w(TAG, "failed to read script: ${e.message}")
             ""
         }
     }
@@ -442,7 +463,7 @@ object SecuritySocketServer {
             try {
                 String(Base64.decode(body[2], Base64.NO_WRAP), Charsets.UTF_8)
             } catch (e: Exception) {
-                Log.w(TAG, "CHECK_SCRIPT: base64 解码失败: ${e.message}")
+                Log.w(TAG, "CHECK_SCRIPT: base64 decode failed: ${e.message}")
                 null
             }
         } else {
@@ -474,7 +495,7 @@ object SecuritySocketServer {
         }
 
         // 判定期间显示"安全检测中"加载弹窗（Agent 判定可能较慢）
-        RiskConfirmManager.showAgentLoading("正在检测脚本安全性...")
+        RiskConfirmManager.showAgentLoading(str(R.string.risk_agent_checking_script))
         // 领取跳过闸门：用户可能在判定过程中点「跳过验证」并二次确认
         val skipGate = RiskConfirmManager.beginScriptCheck(command)
         val t0 = System.currentTimeMillis()
@@ -483,7 +504,7 @@ object SecuritySocketServer {
             if (result == null) {
                 // 用户已确认跳过：检测结果作废，不必再等 Agent 判定跑完
                 Log.i(TAG, "CHECK_SCRIPT: skip confirmed by user, allow (${System.currentTimeMillis() - t0}ms)")
-                writeResponse(writer, DetectResult.Allow("用户已确认跳过安全检测"))
+                writeResponse(writer, DetectResult.Allow(str(R.string.sec_user_skipped_check)))
                 return
             }
             Log.i(TAG, "CHECK_SCRIPT: path=$scriptPath len=${scriptContent.length} done=${System.currentTimeMillis() - t0}ms")
@@ -514,7 +535,7 @@ object SecuritySocketServer {
                 if (RiskConfirmManager.hasPendingSkipConfirm(skipGate)) {
                     val pass = awaitPendingSkipDecision(skipGate)
                     writeResponse(writer, if (pass) DetectResult.Allow() else DetectResult.Deny(
-                        reason = "Agent 判定${if (tag == "AGENT_TIMEOUT") "超时" else "异常"}，用户选择不跳过"
+                        reason = str(if (tag == "AGENT_TIMEOUT") R.string.sec_agent_timeout_not_skipped else R.string.sec_agent_error_not_skipped)
                     ))
                     return
                 }
@@ -527,7 +548,7 @@ object SecuritySocketServer {
                     detail = detail
                 )
                 writeResponse(writer, if (pass) DetectResult.Allow() else DetectResult.Deny(
-                    reason = "Agent 判定${if (tag == "AGENT_TIMEOUT") "超时" else "异常"}，用户选择不跳过"
+                    reason = str(if (tag == "AGENT_TIMEOUT") R.string.sec_agent_timeout_not_skipped else R.string.sec_agent_error_not_skipped)
                 ))
             } else {
                 writeResponse(writer, result)
@@ -562,7 +583,7 @@ object SecuritySocketServer {
                 pool
             )
         } catch (e: java.util.concurrent.RejectedExecutionException) {
-            Log.w(TAG, "CHECK_SCRIPT 判定池不可用，退回同步判定: ${e.message}")
+            Log.w(TAG, "CHECK_SCRIPT judge pool unavailable, falling back to sync: ${e.message}")
             return detectScript(context, scriptPath, scriptContent)
         }
         val winner = try {
@@ -571,13 +592,13 @@ object SecuritySocketServer {
         } catch (e: java.util.concurrent.TimeoutException) {
             // 判定没跑完、用户也没表态：与本文件「超时一律按拒绝」的约定保持一致，
             // 放行等于替用户执行一条没被验证过的脚本
-            Log.w(TAG, "CHECK_SCRIPT 判定超时，deny: $scriptPath")
+            Log.w(TAG, "CHECK_SCRIPT judge timed out, deny: $scriptPath")
             detect.cancel(false)
-            return DetectResult.Deny("安全检测超时，已阻止执行")
+            return DetectResult.Deny(str(R.string.sec_detect_timeout_blocked))
         } catch (t: Throwable) {
-            Log.w(TAG, "CHECK_SCRIPT 竞速等待异常，放行: ${t.message}")
+            Log.w(TAG, "CHECK_SCRIPT race wait failed, allow: ${t.message}")
             detect.cancel(false)
-            return DetectResult.Allow("安全检测异常，已放行")
+            return DetectResult.Allow(str(R.string.sec_detect_error_allowed))
         }
         if (winner is Boolean && winner) {
             detect.cancel(false)
@@ -588,12 +609,12 @@ object SecuritySocketServer {
         } catch (e: java.util.concurrent.TimeoutException) {
             // 走得到这里说明用户点了「取消跳过」而判定又没做完，预算已耗尽；
             // 与竞速超时同样按拒绝，否则等了 90s 反而放行
-            Log.w(TAG, "CHECK_SCRIPT 判定未在预算内完成，deny: $scriptPath")
+            Log.w(TAG, "CHECK_SCRIPT judge not done within budget, deny: $scriptPath")
             detect.cancel(false)
-            DetectResult.Deny("安全检测超时，已阻止执行")
+            DetectResult.Deny(str(R.string.sec_detect_timeout_blocked))
         } catch (t: Throwable) {
-            Log.w(TAG, "CHECK_SCRIPT 取判定结果异常，放行: ${t.message}")
-            DetectResult.Allow("安全检测未完成，已放行")
+            Log.w(TAG, "CHECK_SCRIPT failed to get judge result, allow: ${t.message}")
+            DetectResult.Allow(str(R.string.sec_detect_incomplete_allowed))
         }
     }
 
@@ -608,7 +629,7 @@ object SecuritySocketServer {
         try {
             skipGate.get(RiskConfirmManager.CONFIRM_WAIT_SECONDS.toLong(), TimeUnit.SECONDS)
         } catch (t: Throwable) {
-            Log.w(TAG, "CHECK_SCRIPT 等待跳过决策失败: ${t.message}")
+            Log.w(TAG, "CHECK_SCRIPT failed to await skip decision: ${t.message}")
             false
         }
 
@@ -645,7 +666,7 @@ object SecuritySocketServer {
                     if (dets.isNotEmpty()) {
                         val first = dets.first()
                         return DetectResult.Deny(
-                            reason = "脚本包含 ${first.detection.description}（行 ${first.lineNumber}）",
+                            reason = str(R.string.sec_script_contains, first.detection.description, first.lineNumber),
                             riskType = first.detection.riskType?.displayName
                         )
                     }
@@ -677,7 +698,7 @@ object SecuritySocketServer {
                         if (result.agentResponded) {
                             if (result.verdict == AgentScriptJudge.Verdict.DANGEROUS) {
                                 return DetectResult.Deny(
-                                    reason = result.reason.ifBlank { "Agent 判定为危险脚本" },
+                                    reason = result.reason.ifBlank { str(R.string.sec_agent_dangerous_script) },
                                     riskType = result.riskType
                                 )
                             }
@@ -693,7 +714,7 @@ object SecuritySocketServer {
                                 AgentScriptJudge.Verdict.ERROR   -> "AGENT_ERROR"
                                 else                              -> "AGENT_ABNORMAL"
                             }
-                            val detail = result.reason.ifBlank { "Agent 判定未返回" }
+                            val detail = result.reason.ifBlank { str(R.string.sec_agent_no_result) }
                             return DetectResult.Allow("$verdictTag|$detail")
                         }
                         // 本地静态检测出危险（命中本地正则）→ 按本地结果拦截，不走二次确认
@@ -702,13 +723,13 @@ object SecuritySocketServer {
                         agentSemaphore.release()
                     }
                 } else {
-                    Log.w(TAG, "Agent 判定并发忙，跳过 Agent 直接本地检测")
+                    Log.w(TAG, "Agent judge busy, skipping Agent and running local detection")
                 }
             }
             localScriptDetect(trimmed)
         } catch (t: Throwable) {
             // 任何异常都不能让检测流程卡死/无响应，一律放行但返回异常原因
-            Log.w(TAG, "脚本检测异常，放行: ${t.message}")
+            Log.w(TAG, "script detection failed, allow: ${t.message}")
             DetectResult.Allow((t.message ?: t.javaClass.simpleName).take(200))
         }
     }
@@ -723,15 +744,15 @@ object SecuritySocketServer {
             if (detections.isNotEmpty()) {
                 val first = detections.first()
                 DetectResult.Deny(
-                    reason = "脚本包含 ${first.detection.description}（行 ${first.lineNumber}）",
+                    reason = str(R.string.sec_script_contains, first.detection.description, first.lineNumber),
                     riskType = first.detection.riskType?.displayName
                 )
             } else {
                 DetectResult.Allow()
             }
         } catch (e: Exception) {
-            Log.w(TAG, "本地脚本检测异常: ${e.message}")
-            DetectResult.Allow("本地脚本检测异常: ${e.message}")
+            Log.w(TAG, "local script detection failed: ${e.message}")
+            DetectResult.Allow(str(R.string.sec_local_detect_error, e.message ?: ""))
         }
     }
 

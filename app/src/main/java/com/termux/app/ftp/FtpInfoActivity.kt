@@ -84,7 +84,7 @@ fun FtpInfoScreen() {
     Scaffold(
         topBar = {
             GlassTopAppBar(
-                title = "FTP 连接信息",
+                title = stringResource(R.string.filemanager_ftp_info),
                 backdrop = glassPage.backdrop,
                 navigationIcon = {
                     GlassIconButton(onClick = { (context as FtpInfoActivity).finish() }) {
@@ -119,7 +119,7 @@ fun FtpInfoScreen() {
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "地址: ftp://$ipAddress:$port",
+                        text = stringResource(R.string.ftp_address_value, ipAddress, port),
                         style = TextStyle(
                             fontSize = 16.sp,
                             color = MiuixTheme.colorScheme.onSurface,

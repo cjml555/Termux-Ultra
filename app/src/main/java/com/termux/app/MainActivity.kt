@@ -30,6 +30,7 @@ import com.termux.app.compose.MainScreen
 import com.termux.shared.termux.TermuxConstants
 import com.termux.shared.termux.shell.command.runner.terminal.TermuxSession as SharedTermuxSession
 import com.termux.app.TermuxService
+import com.termux.R
 
 class AppViewModel : ViewModel() {
     private val _showVnc = MutableStateFlow(false)
@@ -219,11 +220,10 @@ class MainActivity : FragmentActivity() {
                                 // 且效仿 Java 版策略：只创建未初始化的终端条目，不跳转。
                                 val composeSessionManager =
                                     com.termux.app.terminal.shell.ComposeSessionManager.getInstance(this)
-                                val sessionName = if (LocaleHelper.isChinese(this)) {
-                                    "会话 ${composeSessionManager.sessions.value.size + 1}"
-                                } else {
-                                    "Session ${composeSessionManager.sessions.value.size + 1}"
-                                }
+                                val sessionName = getString(
+                                    R.string.session_display_number,
+                                    composeSessionManager.sessions.value.size + 1
+                                )
                                 composeSessionManager
                                     .createDefaultSession(startImmediately = false)
                                     .sessionName.value = sessionName
@@ -232,11 +232,10 @@ class MainActivity : FragmentActivity() {
                                 // 新建会话并直接进入该会话的控制台。
                                 val composeSessionManager =
                                     com.termux.app.terminal.shell.ComposeSessionManager.getInstance(this)
-                                val sessionName = if (LocaleHelper.isChinese(this)) {
-                                    "会话 ${composeSessionManager.sessions.value.size + 1}"
-                                } else {
-                                    "Session ${composeSessionManager.sessions.value.size + 1}"
-                                }
+                                val sessionName = getString(
+                                    R.string.session_display_number,
+                                    composeSessionManager.sessions.value.size + 1
+                                )
                                 val newSession =
                                     composeSessionManager.createDefaultSession(startImmediately = true)
                                 newSession.sessionName.value = sessionName
@@ -288,11 +287,10 @@ class MainActivity : FragmentActivity() {
                     try {
                         val composeSessionManager =
                             com.termux.app.terminal.shell.ComposeSessionManager.getInstance(this)
-                        val sessionName = if (LocaleHelper.isChinese(this)) {
-                            "会话 ${composeSessionManager.sessions.value.size + 1}"
-                        } else {
-                            "Session ${composeSessionManager.sessions.value.size + 1}"
-                        }
+                        val sessionName = getString(
+                            R.string.session_display_number,
+                            composeSessionManager.sessions.value.size + 1
+                        )
                         val newSession = composeSessionManager.createDefaultSession(startImmediately = true)
                         newSession.sessionName.value = sessionName
                         composeSessionManager.switchTo(newSession.id)

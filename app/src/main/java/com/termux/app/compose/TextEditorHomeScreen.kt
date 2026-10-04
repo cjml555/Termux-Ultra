@@ -133,7 +133,7 @@ fun TextEditorHomeScreen(
                         iconColor = Color(0xFF0EA5E9),
                         iconBgColor = Color(0xFF0EA5E9).copy(alpha = 0.12f),
                         title = stringResource(R.string.text_editor_new_file),
-                        subtitle = "创建一个空白文件",
+                        subtitle = stringResource(R.string.text_editor_create_blank),
                         onClick = onNewFile
                     )
                     ActionCard(
@@ -142,7 +142,7 @@ fun TextEditorHomeScreen(
                         iconColor = Color(0xFF2563EB),
                         iconBgColor = Color(0xFF2563EB).copy(alpha = 0.12f),
                         title = stringResource(R.string.text_editor_open_file),
-                        subtitle = "从本地选择文件",
+                        subtitle = stringResource(R.string.text_editor_pick_local),
                         onClick = onPickFile
                     )
                 }

@@ -10,6 +10,7 @@ import android.os.IBinder
 import android.provider.OpenableColumns
 import com.google.gson.JsonObject
 import androidx.activity.compose.setContent
+import androidx.annotation.StringRes
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.viewModels
@@ -86,6 +87,19 @@ import top.yukonga.miuix.kmp.window.WindowDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import java.io.File
+
+/**
+ * Texto localizado del recurso [res] para el codigo que no tiene Context a mano
+ * (el ViewModel y los helpers de nivel superior). Mismo patron que
+ * AiTermuxEngine / AiLocalModel: se resuelve por el context que
+ * AiLocalModel.init() guarda desde la Activity, en lugar de propagar un
+ * parametro por cada firma. Si el context aun no esta inicializado devuelve
+ * un guion: preferimos un texto vacio a reventar.
+ */
+private fun str(@StringRes res: Int, vararg args: Any): String {
+    val c = AiLocalModel.context() ?: return "-"
+    return if (args.isEmpty()) c.getString(res) else c.getString(res, *args)
+}
 
 class AiTermuxActivity : FragmentActivity() {
 
@@ -283,7 +297,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
             } else {
                 messages.add(ChatMessage(
                     role = "assistant",
-                    content = "⚠️ 执行出错",
+                    content = ctx.getString(R.string.agent_exec_error_warn),
                     errorMessage = ctx.getString(R.string.agent_internal_error, throwable.message ?: ctx.getString(R.string.agent_status_unknown))
                 ))
             }
@@ -505,11 +519,11 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                     repeat(toRemove) { messages.removeAt(0) }
                     messages.add(0, ChatMessage(
                         role = "assistant",
-                        content = "📎 历史会话已自动压缩（无在线模型可用，直接截断到最近 $keepRecent 条）"
+                        content = ctx.getString(R.string.agent_history_compressed, keepRecent)
                     ))
                 }
             }
-            return CompressResult(summary = "（无在线模型，直接截断）", keptRecent = keepRecent)
+            return CompressResult(summary = ctx.getString(R.string.agent_history_truncated), keptRecent = keepRecent)
         }
 
         val providerCfg = AiProviderConfig(
@@ -551,7 +565,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                 repeat(toRemove) { messages.removeAt(0) }
                 messages.add(0, ChatMessage(
                     role = "assistant",
-                    content = "📎 历史会话自动压缩摘要：\\n\\n$summary\\n\\n（以上是之前的对话摘要，以下是最近的对话）"
+                    content = ctx.getString(R.string.agent_history_summary, summary)
                 ))
             }
         }
@@ -699,7 +713,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                     if (idx2 >= 0) {
                         messages[idx2] = messages[idx2].copy(
                             skillCard = resultCard,
-                            content = if (result.success) "" else "⚠️ 执行出错"
+                            content = if (result.success) "" else ctx.getString(R.string.agent_exec_error_warn)
                         )
                     }
                 }
@@ -729,8 +743,8 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
             messages[idx] = old.copy(
                 skillCard = card.copy(
                     status = SkillStatus.FAILED,
-                    title = "已取消",
-                    description = "二次确认未通过，用户取消了该危险操作"
+                    title = str(R.string.cancelled),
+                    description = ctx.getString(R.string.agent_cancelled_dangerous)
                 )
             )
         }
@@ -762,8 +776,8 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
             messages[idx] = old.copy(
                 skillCard = card.copy(
                     status = SkillStatus.FAILED,
-                    title = "已取消",
-                    description = "用户取消了该危险操作"
+                    title = str(R.string.cancelled),
+                    description = ctx.getString(R.string.agent_user_cancelled_dangerous)
                 )
             )
         }
@@ -998,8 +1012,8 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                     val idx = messages.indexOfFirst { it.id == streamMsgId }
                     if (idx >= 0) {
                         messages[idx] = messages[idx].copy(
-                            content = "调用 AI 时出错了",
-                            errorMessage = "API 错误：$streamError"
+                            content = ctx.getString(R.string.agent_ai_error),
+                            errorMessage = ctx.getString(R.string.agent_api_error, streamError ?: "")
                         )
                     }
                 }
@@ -1034,7 +1048,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                     val idx = messages.indexOfFirst { it.id == streamMsgId }
                     if (idx >= 0) {
                         messages[idx] = messages[idx].copy(
-                            content = "⚠️ AI 只进行了深度思考，未输出实际回复。点击查看原始 API 响应以供排查。",
+                            content = ctx.getString(R.string.agent_thinking_only),
                             reasoningContent = reasoningText,
                             reasoningDone = true,
                             rawResponse = rawResponseText
@@ -1075,8 +1089,8 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                     val idx = messages.indexOfFirst { it.id == streamMsgId }
                     if (idx >= 0) {
                         messages[idx] = messages[idx].copy(
-                            content = "⚠️ AI 未输出任何内容（可能是本地模型推理异常）",
-                            errorMessage = "本地模型返回为空，可能原因：模型输出格式不匹配、进程启动失败、或模型文件异常"
+                            content = ctx.getString(R.string.agent_local_model_empty),
+                            errorMessage = ctx.getString(R.string.agent_local_model_empty_hint)
                         )
                     }
                 }
@@ -1116,7 +1130,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                         val idx = messages.indexOfFirst { it.id == streamMsgId }
                         if (idx >= 0) {
                             messages[idx] = messages[idx].copy(
-                                content = "⚠️ 检测到 AI 输出不规范，但已达重试上限，已接受输出。",
+                                content = ctx.getString(R.string.agent_output_noncompliant),
                                 isWarning = true
                             )
                         }
@@ -1137,14 +1151,14 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                         val idx = messages.indexOfFirst { it.id == streamMsgId }
                         if (idx >= 0) {
                             messages[idx] = messages[idx].copy(
-                                content = "⚠️ 检测到 AI 幻觉输出（${finalViolations.firstOrNull() ?: "违反禁令"}），正在要求重新生成…",
+                                content = ctx.getString(R.string.agent_hallucination, finalViolations.firstOrNull() ?: ctx.getString(R.string.agent_violation_title)),
                                 isWarning = true
                             )
                         }
                     }
                     persistConversations(ctx)
 
-                    val shortReason = finalViolations.firstOrNull() ?: "违反输出规范"
+                    val shortReason = finalViolations.firstOrNull() ?: str(R.string.agent_violation_title)
                     val originalReplyPreview = replyText.take(300) + if (replyText.length > 300) "..." else ""
                     currentUserText = buildString {
                         appendLine("[检测到不规范输出] $shortReason")
@@ -1190,7 +1204,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                             if (idx2 >= 0) {
                                 val currentContent = messages[idx2].content
                                 messages[idx2] = messages[idx2].copy(
-                                    content = currentContent + "\n\n🛠️ AI 创造了新技能: **** - ",
+                                    content = currentContent + "\n\n" + ctx.getString(R.string.agent_new_skill_created),
                                     isWarning = false
                                 )
                             }
@@ -1244,7 +1258,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                     val idx = messages.indexOfFirst { it.id == streamMsgId }
                     if (idx >= 0) {
                         messages[idx] = messages[idx].copy(
-                            content = "⚠️ 检测到 AI 陷入循环（连续 $consecutiveSameSkill 次执行相同操作），已自动停止。",
+                            content = ctx.getString(R.string.agent_loop_detected, consecutiveSameSkill),
                             isWarning = true
                         )
                     }
@@ -1264,8 +1278,8 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
             // 如果有被跳过的卡片，显示提示
             if (skippedSkills.isNotEmpty()) {
                 val skipMsg = buildString {
-                    append("⚠️ 以下 ${skippedSkills.size} 个操作已被跳过（重复执行）")
-                    if (skillsToExecute.isNotEmpty()) append("，将执行其余 ${skillsToExecute.size} 个操作")
+                    append(ctx.getString(R.string.agent_skipped_dup, skippedSkills.size))
+                    if (skillsToExecute.isNotEmpty()) append(ctx.getString(R.string.agent_skipped_dup_rest, skillsToExecute.size))
                     append("。")
                 }
                 synchronized(messages) {
@@ -1281,8 +1295,8 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                     val sk = runCatching { SkillType.valueOf(skStr) }.getOrNull()
                     val skipCard = SkillCardData(
                         skillType = sk ?: SkillType.RUN_COMMAND,
-                        title = "已跳过（重复执行）",
-                        description = "此操作已在之前的回复中生成，无需重复执行",
+                        title = ctx.getString(R.string.agent_skipped_label),
+                        description = ctx.getString(R.string.agent_skipped_desc),
                         status = SkillStatus.COMPLETED
                     )
                     val skipId = "skip_${System.currentTimeMillis()}_${Math.random()}"
@@ -1341,8 +1355,8 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                         val idx = messages.indexOfFirst { it.id == streamMsgId }
                         if (idx >= 0) {
                             messages[idx] = messages[idx].copy(
-                                content = plainText.ifBlank { "（AI 重复回答已停止）" } +
-                                    "\n\n⚠️ 检测到 AI 陷入重复回答循环（$consecutiveSimilarReplies 次相似回复），已自动停止。",
+                                content = plainText.ifBlank { str(R.string.agent_repeat_reply_stopped) } +
+                                    "\n\n" + ctx.getString(R.string.agent_repeat_loop, consecutiveSimilarReplies),
                                 isWarning = true
                             )
                         }
@@ -1382,7 +1396,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                 if (dangerReason != null && st != null) {
                     val dangerCard = SkillCardData(
                         skillType = SkillType.CONFIRM_DANGEROUS,
-                        title = "危险操作，需要确认",
+                        title = ctx.getString(R.string.agent_dangerous_needs_confirm),
                         description = dangerReason,
                         status = SkillStatus.RUNNING,
                         dangerousReason = dangerReason,
@@ -1407,7 +1421,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
 
                 val runningCard = SkillCardData(
                     skillType = st ?: SkillType.RUN_COMMAND,
-                    title = "执行技能中…",
+                    title = ctx.getString(R.string.agent_exec_skills),
                     description = skillTypeStr,
                     status = SkillStatus.RUNNING
                 )
@@ -1427,7 +1441,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                 val result = runCatching {
                     SkillExecutor.executeSkill(ctx, svc, skillTypeStr, params)
                 }.getOrElse { e ->
-                    SkillExecutionResult(false, "执行异常: ${e.message}")
+                    SkillExecutionResult(false, ctx.getString(R.string.agent_exec_exception, e.message ?: ""))
                 }
 
                 val actualSkillType = result.skillCard?.skillType ?: st ?: SkillType.RUN_COMMAND
@@ -1451,7 +1465,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                             status = if (result.success) SkillStatus.COMPLETED else SkillStatus.FAILED
                         )
                         messages[idx] = messages[idx].copy(
-                            content = if (result.success) "" else "⚠️ 执行出错",
+                            content = if (result.success) "" else ctx.getString(R.string.agent_exec_error_warn),
                             skillCard = resultCard
                         )
 
@@ -1517,7 +1531,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
     }
 
     private fun buildSkillResultText(card: SkillCardData, defaultMsg: String): String {
-        val status = if (card.status == SkillStatus.COMPLETED) "成功" else "失败"
+        val status = if (card.status == SkillStatus.COMPLETED) str(R.string.agent_exec_success) else str(R.string.agent_exec_failed)
         val output = if (!card.output.isNullOrBlank()) "\n${card.output}" else ""
         val desc = card.description.ifBlank { defaultMsg }
         return "[技能结果] ${card.skillType.name} $status：$desc$output"
@@ -1529,14 +1543,14 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
             ?.let { params.get(it).asString }
             .orEmpty()
         return when (type) {
-            SkillType.RUN_COMMAND -> "执行命令：$command"
-            SkillType.CUSTOM_COMMAND -> "执行自定义命令：$command"
-            SkillType.CAPTURE_OUTPUT -> "执行并捕获输出：$command"
-            SkillType.COMPILE_CODE -> "执行编译命令：$command"
-            SkillType.SUB_AGENT -> "子 Agent 执行：$command"
-            SkillType.FILE_DELETE -> "删除：${if (params.has("path")) params.get("path").asString else ""}"
-            SkillType.CLOSE_ALL_SESSIONS -> "关闭全部会话"
-            SkillType.EXIT_TERMUX -> "退出 Termux"
+            SkillType.RUN_COMMAND -> str(R.string.agent_cmd_run, command)
+            SkillType.CUSTOM_COMMAND -> str(R.string.agent_cmd_custom, command)
+            SkillType.CAPTURE_OUTPUT -> str(R.string.agent_cmd_run_capture, command)
+            SkillType.COMPILE_CODE -> str(R.string.agent_cmd_build, command)
+            SkillType.SUB_AGENT -> str(R.string.agent_cmd_subagent, command)
+            SkillType.FILE_DELETE -> str(R.string.agent_card_path, if (params.has("path")) params.get("path").asString else "")
+            SkillType.CLOSE_ALL_SESSIONS -> str(R.string.agent_close_all_sessions)
+            SkillType.EXIT_TERMUX -> str(R.string.agent_cmd_exit)
             else -> type.name
         }
     }
@@ -1596,7 +1610,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
             return
         }
         val text = buildString {
-            appendLine("# Termux Agent 对话记录")
+            appendLine("# " + context.getString(R.string.agent_conv_export_title))
             appendLine()
             for (msg in snapshot) {
                 val label = when (msg.role) { "user" -> context.getString(R.string.user_label); "assistant" -> "AI"; else -> msg.role }
@@ -1609,7 +1623,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, text)
-            putExtra(Intent.EXTRA_TITLE, "Termux Agent 对话记录")
+            putExtra(Intent.EXTRA_TITLE, context.getString(R.string.agent_conv_export_title))
         }
         runCatching {
             context.startActivity(Intent.createChooser(intent, context.getString(R.string.agent_conv_export)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
@@ -1835,7 +1849,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                             }
                             Spacer(Modifier.height(6.dp))
                             Text(
-                                text = "本地大模型在设备端运行，会占用较多内存与电量，推理速度有限。建议在具备充足存储、内存（≥ 2GB 空闲）与散热的设备上使用，下载需数百 MB 至数十 GB 不等。",
+                                text = stringResource(R.string.agent_local_model_warn),
                                 fontSize = 12.sp,
                                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                             )
@@ -1927,7 +1941,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                                     sizeB >= 1024L * 1024L -> "%.1f MB".format(sizeB.toFloat() / (1024L * 1024L))
                                                     else -> "${sizeB / 1024} KB"
                                                 }
-                                                "下载并配置（约 $sizeStr）"
+                                                ctx.getString(R.string.agent_download_configure, sizeStr)
                                             },
                                             fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White
                                         )
@@ -1940,7 +1954,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                 }
 
                 // 本地推理引擎选择
-                item { SectionTitle("本地推理引擎") }
+                item { SectionTitle(stringResource(R.string.agent_section_engine)) }
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
@@ -2199,7 +2213,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                                     settingsScope.launch {
                                                         ollamaPulling.value = true
                                                         ollamaPullProgress.value = 0f
-                                                        ollamaPullMsg.value = "正在下载 ${ollamaEntry.displayName}…"
+                                                        ollamaPullMsg.value = ctx.getString(R.string.agent_downloading, ollamaEntry.displayName)
                                                         val ok = AiOllamaManager.pullModel(ollamaEntry.ollamaModelName) { p, msg ->
                                                             ollamaPullProgress.value = p
                                                             ollamaPullMsg.value = msg
@@ -2314,7 +2328,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
             }
 
             if (provider == "local") {
-            item { SectionTitle("3. 温度 (%.1f)".format(temperature)) }
+            item { SectionTitle(stringResource(R.string.agent_step_temp).format(temperature)) }
             item {
                 Slider(
                     value = temperature,
@@ -2326,7 +2340,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
             }
             }
 
-            item { SectionTitle("4. 自定义 System Prompt（可选）") }
+            item { SectionTitle(stringResource(R.string.agent_step_custom_prompt)) }
             item {
                 TextField(
                     value = customPrompt,
@@ -2415,7 +2429,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                 return@Button
                             }
                             if (apiKey.isBlank()) {
-                                testResult = "❌ 请先填写 API Key"
+                                testResult = ctx.getString(R.string.agent_api_key_required)
                                 return@Button
                             }
                             val newCfg = AiTermuxConfig(
@@ -2622,10 +2636,10 @@ private fun formatRelativeTime(ts: Long): String {
     val hour = 60 * min
     val day = 24 * hour
     return when {
-        diff < min -> "刚刚"
-        diff < hour -> "${diff / min} 分钟前"
-        diff < day -> "${diff / hour} 小时前"
-        diff < 30 * day -> "${diff / day} 天前"
+        diff < min -> str(R.string.agent_time_now)
+        diff < hour -> str(R.string.agent_time_min, diff / min)
+        diff < day -> str(R.string.agent_time_hour, diff / hour)
+        diff < 30 * day -> str(R.string.agent_time_day, diff / day)
         else -> java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date(ts))
     }
 }
@@ -2775,7 +2789,7 @@ private fun AiConversationManagementScreen(
                                 )
                                 Spacer(Modifier.height(4.dp))
                                 Text(
-                                    text = "${conv.messages.size} 条消息 · ${formatRelativeTime(conv.updatedAt)}",
+                                    text = stringResource(R.string.agent_conv_msgs, conv.messages.size, formatRelativeTime(conv.updatedAt)),
                                     fontSize = 11.sp,
                                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary
                                 )
@@ -2801,10 +2815,10 @@ private fun AiConversationManagementScreen(
             summary = stringResource(R.string.agent_conv_delete_confirm),
             content = {
                 Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                    TextButton(text = "取消", onClick = { pendingDeleteId = null }, modifier = Modifier.weight(1f))
+                    TextButton(text = stringResource(R.string.cancel), onClick = { pendingDeleteId = null }, modifier = Modifier.weight(1f))
                     Spacer(Modifier.width(16.dp))
                     TextButton(
-                        text = "删除",
+                        text = stringResource(R.string.delete),
                         onClick = {
                             pendingDeleteId?.let { vm.deleteConversation(ctx, it) }
                             pendingDeleteId = null
@@ -2858,7 +2872,7 @@ private fun AiChatScreen(vm: AiTermuxViewModel, conversationId: String, onBack: 
     }
     top.yukonga.miuix.kmp.overlay.OverlayDialog(
         title = stringResource(R.string.train_local_hint),
-        summary = "检测到您现在使用的是本地模型。可前往设置页 → Termux Agent → 「训练本地模型」进行 System Prompt 蒸馏训练：\n\n• 如果配置了备用在线大模型，将由在线老师全自动出题、批改、评分，并自动把每轮的教训追加到 System Prompt 末尾。\n• 如果没有备用在线大模型，您可以手动打分并给出改进建议，系统还会提供启发式参考评分。",
+        summary = stringResource(R.string.agent_train_hint_summary),
         show = showFirstTrainHint,
         onDismissRequest = { showFirstTrainHint = false; AiTermuxPrefs.markTrainHintShown(ctx) },
         content = {
@@ -3062,7 +3076,7 @@ private fun AiChatScreen(vm: AiTermuxViewModel, conversationId: String, onBack: 
                                                         sz >= 1024 -> "%.1fKB".format(sz.toFloat() / 1024)
                                                         else -> "${sz}B"
                                                     }
-                                                    append("📎 附件：$fname（$sizeStr，路径：$fpath）\n")
+                                                    append(ctx.getString(R.string.agent_attachment_meta, fname, sizeStr, fpath) + "\\n")
                                                 }
                                                 if (text.isNotBlank()) append(text)
                                             }
@@ -3177,7 +3191,7 @@ private fun AiChatImessageTopBar(
                 GlassIconButton(onClick = onBack) {
                     Icon(
                         imageVector = MiuixIcons.Back,
-                        contentDescription = "返回",
+                        contentDescription = stringResource(R.string.back),
                         modifier = Modifier.size(24.dp),
                         tint = MiuixTheme.colorScheme.onSurface
                     )
@@ -3232,7 +3246,7 @@ private fun AiChatTopActions(vm: AiTermuxViewModel, onOpenSetup: () -> Unit) {
     val pendingCount = tasks.count { it.status != "done" && it.status != "cancelled" }
 
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 4.dp)) {
-        TopActionButton(Icons.Rounded.Checklist, "任务列表", badge = pendingCount > 0) { showTaskList = true }
+        TopActionButton(Icons.Rounded.Checklist, stringResource(R.string.task_list), badge = pendingCount > 0) { showTaskList = true }
         TopActionButton(Icons.Rounded.MoreVert, stringResource(R.string.more_actions)) { showMoreMenu = true }
     }
 
@@ -3397,10 +3411,10 @@ private fun TopActionRow(text: String, danger: Boolean = false, onClick: () -> U
 }
 
 private fun statusLabel(status: String): String = when (status) {
-    "done" -> "已完成"
-    "in_progress" -> "进行中"
-    "cancelled" -> "已取消"
-    else -> "待办"
+    "done" -> str(R.string.agent_status_done)
+    "in_progress" -> str(R.string.agent_status_in_progress)
+    "cancelled" -> str(R.string.cancelled)
+    else -> str(R.string.agent_status_pending)
 }
 
 @Composable
@@ -3507,7 +3521,7 @@ fun TaskBar(
         }
         if (activeTasks.size > 3) {
             Text(
-                text = "+${activeTasks.size - 3} 更多...",
+                text = stringResource(R.string.agent_task_more, activeTasks.size - 3),
                 style = TextStyle(fontSize = 11.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary),
                 modifier = Modifier.padding(top = 2.dp)
             )
@@ -3568,14 +3582,14 @@ private fun WelcomeChatCard(isDark: Boolean) {
         }
         Spacer(Modifier.height(10.dp))
         Text(
-            "你好，我是 Termux Agent",
+            stringResource(R.string.agent_welcome_title),
             color = Color.White,
             fontWeight = FontWeight.Bold,
             fontSize = 16.sp
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            "用自然语言管理你的终端 —— 执行命令、管理文件、连接 VNC/SSH、启动 QEMU 虚拟机。",
+            stringResource(R.string.agent_intro),
             color = Color.White.copy(alpha = 0.92f),
             fontSize = 12.5.sp,
             lineHeight = 20.sp
@@ -3588,7 +3602,7 @@ private fun WelcomeChatCard(isDark: Boolean) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val examples = listOf("🔧 执行命令", "📦 安装软件包", "🖥️ VNC/SSH", "💻 QEMU 虚拟机")
+            val examples = listOf(stringResource(R.string.agent_example_cmd), stringResource(R.string.agent_example_pkg), stringResource(R.string.agent_example_vnc), stringResource(R.string.agent_example_qemu))
             for (ex in examples) {
                 Box(
                     modifier = Modifier
@@ -3611,11 +3625,11 @@ private fun WelcomeChatCard(isDark: Boolean) {
 @Composable
 private fun QuickChips(vm: AiTermuxViewModel, inputText: String, setInput: (String) -> Unit) {
     val suggestions = listOf(
-        "查看当前目录",
-        "安装 Python 包",
-        "新建 SSH 会话",
-        "启动 QEMU 虚拟机",
-        "清理缓存文件"
+        stringResource(R.string.agent_suggest_dir),
+        stringResource(R.string.agent_suggest_pip),
+        stringResource(R.string.agent_suggest_ssh),
+        stringResource(R.string.agent_suggest_qemu),
+        stringResource(R.string.agent_suggest_clean)
     )
     val isDark = isSystemInDarkTheme()
     val chipBg = if (isDark) Color(0xFF242424) else Color(0xFFFFFFFF)
@@ -3877,7 +3891,7 @@ private fun ChatBubble(msg: ChatMessage, vm: AiTermuxViewModel) {
                     onDismiss = { showMessageMenu = false },
                     onCopy = {
                         val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("消息", msg.content))
+                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText(ctx.getString(R.string.messages), msg.content))
                         SnackbarHelper.show(ctx, ctx.getString(R.string.agent_copied), Snackbar.LENGTH_SHORT, null)
                     },
                     onRegenerate = { vm.regenerateLast() },
@@ -4336,12 +4350,12 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
 
                 // 会话 / 连接信息行
                 val sessionText = if (!card.sessionName.isNullOrBlank()) {
-                    "会话：${card.sessionName}"
+                    stringResource(R.string.agent_card_session, card.sessionName!!)
                 } else null
-                val connText = card.connectionAddress?.let { "地址：$it" }
-                val vmText = card.vmName?.let { "虚拟机：$it" }
-                val fileText = card.filePath?.let { "路径：$it" }
-                val cmdText = card.command?.let { "命令：$it" }
+                val connText = card.connectionAddress?.let { stringResource(R.string.agent_card_addr, it) }
+                val vmText = card.vmName?.let { stringResource(R.string.agent_card_vm, it) }
+                val fileText = card.filePath?.let { stringResource(R.string.agent_card_path, it) }
+                val cmdText = card.command?.let { stringResource(R.string.agent_card_cmd, it) }
                 val meta = listOfNotNull(sessionText, connText, vmText, fileText, cmdText)
                 if (meta.isNotEmpty()) {
                     HorizontalDivider(color = borderColor)
@@ -4361,7 +4375,7 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
                     if (output.isNotBlank()) {
                         HorizontalDivider(color = borderColor)
                         val isLong = output.length > 400
-                        val display = if (isLong) output.take(400) + "\n…… (输出过长，已截断，请在终端中查看完整结果)" else output
+                        val display = if (isLong) output.take(400) + "\n" + stringResource(R.string.agent_output_truncated) else output
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -4828,7 +4842,7 @@ private fun AgentSkillCard(msgId: String, card: SkillCardData, errorMsg: String?
                                         .background(statusColor)
                                 )
                                 Text(
-                                    text = "$agentLabel 正在执行…",
+                                    text = stringResource(R.string.agent_agent_running, agentLabel),
                                     style = TextStyle(fontSize = 12.sp, color = statusColor)
                                 )
                             } else {

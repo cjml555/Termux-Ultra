@@ -2,6 +2,8 @@ package com.termux.app.compose
 
 import android.content.Context
 import android.util.Log
+import androidx.annotation.StringRes
+import com.termux.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -57,6 +59,15 @@ object AgentScriptJudge {
 
     enum class Verdict {
         SAFE, DANGEROUS, SKIP, TIMEOUT, ERROR
+    }
+
+    /**
+     * Resuelve un recurso con el context de la app: los motivos de veredicto
+     * llegan a la UI (historial y dialogos) desde hilos sin Activity.
+     */
+    private fun str(@StringRes res: Int, vararg args: Any): String {
+        val c = AiLocalModel.context() ?: return "-"
+        return if (args.isEmpty()) c.getString(res) else c.getString(res, *args)
     }
 
     /** 一条 Agent 判定历史记录 */
@@ -139,7 +150,7 @@ object AgentScriptJudge {
     fun judge(context: Context, filePath: String): JudgeResult {
         val file = File(filePath)
         if (!file.exists() || !file.canRead()) {
-            return JudgeResult(Verdict.SKIP, "脚本文件不存在或不可读")
+            return JudgeResult(Verdict.SKIP, str(R.string.agent_judge_file_unreadable))
         }
         // 大小硬上限：超过 50KB 只做本地检测
         if (file.length() > MAX_SCRIPT_BYTES) {
@@ -150,10 +161,10 @@ object AgentScriptJudge {
             file.readText(Charsets.UTF_8)
         } catch (oom: OutOfMemoryError) {
             Log.e(TAG, "读取脚本 OOM: ${oom.message}")
-            return JudgeResult(Verdict.SKIP, "脚本读取失败：内存不足")
+            return JudgeResult(Verdict.SKIP, str(R.string.agent_judge_read_oom))
         } catch (e: Exception) {
             Log.e(TAG, "读取脚本异常: ${e.message}")
-            return JudgeResult(Verdict.SKIP, "无法读取脚本内容")
+            return JudgeResult(Verdict.SKIP, str(R.string.agent_judge_read_failed))
         }
         return judgeContent(context, filePath, content)
     }
@@ -166,13 +177,13 @@ object AgentScriptJudge {
             val detections = RiskCommandDetector.detectScript(expanded)
             JudgeResult(
                 verdict = if (detections.isNotEmpty()) Verdict.DANGEROUS else Verdict.SAFE,
-                reason = detections.firstOrNull()?.detection?.description ?: "Agent 判定跳过，使用本地检测",
+                reason = detections.firstOrNull()?.detection?.description ?: str(R.string.agent_judge_skipped_local),
                 riskType = detections.firstOrNull()?.detection?.riskType?.displayName,
                 agentResponded = false,
                 localDetections = detections
             )
         } catch (e: Exception) {
-            JudgeResult(Verdict.SKIP, "本地检测失败: ${e.message}")
+            JudgeResult(Verdict.SKIP, str(R.string.agent_judge_local_failed, e.message ?: ""))
         }
     }
 
@@ -191,13 +202,13 @@ object AgentScriptJudge {
                 val detections = RiskCommandDetector.detectScript(expanded)
                 JudgeResult(
                     verdict = if (detections.isNotEmpty()) Verdict.DANGEROUS else Verdict.SAFE,
-                    reason = detections.firstOrNull()?.detection?.description ?: "Agent 判定未启用",
+                    reason = detections.firstOrNull()?.detection?.description ?: str(R.string.agent_judge_disabled),
                     riskType = detections.firstOrNull()?.detection?.riskType?.displayName,
                     agentResponded = false,
                     localDetections = detections
                 )
             } catch (e: Exception) {
-                JudgeResult(Verdict.SKIP, "本地检测失败: ${e.message}")
+                JudgeResult(Verdict.SKIP, str(R.string.agent_judge_local_failed, e.message ?: ""))
             }
         }
 
@@ -226,13 +237,13 @@ object AgentScriptJudge {
                     Log.e(TAG, "Agent 判定 OOM: ${oom.message}")
                     localOnlyResult(trimmed).copy(
                         verdict = Verdict.ERROR,
-                        reason = "Agent 判定内存溢出，退回本地检测"
+                        reason = str(R.string.agent_judge_oom_fallback)
                     )
                 } catch (e: Exception) {
                     Log.e(TAG, "Agent 判定异常: ${e.message}")
                     localOnlyResult(trimmed).copy(
                         verdict = Verdict.ERROR,
-                        reason = "Agent 判定失败: ${e.message}"
+                        reason = str(R.string.agent_judge_failed, e.message ?: "")
                     )
                 }
             }
@@ -240,7 +251,7 @@ object AgentScriptJudge {
         // 硬超时 → 本地检测兜底（本地检测已被限定在毫秒级，不会卡住）
         val finalResult = result ?: runBlocking(Dispatchers.IO) { localOnlyResult(trimmed) }.copy(
             verdict = Verdict.TIMEOUT,
-            reason = "Agent 判定超时，已使用本地检测结果"
+            reason = str(R.string.agent_judge_timeout)
         )
         // 记录 Agent 判定历史（仅 Agent 真正回复的判定）
         recordHistory(context, filePath, finalResult)
@@ -314,7 +325,7 @@ object AgentScriptJudge {
         }
         return JudgeResult(
             verdict = if (detections.isNotEmpty()) Verdict.DANGEROUS else Verdict.SAFE,
-            reason = detections.firstOrNull()?.detection?.description ?: "Agent 判定未启用",
+            reason = detections.firstOrNull()?.detection?.description ?: str(R.string.agent_judge_disabled),
             riskType = detections.firstOrNull()?.detection?.riskType?.displayName,
             agentResponded = false,
             localDetections = detections
@@ -370,12 +381,12 @@ ${content.take(12000)}
         val text = if (cfg.provider == "local") {
             val localResp = AiApiClient.chat(context, cfg, messages)
             if (localResp.error != null) {
-                throw RuntimeException("本地模型判定失败: ${localResp.error.message}")
+                throw RuntimeException(str(R.string.agent_judge_local_model_failed, localResp.error.message ?: ""))
             }
             localResp.choices.firstOrNull()?.message?.content.orEmpty()
         } else {
             callAgentHttp(cfg, messages, extendedTimeout)
-                ?: throw RuntimeException("Agent API 请求失败或超时")
+                ?: throw RuntimeException(str(R.string.agent_judge_request_failed))
         }
 
         val jsonStr = text

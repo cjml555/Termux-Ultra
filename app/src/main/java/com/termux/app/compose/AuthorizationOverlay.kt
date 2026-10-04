@@ -44,7 +44,7 @@ fun AuthorizationMask() {
         topBar = {
             // 遮罩层是不透明 surface，没有内容可折射，玻璃顶栏退化为实底 pill
             GlassTopAppBar(
-                title = "授权",
+                title = stringResource(R.string.authorization_title),
                 backdrop = LocalGlassTopAppBarBackdrop.current,
             )
         }
@@ -55,7 +55,7 @@ fun AuthorizationMask() {
                 .padding(padding)
         ) {
             Text(
-                text = "敏感操作需要得到你的授权来继续",
+                text = stringResource(R.string.authorization_subtitle),
                 fontSize = 14.sp,
                 color = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 modifier = Modifier
@@ -86,7 +86,7 @@ fun DisableWarningMask() {
         topBar = {
             // 遮罩层是不透明 surface，没有内容可折射，玻璃顶栏退化为实底 pill
             GlassTopAppBar(
-                title = "授权",
+                title = stringResource(R.string.authorization_title),
                 backdrop = LocalGlassTopAppBarBackdrop.current,
             )
         }
@@ -97,7 +97,7 @@ fun DisableWarningMask() {
                 .padding(padding)
         ) {
             Text(
-                text = "敏感操作需要得到你的授权来继续",
+                text = stringResource(R.string.authorization_subtitle),
                 fontSize = 14.sp,
                 color = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 modifier = Modifier
@@ -110,7 +110,7 @@ fun DisableWarningMask() {
                 onDismissRequest = {
                     RiskConfirmManager.hideDisableWarning()
                 },
-                title = "调整VorteX Guard Engine模式？",
+                title = stringResource(R.string.adj_vortex_title),
                 summary = stringResource(summaryRes),
                 content = {
                     Column(
@@ -141,7 +141,7 @@ fun DisableWarningMask() {
                                 )
                             ) {
                                 Text(
-                                    text = "取消",
+                                    text = stringResource(R.string.cancel),
                                     color = MiuixTheme.colorScheme.onSurface,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Medium
@@ -170,7 +170,7 @@ fun DisableWarningMask() {
                                 )
                             ) {
                                 Text(
-                                    text = "确认调整",
+                                    text = stringResource(R.string.adj_vortex_confirm),
                                     color = Color.White,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Medium
@@ -201,8 +201,8 @@ private fun launchDisableBiometricAuth(
         return
     }
 
-    val title = "请验证您的身份以继续"
-    val subtitle = "确认调整"
+    val title = activity.getString(R.string.adj_auth_title)
+    val subtitle = activity.getString(R.string.adj_auth_subtitle)
 
     activity.startClass2BiometricOrCredentialAuthentication(
         title = title,

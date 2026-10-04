@@ -322,14 +322,18 @@ object FallbackHelper {
     }
 
     private fun showLowVersionDisabledHint(context: Context, page: ApiCompat.Page) {
-        val pageName = when (page) {
-            ApiCompat.Page.OVERVIEW -> "总览"
-            ApiCompat.Page.TERMINAL -> "终端"
-            ApiCompat.Page.FILES -> "文件"
-            ApiCompat.Page.REMOTE -> "远程"
-            ApiCompat.Page.RESOURCES -> "资源"
-            ApiCompat.Page.SETTINGS -> "设置"
-        }
+        // Los nombres de pagina ya existen como recursos sueltos (overview, terminal,
+        // files, remote, resources, settings); se reutilizan en vez de duplicarlos.
+        val pageName = context.getString(
+            when (page) {
+                ApiCompat.Page.OVERVIEW -> R.string.overview
+                ApiCompat.Page.TERMINAL -> R.string.terminal
+                ApiCompat.Page.FILES -> R.string.files
+                ApiCompat.Page.REMOTE -> R.string.remote
+                ApiCompat.Page.RESOURCES -> R.string.resources_center
+                ApiCompat.Page.SETTINGS -> R.string.settings
+            }
+        )
         try {
             val msg = context.getString(
                 R.string.low_android_runtime_disabled_page,

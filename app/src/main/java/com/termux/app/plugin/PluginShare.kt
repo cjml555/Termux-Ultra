@@ -3,9 +3,12 @@ package com.termux.app.plugin
 import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
+import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.content.FileProvider
+import com.termux.R
+import com.termux.app.compose.AiLocalModel
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -22,6 +25,15 @@ import java.util.zip.ZipOutputStream
  */
 object PluginShare {
 
+    /**
+     * Texto localizado del recurso [res] usando el context que AiLocalModel.init()
+     * guarda desde la Activity. Evita propagar un Context por las firmas de sharing.
+     */
+    private fun str(@StringRes res: Int, vararg args: Any): String {
+        val c = AiLocalModel.context() ?: return "-"
+        return if (args.isEmpty()) c.getString(res) else c.getString(res, *args)
+    }
+
     /** 分享插件元信息（纯文本） */
     fun shareMeta(context: Context, plugin: InstalledPlugin) {
         val text = buildMetaText(plugin)
@@ -31,7 +43,7 @@ object PluginShare {
             putExtra(Intent.EXTRA_TITLE, plugin.manifest.name)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        context.startActivity(Intent.createChooser(intent, "分享插件信息").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        context.startActivity(Intent.createChooser(intent, str(R.string.plugin_share_meta)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
     /** 把插件目录重新打包成 .tup 并分享出去 */
@@ -46,7 +58,7 @@ object PluginShare {
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            context.startActivity(Intent.createChooser(intent, "分享插件").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            context.startActivity(Intent.createChooser(intent, str(R.string.plugin_share_package)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             file
         }
     }
@@ -65,11 +77,12 @@ object PluginShare {
     fun buildMetaText(plugin: InstalledPlugin): String {
         val m = plugin.manifest
         val date = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(plugin.installedAt))
+        val sep = str(R.string.plugin_meta_list_sep)
         return buildString {
-            appendLine("插件：${m.name}")
-            appendLine("版本：${m.version}")
-            appendLine("作者：${m.author.ifBlank { "未知" }}")
-            appendLine("标识：${m.id}")
+            appendLine(str(R.string.plugin_meta_name, m.name))
+            appendLine(str(R.string.plugin_meta_version, m.version))
+            appendLine(str(R.string.plugin_meta_author, m.author.ifBlank { str(R.string.plugin_author_unknown) }))
+            appendLine(str(R.string.plugin_meta_id, m.id))
             if (m.description.isNotBlank()) {
                 appendLine()
                 appendLine(m.description)
@@ -77,17 +90,17 @@ object PluginShare {
             val permissions = m.getParsedPermissions()
             if (permissions.isNotEmpty()) {
                 appendLine()
-                appendLine("权限：${permissions.joinToString("、") { it.name }}")
+                appendLine(str(R.string.plugin_meta_permissions, permissions.joinToString(sep) { it.name }))
             }
             val abilities = mutableListOf<String>()
-            if (!m.entryPoints?.resourceCards.isNullOrEmpty()) abilities.add("资源卡片")
-            if (!m.entryPoints?.agentSkills.isNullOrEmpty()) abilities.add("技能卡片")
-            if (m.entryPoints?.h5Home?.enabled == true) abilities.add("H5 主页")
+            if (!m.entryPoints?.resourceCards.isNullOrEmpty()) abilities.add(str(R.string.plugin_ability_resource_cards))
+            if (!m.entryPoints?.agentSkills.isNullOrEmpty()) abilities.add(str(R.string.plugin_skill_card))
+            if (m.entryPoints?.h5Home?.enabled == true) abilities.add(str(R.string.plugin_h5_home))
             if (m.systemPrompt != null) abilities.add("System Prompt")
             if (abilities.isNotEmpty()) {
-                appendLine("能力：${abilities.joinToString("、")}")
+                appendLine(str(R.string.plugin_meta_abilities, abilities.joinToString(sep)))
             }
-            appendLine("安装时间：$date")
+            appendLine(str(R.string.plugin_meta_installed_at, date))
         }
     }
 

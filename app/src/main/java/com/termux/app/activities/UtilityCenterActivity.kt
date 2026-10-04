@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -69,11 +70,22 @@ class UtilityCenterActivity : ComponentActivity() {
                     WindowInsets.navigationBars.getBottom(density).toDp()
                 }
 
+                // Los textos salen de stringResource y no de literales: utilityItems
+                // se construye dentro de remember, y ahi no se puede llamar a una
+                // funcion composable. Se resuelven antes, como en OverviewScreen.
+                val resQemuVncDesc = stringResource(R.string.utility_center_qemu_vnc_desc)
+                val resDebianQemuDesc = stringResource(R.string.utility_center_debian_qemu_desc)
+                val resUbuntuInstallTitle = stringResource(R.string.utility_center_ubuntu_install_title)
+                val resUbuntuInstallDesc = stringResource(R.string.utility_center_ubuntu_install_desc)
+                val resQemuInstallName = stringResource(R.string.main_res_qemu_install_name)
+                val resQemuInstallDesc = stringResource(R.string.main_res_qemu_install_desc)
+                val resTmuxDesc = stringResource(R.string.main_res_tmux_desc)
+
                 val utilityItems = remember {
                     listOf(
                         ResourceItem(
                             title = "QEMU with VNC",
-                            description = "在 Termux 中通过 VNC 运行虚拟机，支持创建/导入磁盘，支持自定义 CPU、内存、CD-ROM、共享目录、引导顺序等",
+                            description = resQemuVncDesc,
                             url = "",
                             scriptUrl = "",
                             iconRes = R.drawable.ic_server,
@@ -82,7 +94,7 @@ class UtilityCenterActivity : ComponentActivity() {
                         ),
                         ResourceItem(
                             title = "Debian QEMU",
-                            description = "在 Termux 的 QEMU 中安装 Debian Linux 稳定发行版，支持 Docker",
+                            description = resDebianQemuDesc,
                             url = "",
                             scriptUrl = "debian_qemu",
                             iconRes = R.drawable.ic_server,
@@ -91,8 +103,8 @@ class UtilityCenterActivity : ComponentActivity() {
                             requiredFeature = ApiCompat.Feature.DEBIAN_QEMU
                         ),
                         ResourceItem(
-                            title = "Ubuntu 容器安装",
-                            description = "安装 Ubuntu Linux 容器（PRoot），为 QEMU 和其他服务提供运行环境",
+                            title = resUbuntuInstallTitle,
+                            description = resUbuntuInstallDesc,
                             url = "",
                             scriptUrl = "install_debian_container",
                             iconRes = R.drawable.ic_ubuntu,
@@ -100,7 +112,7 @@ class UtilityCenterActivity : ComponentActivity() {
                         ),
                         ResourceItem(
                             title = "tmux",
-                            description = "在 tmux 中后台执行任务，防止终端关闭导致进程结束",
+                            description = resTmuxDesc,
                             url = "tmux_help",
                             scriptUrl = "pkg install tmux -y",
                             iconRes = R.drawable.ic_terminal,
@@ -108,8 +120,8 @@ class UtilityCenterActivity : ComponentActivity() {
                             hasHelp = true
                         ),
                         ResourceItem(
-                            title = "QEMU 安装",
-                            description = "在 Linux 容器内安装 QEMU 虚拟机套件",
+                            title = resQemuInstallName,
+                            description = resQemuInstallDesc,
                             url = "",
                             scriptUrl = "install_qemu",
                             iconRes = R.drawable.ic_server,

@@ -1,13 +1,26 @@
 package com.termux.app.plugin
 
 import android.content.Context
+import androidx.annotation.StringRes
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.termux.R
+import com.termux.app.compose.AiLocalModel
 import java.io.File
 import java.io.FileOutputStream
 import java.util.zip.ZipFile
 
 object PluginLoader {
+
+    /**
+     * Los mensajes de instalacion se muestran como error en la UI deGestion de
+     * plugins, asi que se resuelven con el context de la app: extractZip y
+     * validatePluginContents no reciben Context.
+     */
+    private fun str(@StringRes res: Int, vararg args: Any): String {
+        val c = AiLocalModel.context() ?: return "-"
+        return if (args.isEmpty()) c.getString(res) else c.getString(res, *args)
+    }
 
     private const val PLUGINS_DIR = "plugins"
     private const val TUP_EXTENSION = ".tup"
@@ -38,7 +51,7 @@ object PluginLoader {
             } catch (_: Exception) { false }
 
             if (!isValidExt && !isValidZip) {
-                return Result.failure(IllegalArgumentException("不支持的文件格式，仅支持 .tup 和 .zip"))
+                return Result.failure(IllegalArgumentException(str(R.string.plugin_err_unsupported_format)))
             }
 
             val tempDir = File(context.cacheDir, "plugin_install_${System.currentTimeMillis()}")
@@ -49,14 +62,14 @@ object PluginLoader {
 
                 val manifestFile = File(tempDir, MANIFEST_FILE)
                 if (!manifestFile.exists()) {
-                    return Result.failure(IllegalArgumentException("插件包中缺少 manifest.json"))
+                    return Result.failure(IllegalArgumentException(str(R.string.plugin_err_manifest_missing)))
                 }
 
                 val manifestJson = manifestFile.readText()
                 val manifestResult = PluginManifestParser.parse(manifestJson)
 
                 if (manifestResult.isFailure) {
-                    return Result.failure(manifestResult.exceptionOrNull() ?: Exception("manifest.json 解析失败"))
+                    return Result.failure(manifestResult.exceptionOrNull() ?: Exception(str(R.string.plugin_err_manifest_parse)))
                 }
 
                 val manifest = manifestResult.getOrThrow()
@@ -93,7 +106,7 @@ object PluginLoader {
                 val destFile = File(targetDir, entry.name)
                 val canonical = destFile.canonicalFile
                 if (canonical != root && !canonical.path.startsWith(root.path + File.separator)) {
-                    throw SecurityException("插件包含非法路径条目: ${entry.name}")
+                    throw SecurityException(str(R.string.plugin_err_zip_slip, entry.name))
                 }
                 if (entry.isDirectory) {
                     destFile.mkdirs()
@@ -128,8 +141,7 @@ object PluginLoader {
                 val entryFile = File(pluginDir, entry)
                 if (!entryFile.exists()) {
                     throw IllegalStateException(
-                        "插件 H5 入口文件不存在: $entry (页面: $title)，" +
-                        "请确保插件包中包含完整的文件结构"
+                        str(R.string.plugin_err_h5_entry_missing, entry, title)
                     )
                 }
             }
@@ -141,7 +153,7 @@ object PluginLoader {
             if (page.type == "compose" && !entry.isNullOrBlank()) {
                 val entryFile = File(pluginDir, entry)
                 if (!entryFile.exists()) {
-                    throw IllegalStateException("插件 Compose 页面配置不存在: $entry")
+                    throw IllegalStateException(str(R.string.plugin_err_compose_page_missing, entry))
                 }
             }
         }
@@ -151,7 +163,7 @@ object PluginLoader {
             if (entry.isNotBlank()) {
                 val homeFile = File(pluginDir, entry)
                 if (!homeFile.exists()) {
-                    throw IllegalStateException("插件 Compose 主页配置不存在: $entry")
+                    throw IllegalStateException(str(R.string.plugin_err_compose_home_missing, entry))
                 }
             }
         }
@@ -172,7 +184,7 @@ object PluginLoader {
                 if (curPart > minPart) break
                 if (curPart < minPart) {
                     throw IllegalStateException(
-                        "插件需要 Termux Ultra $minVersion 或更高版本，当前版本为 $currentVersion"
+                        str(R.string.plugin_err_host_version, minVersion, currentVersion)
                     )
                 }
             }

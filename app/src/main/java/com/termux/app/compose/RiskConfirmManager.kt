@@ -1672,7 +1672,7 @@ fun RiskConfirmDialogHost(
                                 )
                             ) {
                                 Text(
-                                    text = "${"否"}(${countdown}s)",
+                                    text = stringResource(R.string.risk_cancel_countdown, stringResource(R.string.risk_command_ssh_power_confirm_no), countdown),
                                     color = MiuixTheme.colorScheme.onSurface,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Medium

@@ -182,7 +182,7 @@ fun LogViewerScreen(
                     }
                     if (searchQuery.isNotEmpty()) {
                         Text(
-                            text = "找到 ${filteredLogs.size} 条结果",
+                            text = stringResource(R.string.logs_found_results, filteredLogs.size),
                             fontSize = 12.sp,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             modifier = Modifier.padding(start = 8.dp, top = 4.dp)
@@ -257,7 +257,7 @@ fun LogViewerScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = if (logs.isEmpty()) stringResource(R.string.no_logs) else "没有匹配的日志",
+                                text = if (logs.isEmpty()) stringResource(R.string.no_logs) else stringResource(R.string.logs_no_match),
                                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                 fontSize = 16.sp
                             )

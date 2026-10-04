@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner
 import androidx.core.view.WindowCompat
+import com.termux.R
 import com.termux.app.compose.TextEditorScreen
 import com.termux.app.compose.KiTerminalTheme
 import com.termux.app.compose.NavigationHelper
@@ -60,7 +61,7 @@ class TextEditorActivity : ComponentActivity() {
                                     RecentFilesManager.addRecent(this, target.absolutePath)
                                 } catch (e: Exception) {
                                     android.widget.Toast.makeText(
-                                        this, "保存失败: ${e.message}", android.widget.Toast.LENGTH_SHORT
+                                        this, getString(R.string.text_editor_save_failed, e.message ?: ""), android.widget.Toast.LENGTH_SHORT
                                     ).show()
                                     return@TextEditorScreen false
                                 }

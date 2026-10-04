@@ -671,7 +671,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 if (autoStartConsoleEnabled) R.string.pref_launch_page_locked_summary
                 else R.string.pref_launch_page_summary
             ),
-            keywords = listOf("启动", "启动页", "launch", "startup", "home", "default page"),
+            keywords = listOf("arranque", "pagina de inicio", "launch", "startup", "home", "default page"),
             render = {
                 OverlayDropdownPreference(
                     title = context.getString(R.string.pref_launch_page_title),
@@ -774,7 +774,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
 
         SearchableSetting(sec_terminal, context.getString(R.string.pref_auto_start_console_title),
             context.getString(R.string.pref_auto_start_console_summary),
-            keywords = listOf("自动", "启动", "控制台", "console", "auto", "launch", "startup", "session"),
+            keywords = listOf("automatico", "arranque", "consola", "console", "auto", "launch", "startup", "session"),
             render = {
                 SwitchPreference(
                     title = context.getString(R.string.pref_auto_start_console_title),
