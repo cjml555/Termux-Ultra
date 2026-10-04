@@ -276,15 +276,15 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                 val idx = messages.indexOf(lastMsg)
                 if (idx >= 0) {
                     messages[idx] = lastMsg.copy(
-                        content = lastMsg.content.ifBlank { "⚠️ 执行出错" },
-                        errorMessage = "内部错误: ${throwable.message ?: "未知"}"
+                        content = lastMsg.content.ifBlank { ctx.getString(R.string.agent_exec_error) },
+                        errorMessage = ctx.getString(R.string.agent_internal_error, throwable.message ?: ctx.getString(R.string.agent_status_unknown))
                     )
                 }
             } else {
                 messages.add(ChatMessage(
                     role = "assistant",
                     content = "⚠️ 执行出错",
-                    errorMessage = "内部错误: ${throwable.message ?: "未知"}"
+                    errorMessage = ctx.getString(R.string.agent_internal_error, throwable.message ?: ctx.getString(R.string.agent_status_unknown))
                 ))
             }
         }
@@ -430,8 +430,8 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                 synchronized(messages) {
                     messages.add(ChatMessage(
                         role = "assistant",
-                        content = "⚠️ 执行出错",
-                        errorMessage = "操作失败: ${e.message ?: "未知错误"}"
+                        content = ctx.getString(R.string.agent_exec_error),
+                        errorMessage = ctx.getString(R.string.agent_op_failed, e.message ?: ctx.getString(R.string.agent_status_unknown))
                     ))
                 }
                 persistConversations(ctx)
@@ -646,7 +646,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
 
         synchronized(messages) {
             messages[idx] = old.copy(
-                skillCard = card.copy(status = SkillStatus.RUNNING, title = "等待二次确认…")
+                skillCard = card.copy(status = SkillStatus.RUNNING, title = ctx.getString(R.string.agent_waiting_second_confirm))
             )
         }
         persistConversations(ctx)
@@ -673,7 +673,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
 
         synchronized(messages) {
             messages[idx] = old.copy(
-                skillCard = card.copy(status = SkillStatus.RUNNING, title = "正在执行…")
+                skillCard = card.copy(status = SkillStatus.RUNNING, title = ctx.getString(R.string.agent_executing))
             )
         }
         persistConversations(ctx)
@@ -690,7 +690,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                 )
                 val resultCard = result.skillCard ?: SkillCardData(
                     skillType = try { SkillType.valueOf(skillType) } catch (_: Exception) { SkillType.RUN_COMMAND },
-                    title = if (result.success) "执行成功" else "执行失败",
+                    title = ctx.getString(if (result.success) R.string.agent_exec_success else R.string.agent_exec_failed),
                     description = result.message,
                     status = if (result.success) SkillStatus.COMPLETED else SkillStatus.FAILED
                 )
@@ -1446,7 +1446,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                     if (idx >= 0) {
                         val resultCard = result.skillCard ?: SkillCardData(
                             skillType = actualSkillType,
-                            title = if (result.success) "执行成功" else "执行失败",
+                            title = ctx.getString(if (result.success) R.string.agent_exec_success else R.string.agent_exec_failed),
                             description = result.message,
                             status = if (result.success) SkillStatus.COMPLETED else SkillStatus.FAILED
                         )
@@ -1612,7 +1612,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
             putExtra(Intent.EXTRA_TITLE, "Termux Agent 对话记录")
         }
         runCatching {
-            context.startActivity(Intent.createChooser(intent, "导出对话").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            context.startActivity(Intent.createChooser(intent, context.getString(R.string.agent_conv_export)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }.onFailure {
             SnackbarHelper.show(context, context.getString(R.string.agent_export_failed, it.message ?: ""), Snackbar.LENGTH_LONG)
         }
@@ -1787,16 +1787,16 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                 }
             }
 
-            item { SectionTitle("AI 能力说明") }
+            item { SectionTitle(stringResource(R.string.agent_cap_section)) }
             item {
-                InfoBullet("会话管理", "新建 / 关闭终端会话、退出 Termux")
-                InfoBullet("虚拟机", "运行 QEMU with VNC，支持新建配置")
-                InfoBullet("远程连接", "VNC 连接、SSH 连接远程机器")
-                InfoBullet("文件操作", "列出目录、读取 / 写入 / 删除文件（限 Termux 容器内）")
-                InfoBullet("命令执行", "在会话中执行任意命令、通过 pkg 安装软件包")
+                InfoBullet(stringResource(R.string.agent_cap_sessions), stringResource(R.string.agent_cap_sessions_desc))
+                InfoBullet(stringResource(R.string.agent_cap_vm), stringResource(R.string.agent_cap_vm_desc))
+                InfoBullet(stringResource(R.string.agent_cap_remote), stringResource(R.string.agent_cap_remote_desc))
+                InfoBullet(stringResource(R.string.agent_cap_files), stringResource(R.string.agent_cap_files_desc))
+                InfoBullet(stringResource(R.string.agent_cap_cmds), stringResource(R.string.agent_cap_cmds_desc))
             }
 
-            item { SectionTitle("1. 选择提供商") }
+            item { SectionTitle(stringResource(R.string.agent_step_provider)) }
             item {
                 Row(
                     modifier = Modifier
@@ -1806,13 +1806,13 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     ProviderChip(stringResource(R.string.online_model), "online", provider, isDark) { provider = it }
-                    ProviderChip("本地大模型", "local", provider, isDark) { provider = it }
+                    ProviderChip(stringResource(R.string.agent_local_model), "local", provider, isDark) { provider = it }
                 }
             }
 
 
             if (provider == "local") {
-                item { SectionTitle("本地大模型（离线 · 设备端运行）") }
+                item { SectionTitle(stringResource(R.string.agent_local_model_offline)) }
 
                 item {
                     Card(
@@ -1889,14 +1889,14 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                             scope.launch {
                                                 downloadingModelId = entry.id
                                                 localProgress = 0f
-                                                localProgressMsg = "正在准备下载…"
+                                                localProgressMsg = ctx.getString(R.string.agent_preparing_download)
                                                 val ok = AiLocalModel.downloadModel(entry) { p, msg ->
                                                     localProgress = p
                                                     localProgressMsg = msg
                                                 }
                                                 if (ok) {
                                                     localProgress = 1f
-                                                    localProgressMsg = "模型下载完成，已自动配置"
+                                                    localProgressMsg = ctx.getString(R.string.agent_model_ready)
                                                     // 关键：持久化选中的模型 ID，否则 getSelectedModel() 返回 null → isLocalModelReady()=false → 入口跳回设置页
                                                     AiLocalModel.setSelectedModelId(entry.id)
                                                     val cfg = AiTermuxConfig(
@@ -1986,7 +1986,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
 
                 // Ollama 配置区域
                 if (localEngineType.value == "ollama") {
-                    item { SectionTitle("Ollama 模型") }
+                    item { SectionTitle(stringResource(R.string.agent_ollama_models)) }
                     
                     // Ollama 安装状态
                     item {
@@ -2031,7 +2031,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                             settingsScope.launch {
                                                 ollamaInstalling.value = true
                                                 ollamaProgress.value = 0f
-                                                ollamaProgressMsg.value = "正在准备 Ollama 安装…"
+                                                ollamaProgressMsg.value = ctx.getString(R.string.agent_preparing_ollama)
                                                 val ok = AiOllamaManager.installOllama { p, msg ->
                                                     ollamaProgress.value = p
                                                     ollamaProgressMsg.value = msg
@@ -2073,7 +2073,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                             },
                                             modifier = Modifier.weight(1f)
                                         ) {
-                                            Text(if (ollamaRunning.value) "停止服务" else "启动服务")
+                                            Text(if (ollamaRunning.value) stringResource(R.string.agent_service_stop) else stringResource(R.string.agent_service_start))
                                         }
                                         Button(
                                             onClick = {
@@ -2113,7 +2113,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                             settingsScope.launch {
                                                 ollamaInstalling.value = true
                                                 ollamaProgress.value = 0f
-                                                ollamaProgressMsg.value = "正在准备 Ollama 安装…"
+                                                ollamaProgressMsg.value = ctx.getString(R.string.agent_preparing_ollama)
                                                 val ok = AiOllamaManager.installOllama { p, msg ->
                                                     ollamaProgress.value = p
                                                     ollamaProgressMsg.value = msg
@@ -2256,7 +2256,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
             }
 
             if (provider != "local") {
-                item { SectionTitle("2. LLM Profile（可选 · 快速切换多模型）") }
+                item { SectionTitle(stringResource(R.string.agent_step_profile)) }
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         if (llmProfiles.isEmpty()) {
@@ -2283,7 +2283,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                                     style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold),
                                                     color = if (isActive) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onSurface)
                                                 Spacer(Modifier.height(2.dp))
-                                                val providerLabel = if (prof.provider == "openai") "OpenAI" else "OpenAI兼容"
+                                                val providerLabel = if (prof.provider == "openai") "OpenAI" else stringResource(R.string.agent_openai_compat)
                                                 Text("$providerLabel · ${prof.model}",
                                                     style = TextStyle(fontSize = 13.sp), color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                                                 if (prof.apiBaseUrl.isNotBlank()) {
@@ -2370,11 +2370,11 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                                     )
                                 )
                                 testResult = if (resp.error != null) {
-                                    "❌ 连接失败：${resp.error.message}"
+                                    ctx.getString(R.string.agent_conn_failed, resp.error.message ?: "")
                                 } else {
                                     val reply = resp.choices.firstOrNull()?.message?.content ?: ""
-                                    if (reply.isNotBlank()) "✅ 连接成功！模型回复：$reply"
-                                    else "❌ 返回为空，请检查配置"
+                                    if (reply.isNotBlank()) ctx.getString(R.string.agent_conn_ok, reply)
+                                    else ctx.getString(R.string.agent_conn_empty)
                                 }
                                 testing = false
                             }
@@ -2396,7 +2396,7 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                             if (provider == "local") {
                                 if (!AiLocalModel.isLocalModelReady()) {
                                     AiLocalModel.resetLocalModelConfigIfConfigured()
-                                    testResult = "❌ 请先完成本地大模型的下载与配置"
+                                    testResult = ctx.getString(R.string.agent_needs_local_model)
                                     return@Button
                                 }
                                 val localCfg = AiTermuxConfig(
@@ -2670,7 +2670,7 @@ private fun AiConversationManagementScreen(
                     GlassIconButton(onClick = { vm.newConversation(ctx) }) {
                         Icon(
                             imageVector = Icons.Rounded.Add,
-                            contentDescription = "新建对话",
+                            contentDescription = stringResource(R.string.agent_conv_new),
                             modifier = Modifier.size(24.dp),
                             tint = MiuixTheme.colorScheme.onSurface
                         )
@@ -2716,7 +2716,7 @@ private fun AiConversationManagementScreen(
                                 )
                             }
                             Text(
-                                text = "新建对话",
+                                text = stringResource(R.string.agent_conv_new),
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MiuixTheme.colorScheme.onSurface
@@ -2726,7 +2726,7 @@ private fun AiConversationManagementScreen(
                 }
     
                 items(ordered, key = { it.id }) { conv ->
-                    val preview = conv.messages.lastOrNull()?.content?.lineSequence()?.firstOrNull().orEmpty().ifBlank { "暂无消息" }
+                    val preview = conv.messages.lastOrNull()?.content?.lineSequence()?.firstOrNull().orEmpty().ifBlank { stringResource(R.string.agent_conv_empty) }
                     val isDefault = conv.id == DEFAULT_CONVERSATION_ID
                     Box(
                         modifier = Modifier
@@ -2757,7 +2757,7 @@ private fun AiConversationManagementScreen(
                                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                                         ) {
                                             Text(
-                                                text = "默认",
+                                                text = stringResource(R.string.agent_conv_default),
                                                 fontSize = 11.sp,
                                                 color = MiuixTheme.colorScheme.primary
                                             )
@@ -2784,7 +2784,7 @@ private fun AiConversationManagementScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Rounded.DeleteSweep,
-                                    contentDescription = "删除对话",
+                                    contentDescription = stringResource(R.string.agent_conv_delete),
                                     modifier = Modifier.size(20.dp),
                                     tint = MiuixTheme.colorScheme.onSurfaceVariantSummary
                                 )
@@ -2796,8 +2796,8 @@ private fun AiConversationManagementScreen(
         OverlayDialog(
             show = pendingDeleteId != null,
             onDismissRequest = { pendingDeleteId = null },
-            title = "删除对话",
-            summary = "将删除该对话的全部内容，此操作不可撤销。",
+            title = stringResource(R.string.agent_conv_delete),
+            summary = stringResource(R.string.agent_conv_delete_confirm),
             content = {
                 Row(horizontalArrangement = Arrangement.SpaceBetween) {
                     TextButton(text = "取消", onClick = { pendingDeleteId = null }, modifier = Modifier.weight(1f))
@@ -3208,7 +3208,7 @@ private fun AiChatImessageTopBar(
                 GlassIconButton(onClick = onNewConversation) {
                     Icon(
                         imageVector = Icons.Rounded.Add,
-                        contentDescription = "新建对话",
+                        contentDescription = stringResource(R.string.agent_conv_new),
                         modifier = Modifier.size(24.dp),
                         tint = MiuixTheme.colorScheme.onSurface
                     )
@@ -3280,11 +3280,11 @@ private fun AiChatTopActions(vm: AiTermuxViewModel, onOpenSetup: () -> Unit) {
         title = stringResource(R.string.more_actions),
         content = {
             Column {
-                TopActionRow("Agent 设置") {
+                TopActionRow(stringResource(R.string.agent_menu_settings)) {
                     showMoreMenu = false
                     onOpenSetup()
                 }
-                TopActionRow("导出对话（分享）") {
+                TopActionRow(stringResource(R.string.agent_menu_export)) {
                     showMoreMenu = false
                     vm.exportConversation(context)
                 }
@@ -3337,7 +3337,7 @@ private fun MessageActionDialog(
             Column {
                 TopActionRow(stringResource(R.string.copy)) { onCopy(); onDismiss() }
                 if (canRegenerate) {
-                    TopActionRow("重新生成") { onRegenerate(); onDismiss() }
+                    TopActionRow(stringResource(R.string.agent_menu_regenerate)) { onRegenerate(); onDismiss() }
                 }
                 TopActionRow(stringResource(R.string.delete), danger = true) { onDelete(); onDismiss() }
             }
@@ -3444,7 +3444,7 @@ fun TaskBar(
             )
             Spacer(Modifier.width(6.dp))
             Text(
-                text = "任务进度 $doneCount/$totalCount",
+                text = stringResource(R.string.agent_task_progress, doneCount, totalCount),
                 style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MiuixTheme.colorScheme.onSurface)
             )
             Spacer(Modifier.weight(1f))
@@ -3472,7 +3472,7 @@ fun TaskBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "✅ 所有任务已完成",
+                    text = stringResource(R.string.agent_task_done_all),
                     style = TextStyle(fontSize = 13.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Medium)
                 )
             }
@@ -4177,7 +4177,7 @@ private fun ReasoningBlock(reasoning: String, isDone: Boolean, isDark: Boolean) 
             Spacer(Modifier.weight(1f))
             if (!expanded) {
                 Text(
-                    text = if (isDone) "已完成" else stringResource(R.string.in_progress),
+                    text = if (isDone) stringResource(R.string.agent_status_done) else stringResource(R.string.in_progress),
                     style = TextStyle(fontSize = 11.sp, color = headerColor)
                 )
             }
@@ -4221,13 +4221,13 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
 
     val (statusColor, statusBg, statusText) = when {
         card.skillType == SkillType.CONFIRM_DANGEROUS && card.status == SkillStatus.RUNNING ->
-            Triple(Color(0xFFDC2626), Color(0xFFDC2626).copy(alpha = 0.12f), "待确认")
+            Triple(Color(0xFFDC2626), Color(0xFFDC2626).copy(alpha = 0.12f), stringResource(R.string.agent_status_awaiting_confirm))
         card.skillType == SkillType.ASK_USER && card.status == SkillStatus.RUNNING ->
-            Triple(Color(0xFF6366F1), Color(0xFF6366F1).copy(alpha = 0.12f), "待回答")
-        card.status == SkillStatus.RUNNING -> Triple(Color(0xFF2563EB), Color(0xFF2563EB).copy(alpha = 0.12f), "执行中")
-        card.status == SkillStatus.COMPLETED -> Triple(Color(0xFF16A34A), Color(0xFF16A34A).copy(alpha = 0.12f), "已完成")
-        card.status == SkillStatus.FAILED -> Triple(Color(0xFFDC2626), Color(0xFFDC2626).copy(alpha = 0.12f), "失败")
-        else -> Triple(Color(0xFF64748B), Color(0xFF64748B).copy(alpha = 0.12f), "未知")
+            Triple(Color(0xFF6366F1), Color(0xFF6366F1).copy(alpha = 0.12f), stringResource(R.string.agent_status_awaiting_answer))
+        card.status == SkillStatus.RUNNING -> Triple(Color(0xFF2563EB), Color(0xFF2563EB).copy(alpha = 0.12f), stringResource(R.string.agent_status_running))
+        card.status == SkillStatus.COMPLETED -> Triple(Color(0xFF16A34A), Color(0xFF16A34A).copy(alpha = 0.12f), stringResource(R.string.agent_status_done))
+        card.status == SkillStatus.FAILED -> Triple(Color(0xFFDC2626), Color(0xFFDC2626).copy(alpha = 0.12f), stringResource(R.string.agent_status_failed))
+        else -> Triple(Color(0xFF64748B), Color(0xFF64748B).copy(alpha = 0.12f), stringResource(R.string.agent_status_unknown))
     }
     val iconRes = when (card.skillType) {
         SkillType.NEW_SESSION, SkillType.CLOSE_SESSION,
@@ -4453,7 +4453,7 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
                                         TextField(
                                             value = textInput,
                                             onValueChange = { textInput = it },
-                                            label = card.askPlaceholder ?: "请输入...",
+                                            label = card.askPlaceholder ?: stringResource(R.string.agent_input_hint),
                                             modifier = Modifier.fillMaxWidth(),
                                             useLabelAsPlaceholder = true,
                                             singleLine = true
@@ -4639,10 +4639,10 @@ private fun AgentSkillCard(msgId: String, card: SkillCardData, errorMsg: String?
     val agentIcon = if (isSubAgent) R.drawable.ic_code else R.drawable.ic_search
 
     val (statusColor, statusBg, statusText) = when {
-        card.status == SkillStatus.RUNNING -> Triple(Color(0xFF2563EB), Color(0xFF2563EB).copy(alpha = 0.12f), "执行中")
-        card.status == SkillStatus.COMPLETED -> Triple(Color(0xFF16A34A), Color(0xFF16A34A).copy(alpha = 0.12f), "已完成")
-        card.status == SkillStatus.FAILED -> Triple(Color(0xFFDC2626), Color(0xFFDC2626).copy(alpha = 0.12f), "失败")
-        else -> Triple(Color(0xFF64748B), Color(0xFF64748B).copy(alpha = 0.12f), "未知")
+        card.status == SkillStatus.RUNNING -> Triple(Color(0xFF2563EB), Color(0xFF2563EB).copy(alpha = 0.12f), stringResource(R.string.agent_status_running))
+        card.status == SkillStatus.COMPLETED -> Triple(Color(0xFF16A34A), Color(0xFF16A34A).copy(alpha = 0.12f), stringResource(R.string.agent_status_done))
+        card.status == SkillStatus.FAILED -> Triple(Color(0xFFDC2626), Color(0xFFDC2626).copy(alpha = 0.12f), stringResource(R.string.agent_status_failed))
+        else -> Triple(Color(0xFF64748B), Color(0xFF64748B).copy(alpha = 0.12f), stringResource(R.string.agent_status_unknown))
     }
 
     val cardBg = if (isDark) Color(0xFF1A1A1A) else Color(0xFFFAFAFA)
