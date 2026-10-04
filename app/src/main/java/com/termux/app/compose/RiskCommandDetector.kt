@@ -40,8 +40,21 @@ object RiskCommandDetector {
         SETPROP("System property change", R.string.risk_setprop),
         ROOT_CMD("ROOT privileged command", R.string.risk_root_cmd);
 
-        /** Nombre localizado del riesgo, para los sitios que tienen Context. */
-        fun display(context: Context): String = context.getString(displayRes)
+        /**
+         * Nombre localizado del riesgo, para los sitios que tienen Context.
+         *
+         * Cae al displayName en ingles si la resolucion falla. En los tests JVM
+         * de unidad android.jar va stubbeado y getString lanza "not mocked", y
+         * esa excepcion se propagaba hasta el launch del dialogo: el dialogo no
+         * se abria nunca y los tests de RiskConfirmRequestMatch expiraban por
+         * timeout en lugar de fallar con el motivo real.
+         */
+        fun display(context: Context): String =
+            try {
+                context.getString(displayRes)
+            } catch (e: RuntimeException) {
+                displayName
+            }
     }
 
     data class DetectionResult(
