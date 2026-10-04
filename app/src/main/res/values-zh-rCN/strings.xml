@@ -2372,4 +2372,56 @@
 
     <!-- Ajustes de nombres de riesgo -->
     <string name="risk_high_risk_op">高危操作</string>
+
+    <!-- ApiCompat.Feature -->
+    <string name="api_keep_alive_warning">会话保活警告</string>
+    <string name="api_live_update_notification">实时更新通知</string>
+    <string name="api_vnc_pip">VNC 画中画</string>
+    <string name="api_vnc_pointer">VNC 鼠标捕获</string>
+    <string name="api_vnc_audio">VNC 音频</string>
+    <string name="api_qemu_container">QEMU 容器模式</string>
+    <string name="api_qemu_pulse">QEMU PulseAudio 音频</string>
+    <string name="api_qemu_manager">QEMU 虚拟机管理</string>
+    <string name="api_moe_script">MOE 全能脚本</string>
+    <string name="api_alpine_qemu">Alpine QEMU</string>
+    <string name="api_debian_qemu">Debian QEMU</string>
+    <string name="api_docker_manager">Docker 容器管理</string>
+    <string name="api_pulse_player">PulseAudio 播放器</string>
+    <string name="api_notif_perm">通知权限</string>
+    <string name="api_all_files">所有文件访问</string>
+    <string name="api_integrated">集成工具（API/Boot/Styling/Tasker/Widget）</string>
+    <string name="api_miuix_dyncolor">动态取色主题</string>
+    <string name="api_glass_navbar">玻璃导航栏</string>
+
+    <!-- PluginSecurity -->
+    <string name="perm_session">终端会话访问</string>
+    <string name="perm_root_exec">ROOT 执行</string>
+    <string name="perm_fs_read">文件系统读取</string>
+    <string name="perm_fs_write">文件系统写入</string>
+    <string name="perm_agent_modify">修改 Agent</string>
+    <string name="perm_h5">H5 网页视图</string>
+    <string name="perm_bridge">跨应用桥接</string>
+    <string name="perm_internet">网络访问</string>
+    <string name="perm_desc_session">允许插件在 Termux 终端会话中执行命令并获取输出</string>
+    <string name="perm_desc_root">允许插件使用 ROOT 权限执行命令（高危）</string>
+    <string name="perm_desc_fs_read">允许插件读取 Termux 环境中的文件</string>
+    <string name="perm_desc_fs_write">允许插件写入 Termux 环境中的文件（高危）</string>
+    <string name="perm_desc_agent">允许插件修改 Termux Agent 的 System Prompt 和技能卡片（高危）</string>
+    <string name="perm_desc_h5">允许插件在应用内显示 H5 网页界面</string>
+    <string name="perm_desc_bridge">允许插件通过 Intent/Broadcast 与其他应用交互</string>
+    <string name="perm_desc_internet">允许插件发起网络请求</string>
+    <string name="risk_low">低</string>
+    <string name="risk_medium">中</string>
+    <string name="risk_high">高</string>
+    <string name="plugin_not_found">插件不存在</string>
+    <string name="plugin_not_enabled">插件未启用</string>
+    <string name="plugin_no_shell">插件没有执行命令的权限</string>
+    <string name="plugin_no_fs">插件没有文件系统%1$s权限</string>
+    <string name="fs_read_word">读取</string>
+    <string name="fs_write_word">写入</string>
+    <string name="plugin_cmd_risky">命令包含高危操作，需要 ROOT 权限或用户确认</string>
+    <string name="plugin_path_sandbox">文件访问路径超出沙盒限制</string>
+    <string name="plugin_path_escape">路径逃逸检测</string>
+    <string name="plugin_no_net">插件没有网络访问权限</string>
+    <string name="plugin_no_agent">插件没有修改 Agent 的权限</string>
 </resources>

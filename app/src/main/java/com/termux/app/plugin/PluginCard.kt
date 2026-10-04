@@ -263,6 +263,7 @@ private fun AbilityTag(text: String) {
 
 @Composable
 private fun RiskTag(level: PermissionRiskLevel) {
+    val context = LocalContext.current
     val color = when (level) {
         PermissionRiskLevel.MEDIUM -> Color(0xFFFFA000)
         PermissionRiskLevel.HIGH -> Color(0xFFF44336)
@@ -275,7 +276,7 @@ private fun RiskTag(level: PermissionRiskLevel) {
             .padding(horizontal = 7.dp, vertical = 3.dp)
     ) {
         Text(
-            text = PluginSecurity.getRiskLevelDisplayName(level),
+            text = PluginSecurity.getRiskLevelDisplayName(context, level),
             style = androidx.compose.ui.text.TextStyle(
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,

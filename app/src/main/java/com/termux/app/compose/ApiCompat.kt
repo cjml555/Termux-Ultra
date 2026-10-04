@@ -1,6 +1,7 @@
 package com.termux.app.compose
 
 import android.content.Context
+import com.termux.R
 import android.os.Build
 
 /**
@@ -50,32 +51,35 @@ object ApiCompat {
         val minApi: Int,
         val page: Page,
         val requiredVersionLabel: String,
-        val label: String
+        val label: String,
+        val labelRes: Int
     ) {
         // 终端页
-        KEEP_ALIVE_WARNING(31, Page.TERMINAL, "Android 12", "会话保活警告"),
-        LIVE_UPDATE_NOTIFICATION(36, Page.TERMINAL, "Android 16", "实时更新通知"),
+        KEEP_ALIVE_WARNING(31, Page.TERMINAL, "Android 12", "会话保活警告", R.string.api_keep_alive_warning),
+        LIVE_UPDATE_NOTIFICATION(36, Page.TERMINAL, "Android 16", "实时更新通知", R.string.api_live_update_notification),
         // 远程页
-        VNC_PICTURE_IN_PICTURE(26, Page.REMOTE, "Android 8.0", "VNC 画中画"),
-        VNC_POINTER_CAPTURE(26, Page.REMOTE, "Android 8.0", "VNC 鼠标捕获"),
-        VNC_AUDIO(31, Page.REMOTE, "Android 12", "VNC 音频"),
+        VNC_PICTURE_IN_PICTURE(26, Page.REMOTE, "Android 8.0", "VNC 画中画", R.string.api_vnc_pip),
+        VNC_POINTER_CAPTURE(26, Page.REMOTE, "Android 8.0", "VNC 鼠标捕获", R.string.api_vnc_pointer),
+        VNC_AUDIO(31, Page.REMOTE, "Android 12", "VNC 音频", R.string.api_vnc_audio),
         // 资源页
-        QEMU_CONTAINER_MODE(35, Page.RESOURCES, "Android 15", "QEMU 容器模式"),
-        QEMU_AUDIO_PULSE(31, Page.RESOURCES, "Android 12", "QEMU PulseAudio 音频"),
-        QEMU_VM_MANAGER(31, Page.RESOURCES, "Android 12", "QEMU 虚拟机管理"),
-        MOE_ALL_IN_ONE(31, Page.RESOURCES, "Android 12", "MOE 全能脚本"),
-        ALPINE_QEMU(31, Page.RESOURCES, "Android 12", "Alpine QEMU"),
-        DEBIAN_QEMU(31, Page.RESOURCES, "Android 12", "Debian QEMU"),
-        DOCKER_MANAGER(31, Page.RESOURCES, "Android 12", "Docker 容器管理"),
-        PULSEAUDIO_PLAYER(31, Page.RESOURCES, "Android 12", "PulseAudio 播放器"),
+        QEMU_CONTAINER_MODE(35, Page.RESOURCES, "Android 15", "QEMU 容器模式", R.string.api_qemu_container),
+        QEMU_AUDIO_PULSE(31, Page.RESOURCES, "Android 12", "QEMU PulseAudio 音频", R.string.api_qemu_pulse),
+        QEMU_VM_MANAGER(31, Page.RESOURCES, "Android 12", "QEMU 虚拟机管理", R.string.api_qemu_manager),
+        MOE_ALL_IN_ONE(31, Page.RESOURCES, "Android 12", "MOE 全能脚本", R.string.api_moe_script),
+        ALPINE_QEMU(31, Page.RESOURCES, "Android 12", "Alpine QEMU", R.string.api_alpine_qemu),
+        DEBIAN_QEMU(31, Page.RESOURCES, "Android 12", "Debian QEMU", R.string.api_debian_qemu),
+        DOCKER_MANAGER(31, Page.RESOURCES, "Android 12", "Docker 容器管理", R.string.api_docker_manager),
+        PULSEAUDIO_PLAYER(31, Page.RESOURCES, "Android 12", "PulseAudio 播放器", R.string.api_pulse_player),
         // 设置页
-        POST_NOTIFICATIONS_RUNTIME(33, Page.SETTINGS, "Android 13", "通知权限"),
-        MANAGE_ALL_FILES(30, Page.SETTINGS, "Android 11", "所有文件访问"),
-        INTEGRATED_TOOLS(31, Page.SETTINGS, "Android 12", "集成工具（API/Boot/Styling/Tasker/Widget）"),
-        MIUIX_DYNAMIC_COLOR(31, Page.SETTINGS, "Android 12", "动态取色主题"),
-        GLASS_NAVIGATION_BAR(30, Page.SETTINGS, "Android 11", "玻璃导航栏")
-    }
+        POST_NOTIFICATIONS_RUNTIME(33, Page.SETTINGS, "Android 13", "通知权限", R.string.api_notif_perm),
+        MANAGE_ALL_FILES(30, Page.SETTINGS, "Android 11", "所有文件访问", R.string.api_all_files),
+        INTEGRATED_TOOLS(31, Page.SETTINGS, "Android 12", "集成工具（API/Boot/Styling/Tasker/Widget）", R.string.api_integrated),
+        MIUIX_DYNAMIC_COLOR(31, Page.SETTINGS, "Android 12", "动态取色主题", R.string.api_miuix_dyncolor),
+        GLASS_NAVIGATION_BAR(30, Page.SETTINGS, "Android 11", "玻璃导航栏", R.string.api_glass_navbar);
 
+                /** Nombre localizado de la funcionalidad, para los sitios con Context. */
+                fun display(context: Context): String = context.getString(labelRes)
+            }
     /** 功能在当前设备是否可用（静态：基于 minApi） */
     fun isAvailable(feature: Feature): Boolean = sdkInt >= feature.minApi
 

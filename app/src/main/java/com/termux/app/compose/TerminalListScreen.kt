@@ -1659,7 +1659,7 @@ fun ForceEnableFeatureDialog(
         R.string.force_enable_dialog_message,
         ApiCompat.androidReleaseName,
         ApiCompat.sdkInt,
-        feature.label,
+        feature.display(context),
         feature.requiredVersionLabel
     )
     OverlayDialog(
@@ -1909,7 +1909,7 @@ fun ForceEnableCriticalDialog(
                             R.string.critical_force_enable_dialog_message,
                             ApiCompat.androidReleaseName,
                             ApiCompat.sdkInt,
-                            feature.label,
+                            feature.display(context),
                             feature.requiredVersionLabel
                         ),
                         fontSize = 13.sp,

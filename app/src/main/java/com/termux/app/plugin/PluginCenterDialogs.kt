@@ -43,6 +43,7 @@ fun PluginPermissionDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
     val permissions = plugin?.manifest?.getParsedPermissions() ?: emptyList()
 
     WindowDialog(
@@ -73,7 +74,7 @@ fun PluginPermissionDialog(
                         Spacer(Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = PluginSecurity.getPermissionDisplayName(perm),
+                                text = PluginSecurity.getPermissionDisplayName(context, perm),
                                 style = androidx.compose.ui.text.TextStyle(
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium,
@@ -81,7 +82,7 @@ fun PluginPermissionDialog(
                                 )
                             )
                             Text(
-                                text = PluginSecurity.getPermissionDescription(perm),
+                                text = PluginSecurity.getPermissionDescription(context, perm),
                                 style = androidx.compose.ui.text.TextStyle(
                                     fontSize = 12.sp,
                                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary
@@ -95,7 +96,7 @@ fun PluginPermissionDialog(
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(
-                                text = PluginSecurity.getRiskLevelDisplayName(riskLevel),
+                                text = PluginSecurity.getRiskLevelDisplayName(context, riskLevel),
                                 style = androidx.compose.ui.text.TextStyle(
                                     fontSize = 10.sp,
                                     color = riskColor
@@ -262,14 +263,14 @@ fun PluginContentDialog(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = PluginSecurity.getPermissionDisplayName(perm),
+                                    text = PluginSecurity.getPermissionDisplayName(context, perm),
                                     style = androidx.compose.ui.text.TextStyle(
                                         fontSize = 13.sp,
                                         color = MiuixTheme.colorScheme.onSurface
                                     )
                                 )
                                 Text(
-                                    text = PluginSecurity.getRiskLevelDisplayName(level),
+                                    text = PluginSecurity.getRiskLevelDisplayName(context, level),
                                     style = androidx.compose.ui.text.TextStyle(
                                         fontSize = 12.sp,
                                         color = riskColorOf(level)

@@ -1,6 +1,7 @@
 ﻿package com.termux.app.plugin
 
 import android.content.Context
+import com.termux.R
 import com.termux.shared.termux.TermuxConstants
 
 object PluginSecurity {
@@ -24,17 +25,17 @@ object PluginSecurity {
         command: String
     ): PermissionCheckResult {
         val plugin = PluginManager.getPluginById(context, pluginId)
-            ?: return PermissionCheckResult(false, reason = "插件不存在")
+            ?: return PermissionCheckResult(false, reason = context.getString(R.string.plugin_not_found))
 
         if (plugin.state != PluginState.ENABLED) {
-            return PermissionCheckResult(false, reason = "插件未启用")
+            return PermissionCheckResult(false, reason = context.getString(R.string.plugin_not_enabled))
         }
 
         val hasRoot = plugin.grantedPermissions.contains(PluginPermission.ROOT_EXECUTE)
         val hasSession = plugin.grantedPermissions.contains(PluginPermission.TERMUX_SESSION_ACCESS)
 
         if (!hasRoot && !hasSession) {
-            return PermissionCheckResult(false, reason = "插件没有执行命令的权限")
+            return PermissionCheckResult(false, reason = context.getString(R.string.plugin_no_shell))
         }
 
         val riskLevel = assessCommandRisk(command)
@@ -52,7 +53,7 @@ object PluginSecurity {
             return PermissionCheckResult(
                 allowed = false,
                 requiresUserConsent = true,
-                reason = "命令包含高危操作，需要 ROOT 权限或用户确认",
+                reason = context.getString(R.string.plugin_cmd_risky),
                 riskLevel = riskLevel
             )
         }
@@ -151,10 +152,10 @@ object PluginSecurity {
         isWrite: Boolean = false
     ): PermissionCheckResult {
         val plugin = PluginManager.getPluginById(context, pluginId)
-            ?: return PermissionCheckResult(false, reason = "插件不存在")
+            ?: return PermissionCheckResult(false, reason = context.getString(R.string.plugin_not_found))
 
         if (plugin.state != PluginState.ENABLED) {
-            return PermissionCheckResult(false, reason = "插件未启用")
+            return PermissionCheckResult(false, reason = context.getString(R.string.plugin_not_enabled))
         }
 
         val requiredPerm = if (isWrite) PluginPermission.FILE_SYSTEM_WRITE else PluginPermission.FILE_SYSTEM_READ
@@ -162,7 +163,7 @@ object PluginSecurity {
             return PermissionCheckResult(
                 allowed = false,
                 requiresUserConsent = true,
-                reason = "插件没有文件系统${if (isWrite) "写入" else "读取"}权限"
+                reason = context.getString(R.string.plugin_no_fs, context.getString(if (isWrite) R.string.fs_write_word else R.string.fs_read_word))
             )
         }
 
@@ -179,12 +180,12 @@ object PluginSecurity {
         if (!inSandbox) {
             return PermissionCheckResult(
                 allowed = false,
-                reason = "文件访问路径超出沙盒限制"
+                reason = context.getString(R.string.plugin_path_sandbox)
             )
         }
 
         if (path.contains("..")) {
-            return PermissionCheckResult(false, reason = "路径逃逸检测")
+            return PermissionCheckResult(false, reason = context.getString(R.string.plugin_path_escape))
         }
 
         return PermissionCheckResult(true)
@@ -196,17 +197,17 @@ object PluginSecurity {
         url: String
     ): PermissionCheckResult {
         val plugin = PluginManager.getPluginById(context, pluginId)
-            ?: return PermissionCheckResult(false, reason = "插件不存在")
+            ?: return PermissionCheckResult(false, reason = context.getString(R.string.plugin_not_found))
 
         if (plugin.state != PluginState.ENABLED) {
-            return PermissionCheckResult(false, reason = "插件未启用")
+            return PermissionCheckResult(false, reason = context.getString(R.string.plugin_not_enabled))
         }
 
         if (!plugin.grantedPermissions.contains(PluginPermission.INTERNET_ACCESS)) {
             return PermissionCheckResult(
                 allowed = false,
                 requiresUserConsent = true,
-                reason = "插件没有网络访问权限"
+                reason = context.getString(R.string.plugin_no_net)
             )
         }
 
@@ -218,17 +219,17 @@ object PluginSecurity {
         pluginId: String
     ): PermissionCheckResult {
         val plugin = PluginManager.getPluginById(context, pluginId)
-            ?: return PermissionCheckResult(false, reason = "插件不存在")
+            ?: return PermissionCheckResult(false, reason = context.getString(R.string.plugin_not_found))
 
         if (plugin.state != PluginState.ENABLED) {
-            return PermissionCheckResult(false, reason = "插件未启用")
+            return PermissionCheckResult(false, reason = context.getString(R.string.plugin_not_enabled))
         }
 
         if (!plugin.grantedPermissions.contains(PluginPermission.AGENT_MODIFY)) {
             return PermissionCheckResult(
                 allowed = false,
                 requiresUserConsent = true,
-                reason = "插件没有修改 Agent 的权限"
+                reason = context.getString(R.string.plugin_no_agent)
             )
         }
 
@@ -249,37 +250,37 @@ object PluginSecurity {
         }
     }
 
-    fun getPermissionDisplayName(permission: PluginPermission): String {
+    fun getPermissionDisplayName(context: Context, permission: PluginPermission): String {
         return when (permission) {
-            PluginPermission.TERMUX_SESSION_ACCESS -> "终端会话访问"
-            PluginPermission.ROOT_EXECUTE -> "ROOT 执行"
-            PluginPermission.FILE_SYSTEM_READ -> "文件系统读取"
-            PluginPermission.FILE_SYSTEM_WRITE -> "文件系统写入"
-            PluginPermission.AGENT_MODIFY -> "修改 Agent"
-            PluginPermission.H5_WEBVIEW -> "H5 网页视图"
-            PluginPermission.CROSS_APP_BRIDGE -> "跨应用桥接"
-            PluginPermission.INTERNET_ACCESS -> "网络访问"
+            PluginPermission.TERMUX_SESSION_ACCESS -> context.getString(R.string.perm_session)
+            PluginPermission.ROOT_EXECUTE -> context.getString(R.string.perm_root_exec)
+            PluginPermission.FILE_SYSTEM_READ -> context.getString(R.string.perm_fs_read)
+            PluginPermission.FILE_SYSTEM_WRITE -> context.getString(R.string.perm_fs_write)
+            PluginPermission.AGENT_MODIFY -> context.getString(R.string.perm_agent_modify)
+            PluginPermission.H5_WEBVIEW -> context.getString(R.string.perm_h5)
+            PluginPermission.CROSS_APP_BRIDGE -> context.getString(R.string.perm_bridge)
+            PluginPermission.INTERNET_ACCESS -> context.getString(R.string.perm_internet)
         }
     }
 
-    fun getPermissionDescription(permission: PluginPermission): String {
+    fun getPermissionDescription(context: Context, permission: PluginPermission): String {
         return when (permission) {
-            PluginPermission.TERMUX_SESSION_ACCESS -> "允许插件在 Termux 终端会话中执行命令并获取输出"
-            PluginPermission.ROOT_EXECUTE -> "允许插件使用 ROOT 权限执行命令（高危）"
-            PluginPermission.FILE_SYSTEM_READ -> "允许插件读取 Termux 环境中的文件"
-            PluginPermission.FILE_SYSTEM_WRITE -> "允许插件写入 Termux 环境中的文件（高危）"
-            PluginPermission.AGENT_MODIFY -> "允许插件修改 Termux Agent 的 System Prompt 和技能卡片（高危）"
-            PluginPermission.H5_WEBVIEW -> "允许插件在应用内显示 H5 网页界面"
-            PluginPermission.CROSS_APP_BRIDGE -> "允许插件通过 Intent/Broadcast 与其他应用交互"
-            PluginPermission.INTERNET_ACCESS -> "允许插件发起网络请求"
+            PluginPermission.TERMUX_SESSION_ACCESS -> context.getString(R.string.perm_desc_session)
+            PluginPermission.ROOT_EXECUTE -> context.getString(R.string.perm_desc_root)
+            PluginPermission.FILE_SYSTEM_READ -> context.getString(R.string.perm_desc_fs_read)
+            PluginPermission.FILE_SYSTEM_WRITE -> context.getString(R.string.perm_desc_fs_write)
+            PluginPermission.AGENT_MODIFY -> context.getString(R.string.perm_desc_agent)
+            PluginPermission.H5_WEBVIEW -> context.getString(R.string.perm_desc_h5)
+            PluginPermission.CROSS_APP_BRIDGE -> context.getString(R.string.perm_desc_bridge)
+            PluginPermission.INTERNET_ACCESS -> context.getString(R.string.perm_desc_internet)
         }
     }
 
-    fun getRiskLevelDisplayName(riskLevel: PermissionRiskLevel): String {
+    fun getRiskLevelDisplayName(context: Context, riskLevel: PermissionRiskLevel): String {
         return when (riskLevel) {
-            PermissionRiskLevel.LOW -> "低"
-            PermissionRiskLevel.MEDIUM -> "中"
-            PermissionRiskLevel.HIGH -> "高"
+            PermissionRiskLevel.LOW -> context.getString(R.string.risk_low)
+            PermissionRiskLevel.MEDIUM -> context.getString(R.string.risk_medium)
+            PermissionRiskLevel.HIGH -> context.getString(R.string.risk_high)
         }
     }
 

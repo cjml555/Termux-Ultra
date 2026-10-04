@@ -2365,17 +2365,69 @@ Recommendation: close other running Termux sessions first, then try again.</stri
     <string name="editor_executable">Executable (x)</string>
 
     <!-- RiskCommandDetector.RiskType -->
-    <string name="risk_dd_disk_write">dd escritura en disco</string>
-    <string name="risk_su_sudo_escalate">su/sudo escalamiento de privilegios</string>
-    <string name="risk_format_partition">Formato/partición</string>
-    <string name="risk_rm_rf_root">Borrado recursivo de la raíz</string>
-    <string name="risk_fork_bomb">fork bomb agotamiento de recursos</string>
-    <string name="risk_kernel_module">Operación de módulo del kernel</string>
-    <string name="risk_raw_disk_write">Escritura directa al disco</string>
-    <string name="risk_shutdown_reboot">Apagado/reinicio</string>
-    <string name="risk_setprop">Cambio de propiedad del sistema</string>
-    <string name="risk_root_cmd">Comando privilegiado ROOT</string>
+    <string name="risk_dd_disk_write">dd disk write</string>
+    <string name="risk_su_sudo_escalate">su/sudo privilege escalation</string>
+    <string name="risk_format_partition">Format/partition</string>
+    <string name="risk_rm_rf_root">Recursively delete root</string>
+    <string name="risk_fork_bomb">fork bomb resource exhaustion</string>
+    <string name="risk_kernel_module">Kernel module operation</string>
+    <string name="risk_raw_disk_write">Raw disk write</string>
+    <string name="risk_shutdown_reboot">Shutdown/reboot</string>
+    <string name="risk_setprop">System property change</string>
+    <string name="risk_root_cmd">ROOT privileged command</string>
 
     <!-- Ajustes de nombres de riesgo -->
     <string name="risk_high_risk_op">High-risk operation</string>
+
+    <!-- ApiCompat.Feature -->
+    <string name="api_keep_alive_warning">Keep-alive warning</string>
+    <string name="api_live_update_notification">Live update notifications</string>
+    <string name="api_vnc_pip">VNC picture-in-picture</string>
+    <string name="api_vnc_pointer">VNC pointer capture</string>
+    <string name="api_vnc_audio">VNC audio</string>
+    <string name="api_qemu_container">QEMU container mode</string>
+    <string name="api_qemu_pulse">QEMU PulseAudio audio</string>
+    <string name="api_qemu_manager">QEMU virtual machine manager</string>
+    <string name="api_moe_script">MOE all-in-one script</string>
+    <string name="api_alpine_qemu">Alpine QEMU</string>
+    <string name="api_debian_qemu">Debian QEMU</string>
+    <string name="api_docker_manager">Docker container manager</string>
+    <string name="api_pulse_player">PulseAudio player</string>
+    <string name="api_notif_perm">Notification permission</string>
+    <string name="api_all_files">All files access</string>
+    <string name="api_integrated">Integrated tools (API/Boot/Styling/Tasker/Widget)</string>
+    <string name="api_miuix_dyncolor">Dynamic color theme</string>
+    <string name="api_glass_navbar">Glass navigation bar</string>
+
+    <!-- PluginSecurity -->
+    <string name="perm_session">Terminal session access</string>
+    <string name="perm_root_exec">ROOT execution</string>
+    <string name="perm_fs_read">File system read</string>
+    <string name="perm_fs_write">File system write</string>
+    <string name="perm_agent_modify">Modify Agent</string>
+    <string name="perm_h5">H5 web view</string>
+    <string name="perm_bridge">Cross-app bridge</string>
+    <string name="perm_internet">Network access</string>
+    <string name="perm_desc_session">Lets the plugin run commands in Termux sessions and read their output</string>
+    <string name="perm_desc_root">Lets the plugin run commands as ROOT (high risk)</string>
+    <string name="perm_desc_fs_read">Lets the plugin read files in the Termux environment</string>
+    <string name="perm_desc_fs_write">Lets the plugin write files in the Termux environment (high risk)</string>
+    <string name="perm_desc_agent">Lets the plugin modify the Termux Agent system prompt and skill cards (high risk)</string>
+    <string name="perm_desc_h5">Lets the plugin show H5 web interfaces inside the app</string>
+    <string name="perm_desc_bridge">Lets the plugin interact with other apps via intents and broadcasts</string>
+    <string name="perm_desc_internet">Lets the plugin make network requests</string>
+    <string name="risk_low">Low</string>
+    <string name="risk_medium">Medium</string>
+    <string name="risk_high">High</string>
+    <string name="plugin_not_found">Plugin not found</string>
+    <string name="plugin_not_enabled">Plugin is not enabled</string>
+    <string name="plugin_no_shell">Plugin does not have permission to run commands</string>
+    <string name="plugin_no_fs">Plugin does not have file system %1$s permission</string>
+    <string name="fs_read_word">read</string>
+    <string name="fs_write_word">write</string>
+    <string name="plugin_cmd_risky">Command contains high-risk operations; ROOT or user confirmation required</string>
+    <string name="plugin_path_sandbox">File access path is outside the sandbox</string>
+    <string name="plugin_path_escape">Path escape detected</string>
+    <string name="plugin_no_net">Plugin does not have network access permission</string>
+    <string name="plugin_no_agent">Plugin does not have permission to modify the Agent</string>
 </resources>
