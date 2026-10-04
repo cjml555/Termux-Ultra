@@ -2517,4 +2517,69 @@
     <string name="agent_card_path">路径：%1$s</string>
     <string name="agent_card_cmd">命令：%1$s</string>
     <string name="agent_agent_running">%1$s 正在执行…</string>
+
+    <!-- AiLocalModel: catalogo de modelos -->
+    <string name="model_qwen_desc">阿里通义轻量对话模型（Q4_K_M 量化，约 950MB）</string>
+    <string name="model_deepseek_desc">深度求索蒸馏推理模型（Q4_K_M 量化，约 1.1GB）</string>
+    <string name="model_xiaomi_desc">小米开源推理模型（Q4_K_M 量化，约 4.4GB），需较大内存</string>
+    <string name="model_doubao_desc">字节跳动豆包开源旗舰模型（Q4_K_M 量化，约 20GB），512K 超长上下文</string>
+    <string name="model_doubao_warn">体积超过 20GB，需 24GB+ 空闲内存，绝大多数 Android 设备无法正常运行，仅供高端设备或 Termux 桌面环境使用</string>
+
+    <!-- AiLocalModel: descarga, instalacion e inferencia -->
+    <string name="llama_exited">❌ llama-server 进程异常退出 (pid=%1$d)</string>
+    <string name="llama_log">日志: %1$s</string>
+    <string name="llama_port_open">✅ 端口已打开，等待模型加载完成…</string>
+    <string name="llama_ready">✅ 模型加载完成，推理就绪</string>
+    <string name="local_svc_error">本地推理服务异常: %1$s</string>
+    <string name="local_svc_failed">本地推理服务失败</string>
+    <string name="local_no_shell">找不到可用的 shell 环境</string>
+    <string name="task_create_failed">TermuxTask 创建失败: %1$s</string>
+    <string name="internal_ctx_uninit">内部错误：Context 未初始化</string>
+    <string name="pkg_updating">正在更新 Termux 包索引（pkg update）…</string>
+    <string name="installing_llama">正在安装 llama.cpp 运行时（可能需要数分钟）…</string>
+    <string name="installing_pkg">正在安装 %1$s（通过 %2$s）…</string>
+    <string name="pkg_install_failed">包安装失败，正在准备编译环境（可能较慢）…</string>
+    <string name="llama_install_failed">llama.cpp 安装失败：请手动在 Termux 终端中执行「pkg update &amp;&amp; pkg install -y llama.cpp」</string>
+    <string name="downloading_model">开始下载模型…</string>
+    <string name="downloading_pct">下载中 %1$d%%  (%2$s/%3$s 字节)</string>
+    <string name="downloading_mb">下载中 %1$d MB…</string>
+    <string name="curl_fallback">curl 下载失败，切换到内置下载器…</string>
+    <string name="download_http_fail">下载失败：HTTP %1$d</string>
+    <string name="download_empty">下载内容为空，请重试</string>
+    <string name="download_too_small">下载文件过小（仅 %1$dMB，预期约 %2$dMB）</string>
+    <string name="finalizing">正在整理文件…</string>
+    <string name="write_final_failed">下载完成但写入最终文件失败: %1$s</string>
+    <string name="download_done">模型下载完成</string>
+    <string name="net_cannot_connect">无法连接服务器，请检查网络或VPN</string>
+    <string name="net_timeout">连接超时，请检查网络</string>
+    <string name="net_ssl">SSL连接失败，请检查网络或VPN</string>
+    <string name="net_error">网络错误：%1$s</string>
+    <string name="net_403">下载被拒绝(403)，请检查网络</string>
+    <string name="net_404">文件不存在(404)，链接可能已失效</string>
+    <string name="net_generic">下载失败(%1$s)，请检查网络后重试</string>
+    <string name="not_configured">未配置本地大模型，请先完成下载配置</string>
+    <string name="llama_missing">未检测到 llama.cpp，请先在「本地大模型」中完成下载与自动配置</string>
+    <string name="model_file_missing">本地模型文件不存在，请重新下载</string>
+    <string name="daemon_failed">常驻模式启动失败，切换到直接调用模式…</string>
+    <string name="prompt_tmp_fail">无法写入提示词临时文件</string>
+    <string name="loading_infer">正在加载模型并推理…</string>
+    <string name="direct_llama_cli">直接调用 llama-cli 子进程</string>
+    <string name="loading_short">加载/推理中…</string>
+    <string name="loading_model">加载模型中…</string>
+    <string name="local_infer_fail">本地模型推理失败</string>
+    <string name="local_infer_fail_msg">本地模型推理失败：%1$s</string>
+    <string name="local_empty">本地模型返回为空</string>
+    <string name="local_empty_choices">本地模型返回为空（choices 为空）</string>
+    <string name="local_svc_nonjson">本地推理服务返回非 JSON: %1$s</string>
+    <string name="local_svc_err_msg">本地推理服务返回错误: %1$s</string>
+    <string name="local_svc_no_choices">本地推理服务返回无 choices 字段</string>
+    <string name="truncated_max_tokens">输出被 max_tokens 截断</string>
+    <string name="model_emitted_eos">模型直接输出了结束符（未生成内容）</string>
+    <string name="content_filtered">内容被过滤</string>
+    <string name="unknown_reason">未知原因（finish_reason=%1$s）</string>
+    <string name="local_empty_reason">本地模型返回为空（%1$s）</string>
+    <string name="local_svc_failed_msg">本地推理服务失败：%1$s</string>
+
+    <string name="llama_install_failed_full">llama.cpp 安装失败：请手动在 Termux 终端中执行「pkg update &amp;&amp; pkg install -y llama.cpp」，或检查网络后重试</string>
+    <string name="downloading_pct_speed">下载中 %1$d%%  (%2$s)</string>
 </resources>

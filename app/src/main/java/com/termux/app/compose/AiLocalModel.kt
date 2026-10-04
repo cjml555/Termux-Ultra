@@ -1,5 +1,7 @@
 package com.termux.app.compose
 
+import androidx.annotation.StringRes
+import com.termux.R
 import android.content.Context
 import com.termux.shared.shell.command.ExecutionCommand
 import com.termux.shared.termux.shell.command.environment.TermuxShellEnvironment
@@ -35,13 +37,15 @@ data class LocalModelEntry(
     val id: String,
     val displayName: String,
     val description: String,
+    val descRes: Int,
     val fileName: String,
     val downloadUrl: String,
     val sizeBytes: Long,
     val maxTokens: Int,
     val recommendedRamMB: Int,
     val maxContext: Int = 4096,
-    val warning: String? = null
+    val warning: String? = null,
+    val warnRes: Int? = null
 )
 
 /** 内置可选本地模型目录（当前提供适合 Android 设备的轻量模型） */
@@ -49,7 +53,7 @@ val LOCAL_MODELS: List<LocalModelEntry> = listOf(
     LocalModelEntry(
         id = "qwen2.5-1.5b-q4km",
         displayName = "Qwen2.5-1.5B-Instruct",
-        description = "阿里通义轻量对话模型（Q4_K_M 量化，约 950MB）",
+        description = "", descRes = R.string.model_qwen_desc,
         fileName = "qwen2.5-1.5b-instruct-q4_k_m.gguf",
         downloadUrl = "https://hf-mirror.com/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf",
         sizeBytes = 990_000_000L,
@@ -60,7 +64,7 @@ val LOCAL_MODELS: List<LocalModelEntry> = listOf(
     LocalModelEntry(
         id = "deepseek-r1-qwen-1.5b-q4km",
         displayName = "DeepSeek-R1-Distill-Qwen-1.5B",
-        description = "深度求索蒸馏推理模型（Q4_K_M 量化，约 1.1GB）",
+        description = "", descRes = R.string.model_deepseek_desc,
         fileName = "DeepSeek-R1-Distill-Qwen-1.5B-Q4_K_M.gguf",
         downloadUrl = "https://hf-mirror.com/unsloth/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q4_K_M.gguf",
         sizeBytes = 1_117_321_312L,
@@ -71,7 +75,7 @@ val LOCAL_MODELS: List<LocalModelEntry> = listOf(
     LocalModelEntry(
         id = "mimo-7b-rl-q4km",
         displayName = "MiMo-7B-RL",
-        description = "小米开源推理模型（Q4_K_M 量化，约 4.4GB），需较大内存",
+        description = "", descRes = R.string.model_xiaomi_desc,
         fileName = "MiMo-7B-RL-Q4_K_M.gguf",
         downloadUrl = "https://hf-mirror.com/jedisct1/MiMo-7B-RL-GGUF/resolve/main/MiMo-7B-RL-Q4_K_M.gguf",
         sizeBytes = 4_684_339_808L,
@@ -82,14 +86,14 @@ val LOCAL_MODELS: List<LocalModelEntry> = listOf(
     LocalModelEntry(
         id = "seed-oss-36b-q4km",
         displayName = "Seed-OSS-36B-Instruct",
-        description = "字节跳动豆包开源旗舰模型（Q4_K_M 量化，约 20GB），512K 超长上下文",
+        description = "", descRes = R.string.model_doubao_desc,
         fileName = "Seed-OSS-36B-Instruct-Q4_K_M.gguf",
         downloadUrl = "https://hf-mirror.com/unsloth/Seed-OSS-36B-Instruct-GGUF/resolve/main/Seed-OSS-36B-Instruct-Q4_K_M.gguf",
         sizeBytes = 21_762_149_536L,
         maxTokens = 512,
         recommendedRamMB = 24576,
         maxContext = 524288,
-        warning = "体积超过 20GB，需 24GB+ 空闲内存，绝大多数 Android 设备无法正常运行，仅供高端设备或 Termux 桌面环境使用"
+        warning = "", warnRes = R.string.model_doubao_warn
     )
 )
 
@@ -108,6 +112,20 @@ object AiLocalModel {
     }
 
     private fun context(): Context? = appContext
+
+    /**
+     * Texto localizado del recurso [res], con el context de la app.
+     *
+     * Todo el downloader y el servidor de inferencia viven en un object sin
+     * Context propio, asi que se resuelven los textos por aqui en lugar de
+     * propagar un parametro por cada firma. Si el context aun no esta
+     * inicializado se devuelve un guion: es preferible un texto vacio a que
+     * la ruta de descarga reviente con una excepcion.
+     */
+    private fun str(@StringRes res: Int, vararg args: Any): String {
+        val c = context() ?: return "-"
+        return if (args.isEmpty()) c.getString(res) else c.getString(res, *args)
+    }
 
     /** Termux PREFIX 目录 */
     private fun prefixDir(): String = TermuxConstants.TERMUX_PREFIX_DIR_PATH
@@ -433,8 +451,8 @@ object AiLocalModel {
                     if (!alive) {
                         val errLog = runCatching { logFile.readText().take(1000) }.getOrNull() ?: ""
                         android.util.Log.e("AiLocalModel", "llama-server process DIED (pid=$pid)! last log: $errLog")
-                        onLog?.invoke("❌ llama-server 进程异常退出 (pid=$pid)")
-                        onLog?.invoke("日志: ${errLog.take(300)}")
+                        onLog?.invoke(str(R.string.llama_exited, pid))
+                        onLog?.invoke(str(R.string.llama_log, errLog.take(300)))
                         clearServerMeta()
                         return@withContext false
                     }
@@ -442,12 +460,12 @@ object AiLocalModel {
                 if (!portReady && pingServerPort(llamaServerPort)) {
                     portReady = true
                     android.util.Log.i("AiLocalModel", "llama-server port opened, waiting for model load...")
-                    onLog?.invoke("✅ 端口已打开，等待模型加载完成…")
+                    onLog?.invoke(str(R.string.llama_port_open))
                 }
                 // 端口就绪后，验证模型是否真正加载完成
                 if (portReady && verifyModelReady()) {
                     android.util.Log.i("AiLocalModel", "llama-server ready with model loaded")
-                    onLog?.invoke("✅ 模型加载完成，推理就绪")
+                    onLog?.invoke(str(R.string.llama_ready))
                     return@withContext true
                 }
                 Thread.sleep(1000)
@@ -510,7 +528,7 @@ object AiLocalModel {
             val code = conn.responseCode
             if (code != 200) {
                 val err = runCatching { conn.errorStream?.bufferedReader()?.readText() }.getOrNull() ?: "HTTP $code"
-                emit(StreamChunk.Error("本地推理服务异常: $err"))
+                emit(StreamChunk.Error(str(R.string.local_svc_error, err)))
                 return@flow
             }
 
@@ -544,7 +562,7 @@ object AiLocalModel {
         } catch (e: Exception) {
             android.util.Log.e("AiLocalModel", "server 流式推理失败", e)
             val errorDetail = buildString {
-                append("本地推理服务失败")
+                append(str(R.string.local_svc_failed))
                 append(": ${e.message ?: e.javaClass.simpleName}")
                 when {
                     e is java.net.ConnectException -> append("\n服务未启动或端口错误")
@@ -672,7 +690,7 @@ object AiLocalModel {
         timeoutSeconds: Int = 300
     ): ShellResult = withContext(Dispatchers.IO) {
         val shellPath = resolveTermuxShell()
-            ?: return@withContext ShellResult(false, null, "", "找不到可用的 shell 环境")
+            ?: return@withContext ShellResult(false, null, "", str(R.string.local_no_shell))
 
         val executionCommand = ExecutionCommand(
             System.currentTimeMillis().toInt(),
@@ -695,7 +713,7 @@ object AiLocalModel {
             )
         } catch (e: Exception) {
             android.util.Log.e("AiLocalModel", "TermuxTask.execute 创建失败", e)
-            return@withContext ShellResult(false, null, "", "TermuxTask 创建失败: ${e.message}")
+            return@withContext ShellResult(false, null, "", str(R.string.task_create_failed, e.message ?: ""))
         }
 
         val startTime = System.currentTimeMillis()
@@ -739,7 +757,7 @@ object AiLocalModel {
         try {
             val context = context()
             if (context == null) {
-                onProgress(0f, "内部错误：Context 未初始化")
+                onProgress(0f, str(R.string.internal_ctx_uninit))
                 return@withContext false
             }
 
@@ -748,13 +766,13 @@ object AiLocalModel {
             val network = connectivityManager?.activeNetwork
             val capabilities = connectivityManager?.getNetworkCapabilities(network)
             if (capabilities == null || !capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
-                onProgress(0f, "无网络连接，请检查网络设置")
+                onProgress(0f, str(R.string.no_network))
                 return@withContext false
             }
 
             // 1. 确保 llama.cpp 已安装（若未安装则先更新包列表再安装）
             if (!isLlamaCppInstalled()) {
-                onProgress(0f, "正在更新 Termux 包索引（pkg update）…")
+                onProgress(0f, str(R.string.pkg_updating))
                 android.util.Log.i("AiLocalModel", "开始: pkg update")
                 val updateResult = runTermuxShell(
                     context,
@@ -768,7 +786,7 @@ object AiLocalModel {
                     android.util.Log.w("AiLocalModel", "pkg update exit=${updateResult.exitCode}, stderr=${updateResult.stderr.take(200)}")
                 }
 
-                onProgress(0f, "正在安装 llama.cpp 运行时（可能需要数分钟）…")
+                onProgress(0f, str(R.string.installing_llama))
 
                 // 依次尝试多种候选包名 + 多种前端参数（apt/pkg 双通路）
                 val candidatePackages = listOf(
@@ -785,7 +803,7 @@ object AiLocalModel {
                     for (manager in listOf("pkg", "apt")) {
                         val cmd = "$manager install -y $pkg 2>&1"
                         android.util.Log.i("AiLocalModel", "尝试: $cmd")
-                        onProgress(0f, "正在安装 $pkg（通过 $manager）…")
+                        onProgress(0f, str(R.string.installing_pkg, pkg, manager))
                         val r = runTermuxShell(context, cmd, timeoutSeconds = 900)
                         android.util.Log.i(
                             "AiLocalModel",
@@ -809,7 +827,7 @@ object AiLocalModel {
                 // 最后兜底：尝试从源码编译 llama.cpp（编译选项走 make，需要 build-essential 和 cmake）
                 if (!installed) {
                     android.util.Log.w("AiLocalModel", "pkg/apt 安装失败，尝试编译安装兜底")
-                    onProgress(0f, "包安装失败，正在准备编译环境（可能较慢）…")
+                    onProgress(0f, str(R.string.pkg_install_failed))
                     val buildEnvCmd = "pkg install -y build-essential cmake git 2>&1"
                     val buildEnv = runTermuxShell(context, buildEnvCmd, timeoutSeconds = 900)
                     android.util.Log.i("AiLocalModel", "build env exit=${buildEnv.exitCode}, out=${buildEnv.stdout.take(300)}")
@@ -840,7 +858,7 @@ object AiLocalModel {
                     android.util.Log.e("AiLocalModel", "llama.cpp 安装失败，详情:\n$installLogs")
                     onProgress(
                         0f,
-                        "llama.cpp 安装失败：请手动在 Termux 终端中执行「pkg update && pkg install -y llama.cpp」，或检查网络后重试"
+                        str(R.string.llama_install_failed_full)
                     )
                     resetLocalModelConfigIfConfigured()
                     return@withContext false
@@ -861,7 +879,7 @@ object AiLocalModel {
             }
 
             // 3. 下载模型（优先用 Termux curl，支持续传；失败回退到 HttpURLConnection）
-            onProgress(0f, "开始下载模型…")
+            onProgress(0f, str(R.string.downloading_model))
             var downloadSuccess = false
             var downloadLog = ""
 
@@ -886,7 +904,7 @@ object AiLocalModel {
                             val cur = tmp.length()
                             if (entry.sizeBytes > 0) {
                                 val p = (cur.toDouble() / entry.sizeBytes).coerceAtMost(0.99).toFloat()
-                                onProgress(p, "下载中 ${(p * 100).toInt()}%  ($cur/${entry.sizeBytes} 字节)")
+                                onProgress(p, str(R.string.downloading_pct, (p * 100).toInt(), "$cur", "${entry.sizeBytes}"))
                             } else {
                                 onProgress(0f, "下载中 ${cur / 1024 / 1024} MB…")
                             }
@@ -928,7 +946,7 @@ object AiLocalModel {
             // 兜底：使用 HttpURLConnection 直接下载
             if (!downloadSuccess) {
                 android.util.Log.w("AiLocalModel", "curl 下载失败，使用 HttpURLConnection 兜底。curl 日志: ${downloadLog.take(300)}")
-                onProgress(0f, "curl 下载失败，切换到内置下载器…")
+                onProgress(0f, str(R.string.curl_fallback))
                 if (tmp.exists()) tmp.delete()
                 existingBytes = 0L
 
@@ -945,7 +963,7 @@ object AiLocalModel {
 
                 val code = connection.responseCode
                 if (code !in 200..299 && code != 206) {
-                    onProgress(0f, "下载失败：HTTP $code")
+                    onProgress(0f, str(R.string.download_http_fail, code))
                     connection.disconnect()
                     return@withContext false
                 }
@@ -978,10 +996,10 @@ object AiLocalModel {
                                 val speed = (downloaded - existingBytes) / 1024.0 / 1024.0 / secs
                                 onProgress(
                                     p,
-                                    "下载中 ${(p * 100).toInt()}%  (${"%.1f".format(speed)} MB/s)"
+                                    str(R.string.downloading_pct_speed, (p * 100).toInt(), "%.1f".format(speed))
                                 )
                             } else {
-                                onProgress(0f, "下载中 ${downloaded / 1024 / 1024} MB…")
+                                onProgress(0f, str(R.string.downloading_mb, downloaded / 1024 / 1024))
                             }
                         }
                     }
@@ -992,7 +1010,7 @@ object AiLocalModel {
 
             // 4. 校验并重命名
             if (!tmp.exists() || tmp.length() == 0L) {
-                onProgress(0f, "下载内容为空，请重试")
+                onProgress(0f, str(R.string.download_empty))
                 tmp.delete()
                 return@withContext false
             }
@@ -1001,7 +1019,7 @@ object AiLocalModel {
             if (entry.sizeBytes > 0 && tmp.length() < entry.sizeBytes * 0.6f) {
                 onProgress(
                     0f,
-                    "下载文件过小（仅 ${tmp.length() / 1024 / 1024}MB，预期约 ${entry.sizeBytes / 1024 / 1024}MB），请检查网络后重试"
+                    str(R.string.download_too_small, tmp.length() / 1024 / 1024, entry.sizeBytes / 1024 / 1024)
                 )
                 tmp.delete()
                 return@withContext false
@@ -1010,12 +1028,12 @@ object AiLocalModel {
             target.delete()
             if (!tmp.renameTo(target)) {
                 // rename 失败兜底：复制再删除
-                onProgress(0.95f, "正在整理文件…")
+                onProgress(0.95f, str(R.string.finalizing))
                 try {
                     tmp.copyTo(target, overwrite = true)
                     tmp.delete()
                 } catch (e: Exception) {
-                    onProgress(0f, "下载完成但写入最终文件失败: ${e.message}")
+                    onProgress(0f, str(R.string.write_final_failed, e.message ?: ""))
                     return@withContext false
                 }
             }
@@ -1027,7 +1045,7 @@ object AiLocalModel {
 
             setSelectedModelId(entry.id)
             setDownloadedAt(System.currentTimeMillis())
-            onProgress(1f, "模型下载完成")
+            onProgress(1f, str(R.string.download_done))
             true
         } catch (e: Exception) {
             try {
@@ -1037,13 +1055,13 @@ object AiLocalModel {
             android.util.Log.e("AiLocalModel", "Download failed: ${e.javaClass.name}", e)
             val detail = e.toString()
             val errorMsg = when {
-                e is java.net.UnknownHostException -> "无法连接服务器，请检查网络或VPN"
-                e is java.net.SocketTimeoutException -> "连接超时，请检查网络"
-                e is javax.net.ssl.SSLException -> "SSL连接失败，请检查网络或VPN"
-                e is java.io.IOException && e.message != null -> "网络错误：${e.message}"
-                detail.contains("403") -> "下载被拒绝(403)，请检查网络"
-                detail.contains("404") -> "文件不存在(404)，链接可能已失效"
-                else -> "下载失败(${e.javaClass.simpleName})，请检查网络后重试"
+                e is java.net.UnknownHostException -> str(R.string.net_cannot_connect)
+                e is java.net.SocketTimeoutException -> str(R.string.net_timeout)
+                e is javax.net.ssl.SSLException -> str(R.string.net_ssl)
+                e is java.io.IOException && e.message != null -> str(R.string.net_error, e.message ?: "")
+                detail.contains("403") -> str(R.string.net_403)
+                detail.contains("404") -> str(R.string.net_404)
+                else -> str(R.string.net_generic, e.javaClass.simpleName)
             }
             resetLocalModelConfigIfConfigured()
             onProgress(0f, errorMsg)
@@ -1118,14 +1136,14 @@ object AiLocalModel {
     }
 
     private fun requireReady(): String? {
-        val entry = getSelectedModel() ?: return "未配置本地大模型，请先完成下载配置"
+        val entry = getSelectedModel() ?: return str(R.string.not_configured)
         if (!isLlamaCppInstalled()) {
             resetLocalModelConfigIfConfigured()
-            return "未检测到 llama.cpp，请先在「本地大模型」中完成下载与自动配置"
+            return str(R.string.llama_missing)
         }
         if (!isModelInstalled(entry)) {
             resetLocalModelConfigIfConfigured()
-            return "本地模型文件不存在，请重新下载"
+            return str(R.string.model_file_missing)
         }
         return null
     }
@@ -1365,7 +1383,7 @@ object AiLocalModel {
                     }
                 } catch (_: Exception) {}
             } else {
-                send(StreamChunk.Prepare("常驻模式启动失败，切换到直接调用模式…", "fallback to llama-cli"))
+                send(StreamChunk.Prepare(str(R.string.daemon_failed), "fallback to llama-cli"))
             }
         }
 
@@ -1373,9 +1391,9 @@ object AiLocalModel {
         val promptText = buildChatPrompt(truncatedMessages)
         android.util.Log.i("AiLocalModel", "chatStreamLocal: buildChatPrompt 后 prompt 长度=${promptText.length} chars")
         val promptFile = writePromptFile(promptText)
-            ?: run { send(StreamChunk.Error("无法写入提示词临时文件")); return@channelFlow }
+            ?: run { send(StreamChunk.Error(str(R.string.prompt_tmp_fail))); return@channelFlow }
 
-        send(StreamChunk.Prepare("正在加载模型并推理…", "直接调用 llama-cli 子进程"))
+        send(StreamChunk.Prepare(str(R.string.loading_infer), str(R.string.direct_llama_cli)))
 
         var proc: Process? = null
         try {
@@ -1423,7 +1441,7 @@ object AiLocalModel {
                             .takeLast(3)  // 最多显示最近 3 行，避免卡片过长
                         val detailText = toEmit.joinToString("\n") { "⚙ $it" }
                         if (detailText.isNotBlank()) {
-                            send(StreamChunk.Prepare("加载/推理中…", detailText))
+                            send(StreamChunk.Prepare(str(R.string.loading_short), detailText))
                         }
                         lastStderrEmit = curSize
                     }
@@ -1460,7 +1478,7 @@ object AiLocalModel {
                             val t = trimmed.trimStart { it <= ' ' || it == '█' || it == '=' || it == '-' || it == '>' || it == '<' }
                             if (t.startsWith("Loading model") || t.startsWith("build") || t.startsWith("model ") || t.startsWith("llama_model_loader")) {
                                 val first80 = if (trimmed.length > 80) trimmed.take(80) else trimmed
-                                send(StreamChunk.Prepare("加载模型中…", first80))
+                                send(StreamChunk.Prepare(str(R.string.loading_model), first80))
                                 nonMatchingLines = 0
                             } else if (trimmed.isNotBlank()) {
                                 nonMatchingLines++
@@ -1553,7 +1571,7 @@ object AiLocalModel {
         } catch (e: Exception) {
             android.util.Log.e("AiLocalModel", "Local inference (cli) failed", e)
             val errorDetail = buildString {
-                append("本地模型推理失败")
+                append(str(R.string.local_infer_fail))
                 append("：${e.message ?: e.javaClass.simpleName}")
                 when {
                     e is java.io.IOException -> append("\n进程启动失败或IO错误")
@@ -1623,7 +1641,7 @@ object AiLocalModel {
         }
         val promptFile = writePromptFile(buildChatPrompt(truncatedMessages))
             ?: return@withContext ChatCompletionResponse(
-                error = ChatCompletionResponse.ApiError("无法写入提示词临时文件")
+                error = ChatCompletionResponse.ApiError(str(R.string.prompt_tmp_fail))
             )
         try {
             val pb = buildProcess(entry, promptFile, config.temperature)
@@ -1632,7 +1650,7 @@ object AiLocalModel {
             val (text, _) = runCliCollectingStderr(proc)
             val output = extractAssistantResponse(text.trim('\n'))
             if (output.isBlank()) {
-                ChatCompletionResponse(error = ChatCompletionResponse.ApiError("本地模型返回为空"))
+                ChatCompletionResponse(error = ChatCompletionResponse.ApiError(str(R.string.local_empty)))
             } else {
                 ChatCompletionResponse(
                     choices = listOf(
@@ -1644,7 +1662,7 @@ object AiLocalModel {
             }
         } catch (e: Exception) {
             ChatCompletionResponse(
-                error = ChatCompletionResponse.ApiError("本地模型推理失败：${e.message}")
+                error = ChatCompletionResponse.ApiError(str(R.string.local_infer_fail_msg, e.message ?: ""))
             )
         } finally {
             promptFile.delete()
@@ -1687,7 +1705,7 @@ object AiLocalModel {
                         return@withContext result
                     }
                     return@withContext ChatCompletionResponse(
-                        error = ChatCompletionResponse.ApiError("本地模型返回为空")
+                        error = ChatCompletionResponse.ApiError(str(R.string.local_empty))
                     )
                 }
                 android.util.Log.w("AiLocalModel", "completeLocalViaServer: server 调用失败: ${result.error?.message}, fallback to cli")
@@ -1699,7 +1717,7 @@ object AiLocalModel {
         // Fallback: llama-cli 直接子进程（与 completeLocal 一致）
         val promptFile = writePromptFile(buildChatPrompt(truncatedMessages))
             ?: return@withContext ChatCompletionResponse(
-                error = ChatCompletionResponse.ApiError("无法写入提示词临时文件")
+                error = ChatCompletionResponse.ApiError(str(R.string.prompt_tmp_fail))
             )
         try {
             val pb = buildProcess(entry, promptFile, config.temperature)
@@ -1708,7 +1726,7 @@ object AiLocalModel {
             val (text, _) = runCliCollectingStderr(proc)
             val output = extractAssistantResponse(text.trim('\n'))
             if (output.isBlank()) {
-                ChatCompletionResponse(error = ChatCompletionResponse.ApiError("本地模型返回为空"))
+                ChatCompletionResponse(error = ChatCompletionResponse.ApiError(str(R.string.local_empty)))
             } else {
                 ChatCompletionResponse(
                     choices = listOf(
@@ -1720,7 +1738,7 @@ object AiLocalModel {
             }
         } catch (e: Exception) {
             ChatCompletionResponse(
-                error = ChatCompletionResponse.ApiError("本地模型推理失败：${e.message}")
+                error = ChatCompletionResponse.ApiError(str(R.string.local_infer_fail_msg, e.message ?: ""))
             )
         } finally {
             promptFile.delete()
@@ -1763,7 +1781,7 @@ object AiLocalModel {
             if (code != 200) {
                 val err = runCatching { conn.errorStream?.bufferedReader()?.readText() }.getOrNull() ?: "HTTP $code"
                 android.util.Log.e("AiLocalModel", "completeViaServerHttp HTTP 错误: $err")
-                return ChatCompletionResponse(error = ChatCompletionResponse.ApiError("本地推理服务异常: $err"))
+                return ChatCompletionResponse(error = ChatCompletionResponse.ApiError(str(R.string.local_svc_error, err)))
             }
             val respText = conn.inputStream.bufferedReader().use { it.readText() }
             android.util.Log.i("AiLocalModel", "completeViaServerHttp 响应长度=${respText.length}")
@@ -1774,7 +1792,7 @@ object AiLocalModel {
                 com.google.gson.JsonParser.parseString(respText).asJsonObject
             }.getOrElse { e ->
                 android.util.Log.e("AiLocalModel", "completeViaServerHttp JSON 解析失败: ${e.message}, resp=${respText.take(500)}")
-                return ChatCompletionResponse(error = ChatCompletionResponse.ApiError("本地推理服务返回非 JSON: ${respText.take(200)}"))
+                return ChatCompletionResponse(error = ChatCompletionResponse.ApiError(str(R.string.local_svc_nonjson, respText.take(200))))
             }
 
             // 检查是否有 error 字段
@@ -1782,18 +1800,18 @@ object AiLocalModel {
                 val errObj = rootObj.getAsJsonObject("error")
                 val errMsg = errObj?.get("message")?.asString ?: rootObj.get("error")?.toString() ?: "unknown error"
                 android.util.Log.e("AiLocalModel", "completeViaServerHttp 服务器返回 error: $errMsg")
-                return ChatCompletionResponse(error = ChatCompletionResponse.ApiError("本地推理服务返回错误: $errMsg"))
+                return ChatCompletionResponse(error = ChatCompletionResponse.ApiError(str(R.string.local_svc_err_msg, errMsg)))
             }
 
             // 解析 choices 数组
             if (!rootObj.has("choices")) {
                 android.util.Log.e("AiLocalModel", "completeViaServerHttp 响应无 choices 字段: ${respText.take(500)}")
-                return ChatCompletionResponse(error = ChatCompletionResponse.ApiError("本地推理服务返回无 choices 字段"))
+                return ChatCompletionResponse(error = ChatCompletionResponse.ApiError(str(R.string.local_svc_no_choices)))
             }
             val choicesArr = rootObj.getAsJsonArray("choices")
             if (choicesArr == null || choicesArr.size() == 0) {
                 android.util.Log.e("AiLocalModel", "completeViaServerHttp choices 数组为空")
-                return ChatCompletionResponse(error = ChatCompletionResponse.ApiError("本地模型返回为空（choices 为空）"))
+                return ChatCompletionResponse(error = ChatCompletionResponse.ApiError(str(R.string.local_empty_choices)))
             }
 
             val firstChoice = choicesArr[0].asJsonObject
@@ -1828,12 +1846,12 @@ object AiLocalModel {
             if (content.isBlank()) {
                 android.util.Log.e("AiLocalModel", "completeViaServerHttp 最终 content 为空! resp=${respText.take(500)}")
                 val reason = when (finishReason) {
-                    "length" -> "输出被 max_tokens 截断"
-                    "stop" -> "模型直接输出了结束符（未生成内容）"
-                    "content_filter" -> "内容被过滤"
-                    else -> "未知原因（finish_reason=$finishReason）"
+                    "length" -> str(R.string.truncated_max_tokens)
+                    "stop" -> str(R.string.model_emitted_eos)
+                    "content_filter" -> str(R.string.content_filtered)
+                    else -> str(R.string.unknown_reason, finishReason ?: "?")
                 }
-                ChatCompletionResponse(error = ChatCompletionResponse.ApiError("本地模型返回为空（$reason）"))
+                ChatCompletionResponse(error = ChatCompletionResponse.ApiError(str(R.string.local_empty_reason, reason)))
             } else {
                 android.util.Log.i("AiLocalModel", "completeViaServerHttp 成功获取内容: ${content.take(200)}")
                 ChatCompletionResponse(
@@ -1847,7 +1865,7 @@ object AiLocalModel {
         } catch (e: Exception) {
             android.util.Log.e("AiLocalModel", "completeViaServerHttp 失败", e)
             ChatCompletionResponse(
-                error = ChatCompletionResponse.ApiError("本地推理服务失败：${e.message ?: e.javaClass.simpleName}")
+                error = ChatCompletionResponse.ApiError(str(R.string.local_svc_failed_msg, e.message ?: e.javaClass.simpleName))
             )
         } finally {
             runCatching { conn?.disconnect() }

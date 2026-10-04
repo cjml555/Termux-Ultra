@@ -2523,4 +2523,69 @@ Recommendation: close other running Termux sessions first, then try again.</stri
     <string name="agent_card_path">Path: %1$s</string>
     <string name="agent_card_cmd">Command: %1$s</string>
     <string name="agent_agent_running">%1$s is running…</string>
+
+    <!-- AiLocalModel: catalogo de modelos -->
+    <string name="model_qwen_desc">Alibaba Tongyi lightweight chat model (Q4_K_M quantised, about 950MB)</string>
+    <string name="model_deepseek_desc">DeepSeek distilled reasoning model (Q4_K_M quantised, about 1.1GB)</string>
+    <string name="model_xiaomi_desc">Xiaomi open reasoning model (Q4_K_M quantised, about 4.4GB), needs a lot of RAM</string>
+    <string name="model_doubao_desc">ByteDance Doubao open flagship model (Q4_K_M quantised, about 20GB), 512K very long context</string>
+    <string name="model_doubao_warn">Over 20GB, needs 24GB+ of free RAM. Most Android devices cannot run it; for high-end devices or the Termux desktop only.</string>
+
+    <!-- AiLocalModel: descarga, instalacion e inferencia -->
+    <string name="llama_exited">❌ llama-server exited unexpectedly (pid=%1$d)</string>
+    <string name="llama_log">Log: %1$s</string>
+    <string name="llama_port_open">✅ Port open, waiting for the model to finish loading…</string>
+    <string name="llama_ready">✅ Model loaded, inference ready</string>
+    <string name="local_svc_error">Local inference service error: %1$s</string>
+    <string name="local_svc_failed">Local inference service failed</string>
+    <string name="local_no_shell">No usable shell environment found</string>
+    <string name="task_create_failed">Could not create TermuxTask: %1$s</string>
+    <string name="internal_ctx_uninit">Internal error: Context not initialised</string>
+    <string name="pkg_updating">Updating the Termux package index (pkg update)…</string>
+    <string name="installing_llama">Installing the llama.cpp runtime (this can take a few minutes)…</string>
+    <string name="installing_pkg">Installing %1$s (via %2$s)…</string>
+    <string name="pkg_install_failed">Package install failed, preparing a build environment (this can be slow)…</string>
+    <string name="llama_install_failed">llama.cpp install failed: run "pkg update &amp;&amp; pkg install -y llama.cpp" in a Termux terminal by hand.</string>
+    <string name="downloading_model">Starting model download…</string>
+    <string name="downloading_pct">Downloading %1$d%% (%2$s/%3$s)</string>
+    <string name="downloading_mb">Downloading %1$d MB…</string>
+    <string name="curl_fallback">curl download failed, switching to the built-in downloader…</string>
+    <string name="download_http_fail">Download failed: HTTP %1$d</string>
+    <string name="download_empty">Downloaded file was empty, try again</string>
+    <string name="download_too_small">Downloaded file is too small (%1$dMB, expected about %2$dMB)</string>
+    <string name="finalizing">Tidying up files…</string>
+    <string name="write_final_failed">Download finished but writing the final file failed: %1$s</string>
+    <string name="download_done">Model download complete</string>
+    <string name="net_cannot_connect">Cannot reach the server, check your network or VPN</string>
+    <string name="net_timeout">Connection timed out, check your network</string>
+    <string name="net_ssl">SSL connection failed, check your network or VPN</string>
+    <string name="net_error">Network error: %1$s</string>
+    <string name="net_403">Download rejected (403), check your network</string>
+    <string name="net_404">File not found (404), the link may have expired</string>
+    <string name="net_generic">Download failed (%1$s), check your network and try again</string>
+    <string name="not_configured">No local LLM configured yet, finish the download setup first</string>
+    <string name="llama_missing">llama.cpp not detected, finish the download and auto-setup in Local LLM first</string>
+    <string name="model_file_missing">The local model file is missing, download it again</string>
+    <string name="daemon_failed">Resident mode failed to start, switching to direct invocation…</string>
+    <string name="prompt_tmp_fail">Could not write the temporary prompt file</string>
+    <string name="loading_infer">Loading the model and running inference…</string>
+    <string name="direct_llama_cli">Calling the llama-cli subprocess directly</string>
+    <string name="loading_short">Loading / inferring…</string>
+    <string name="loading_model">Loading the model…</string>
+    <string name="local_infer_fail">Local model inference failed</string>
+    <string name="local_infer_fail_msg">Local model inference failed: %1$s</string>
+    <string name="local_empty">The local model returned nothing</string>
+    <string name="local_empty_choices">The local model returned nothing (choices was empty)</string>
+    <string name="local_svc_nonjson">The local service returned non-JSON: %1$s</string>
+    <string name="local_svc_err_msg">The local service returned an error: %1$s</string>
+    <string name="local_svc_no_choices">The local service returned no choices field</string>
+    <string name="truncated_max_tokens">Output was cut off by max_tokens</string>
+    <string name="model_emitted_eos">The model emitted the end marker straight away (no content generated)</string>
+    <string name="content_filtered">The content was filtered</string>
+    <string name="unknown_reason">Unknown reason (finish_reason=%1$s)</string>
+    <string name="local_empty_reason">The local model returned nothing (%1$s)</string>
+    <string name="local_svc_failed_msg">The local inference service failed: %1$s</string>
+
+    <string name="llama_install_failed_full">llama.cpp install failed: run "pkg update &amp;&amp; pkg install -y llama.cpp" in a Termux terminal by hand, or check your network</string>
+    <string name="downloading_pct_speed">Downloading %1$d%% (%2$s MB/s)</string>
 </resources>

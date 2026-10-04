@@ -2348,4 +2348,69 @@ Recomendación: cierra primero las demás sesiones de Termux en ejecución y vue
     <string name="agent_card_path">Ruta: %1$s</string>
     <string name="agent_card_cmd">Comando: %1$s</string>
     <string name="agent_agent_running">%1$s se está ejecutando…</string>
+
+    <!-- AiLocalModel: catalogo de modelos -->
+    <string name="model_qwen_desc">Modelo de chat ligero de Alibaba Tongyi (cuantizado Q4_K_M, unos 950 MB)</string>
+    <string name="model_deepseek_desc">Modelo de razonamiento destilado de DeepSeek (cuantizado Q4_K_M, unos 1.1 GB)</string>
+    <string name="model_xiaomi_desc">Modelo de razonamiento abierto de Xiaomi (cuantizado Q4_K_M, unos 4.4 GB), necesita mucha RAM</string>
+    <string name="model_doubao_desc">Modelo abierto insignia Doubao de ByteDance (cuantizado Q4_K_M, unos 20 GB), contexto muy largo de 512K</string>
+    <string name="model_doubao_warn">Más de 20 GB, necesita más de 24 GB de RAM libre. La mayoría de dispositivos Android no podrán ejecutarlo; solo para equipos de gama alta o el escritorio de Termux.</string>
+
+    <!-- AiLocalModel: descarga, instalacion e inferencia -->
+    <string name="llama_exited">❌ llama-server terminó de forma inesperada (pid=%1$d)</string>
+    <string name="llama_log">Registro: %1$s</string>
+    <string name="llama_port_open">✅ Puerto abierto, esperando a que el modelo termine de cargar…</string>
+    <string name="llama_ready">✅ Modelo cargado, inferencia lista</string>
+    <string name="local_svc_error">Error del servicio de inferencia local: %1$s</string>
+    <string name="local_svc_failed">Falló el servicio de inferencia local</string>
+    <string name="local_no_shell">No se encontró un entorno de shell utilizable</string>
+    <string name="task_create_failed">No se pudo crear TermuxTask: %1$s</string>
+    <string name="internal_ctx_uninit">Error interno: Context sin inicializar</string>
+    <string name="pkg_updating">Actualizando el índice de paquetes de Termux (pkg update)…</string>
+    <string name="installing_llama">Instalando el runtime de llama.cpp (puede tardar unos minutos)…</string>
+    <string name="installing_pkg">Instalando %1$s (mediante %2$s)…</string>
+    <string name="pkg_install_failed">Falló la instalación del paquete, se prepara un entorno de compilación (puede tardar)…</string>
+    <string name="llama_install_failed">Falló la instalación de llama.cpp: ejecuta «pkg update &amp;&amp; pkg install -y llama.cpp» a mano en una terminal de Termux.</string>
+    <string name="downloading_model">Comenzando la descarga del modelo…</string>
+    <string name="downloading_pct">Descargando %1$d%% (%2$s/%3$s)</string>
+    <string name="downloading_mb">Descargando %1$d MB…</string>
+    <string name="curl_fallback">Falló la descarga con curl, se cambia al descargador integrado…</string>
+    <string name="download_http_fail">Falló la descarga: HTTP %1$d</string>
+    <string name="download_empty">El archivo descargado está vacío, inténtalo de nuevo</string>
+    <string name="download_too_small">El archivo descargado es demasiado pequeño (%1$d MB, se esperaban unos %2$d MB)</string>
+    <string name="finalizing">Ordenando los archivos…</string>
+    <string name="write_final_failed">La descarga terminó pero falló al escribir el archivo final: %1$s</string>
+    <string name="download_done">Descarga del modelo completada</string>
+    <string name="net_cannot_connect">No se puede contactar con el servidor, revisa tu red o VPN</string>
+    <string name="net_timeout">Se agotó el tiempo de espera, revisa tu red</string>
+    <string name="net_ssl">Falló la conexión SSL, revisa tu red o VPN</string>
+    <string name="net_error">Error de red: %1$s</string>
+    <string name="net_403">Descarga rechazada (403), revisa tu red</string>
+    <string name="net_404">Archivo no encontrado (404), puede que el enlace haya caducado</string>
+    <string name="net_generic">Falló la descarga (%1$s), revisa tu red e inténtalo de nuevo</string>
+    <string name="not_configured">Aún no hay un LLM local configurado, termina primero la descarga</string>
+    <string name="llama_missing">No se detectó llama.cpp, termina antes la descarga y la configuración automática en LLM local</string>
+    <string name="model_file_missing">Falta el archivo del modelo local, descárgalo de nuevo</string>
+    <string name="daemon_failed">El modo residente no arrancó, se cambia a invocación directa…</string>
+    <string name="prompt_tmp_fail">No se pudo escribir el archivo de prompt temporal</string>
+    <string name="loading_infer">Cargando el modelo e inferizando…</string>
+    <string name="direct_llama_cli">Llamando directamente al subproceso llama-cli</string>
+    <string name="loading_short">Cargando / inferiendo…</string>
+    <string name="loading_model">Cargando el modelo…</string>
+    <string name="local_infer_fail">Falló la inferencia del modelo local</string>
+    <string name="local_infer_fail_msg">Falló la inferencia del modelo local: %1$s</string>
+    <string name="local_empty">El modelo local no devolvió nada</string>
+    <string name="local_empty_choices">El modelo local no devolvió nada (choices quedó vacío)</string>
+    <string name="local_svc_nonjson">El servicio local devolvió algo que no es JSON: %1$s</string>
+    <string name="local_svc_err_msg">El servicio local devolvió un error: %1$s</string>
+    <string name="local_svc_no_choices">El servicio local no devolvió el campo choices</string>
+    <string name="truncated_max_tokens">La salida se cortó por max_tokens</string>
+    <string name="model_emitted_eos">El modelo emitió el marcador de fin directamente (no generó contenido)</string>
+    <string name="content_filtered">El contenido fue filtrado</string>
+    <string name="unknown_reason">Motivo desconocido (finish_reason=%1$s)</string>
+    <string name="local_empty_reason">El modelo local no devolvió nada (%1$s)</string>
+    <string name="local_svc_failed_msg">Falló el servicio de inferencia local: %1$s</string>
+
+    <string name="llama_install_failed_full">Falló la instalación de llama.cpp: ejecuta «pkg update &amp;&amp; pkg install -y llama.cpp» a mano en una terminal de Termux, o revisa tu red</string>
+    <string name="downloading_pct_speed">Descargando %1$d%% (%2$s MB/s)</string>
 </resources>

@@ -1854,8 +1854,9 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(entry.displayName, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.onSurface)
-                                Text(entry.description, fontSize = 12.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
-                                entry.warning?.let { warn ->
+                                Text(ctx.getString(entry.descRes), fontSize = 12.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+                                entry.warnRes?.let { warnRes ->
+                                    val warn = ctx.getString(warnRes)
                                     Spacer(Modifier.height(6.dp))
                                     Box(
                                         modifier = Modifier.fillMaxWidth()
