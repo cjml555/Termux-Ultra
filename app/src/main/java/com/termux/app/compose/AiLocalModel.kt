@@ -906,7 +906,7 @@ object AiLocalModel {
                                 val p = (cur.toDouble() / entry.sizeBytes).coerceAtMost(0.99).toFloat()
                                 onProgress(p, str(R.string.downloading_pct, (p * 100).toInt(), "$cur", "${entry.sizeBytes}"))
                             } else {
-                                onProgress(0f, "下载中 ${cur / 1024 / 1024} MB…")
+                                onProgress(0f, str(R.string.downloading_mb, cur / 1024 / 1024))
                             }
                         }
                     }

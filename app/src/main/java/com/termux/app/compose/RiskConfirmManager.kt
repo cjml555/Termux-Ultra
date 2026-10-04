@@ -1465,7 +1465,9 @@ fun RiskConfirmDialogHost(
         RiskConfirmManager.EnvironmentType.CONTAINER -> stringResource(R.string.risk_command_env_container_warning)
         RiskConfirmManager.EnvironmentType.VM -> stringResource(R.string.risk_command_env_vm_warning)
         RiskConfirmManager.EnvironmentType.SSH -> {
-            val isDiskCommand = state?.riskType in listOf("dd 磁盘写入", "格式化/分区")
+            // Claves de comparacion contra riskType, no texto de pantalla: los emite
+        // detectCommandDanger() y se comparan por valor. Traducirlas rompe la deteccion.
+        val isDiskCommand = state?.riskType in listOf("dd 磁盘写入", "格式化/分区")
             if (isDiskCommand) {
                 if (state?.isWindowsDiskCommand == true) {
                     stringResource(R.string.risk_command_env_ssh_disk_windows_warning)

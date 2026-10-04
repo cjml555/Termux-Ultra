@@ -1536,7 +1536,7 @@ private fun LowAndroidOverviewTipCard(context: Context) {
         ApiCompat.sdkInt
     )
     val message = if (hasForce) {
-        val list = forceEnabled.joinToString("、") { it.label }
+        val list = forceEnabled.joinToString(stringResource(R.string.low_android_feature_list_sep)) { it.display(context) }
         stringResource(R.string.low_android_force_enabled_desc,
             ApiCompat.androidReleaseName, ApiCompat.sdkInt, list)
     } else {

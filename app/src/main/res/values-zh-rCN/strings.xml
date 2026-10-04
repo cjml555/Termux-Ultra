@@ -3239,4 +3239,5 @@
     <string name="ft5_25">源</string>
     <string name="ft5_26">演</string>
     <string name="ft5_27">级</string>
+    <string name="low_android_feature_list_sep">、</string>
 </resources>

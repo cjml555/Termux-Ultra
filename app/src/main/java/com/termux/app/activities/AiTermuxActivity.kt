@@ -1112,6 +1112,9 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                 fakeCheck.violations.filter { v ->
                     when (violationCode(v)) {
                         4, 6, 7, 8 -> false
+                        // "未识别到技能类型" se compara contra la salida de
+                        // SkillExecutor.executeSkill, que sigue en chino a proposito:
+                        // es la clave del protocolo, no texto de pantalla.
                         1 -> !v.contains("未识别到技能类型")
                         else -> true
                     }

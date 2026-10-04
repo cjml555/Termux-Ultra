@@ -3249,4 +3249,5 @@ Switched to the fallback online model, please wait...</string>
     <string name="ft3_127">%1$s document</string>
     <string name="ft3_128">%1$s presentation</string>
     <string name="ft3_129">%1$s group</string>
+    <string name="low_android_feature_list_sep">, </string>
 </resources>

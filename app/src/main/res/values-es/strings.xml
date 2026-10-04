@@ -3080,4 +3080,5 @@ Se cambió al modelo en línea de respaldo, espera un momento...</string>
     <string name="ft5_25">fuente</string>
     <string name="ft5_26">presentación</string>
     <string name="ft5_27">nivel</string>
+    <string name="low_android_feature_list_sep">, </string>
 </resources>
