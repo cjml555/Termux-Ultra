@@ -2582,4 +2582,62 @@
 
     <string name="llama_install_failed_full">llama.cpp 安装失败：请手动在 Termux 终端中执行「pkg update &amp;&amp; pkg install -y llama.cpp」，或检查网络后重试</string>
     <string name="downloading_pct_speed">下载中 %1$d%%  (%2$s)</string>
+
+    <string name="trainer_status_auto">在线老师全自动训练中（含多轮追问 + Skill Mock）</string>
+    <string name="trainer_status_semi">半自动训练（无在线评分）</string>
+    <string name="trainer_init_title">初始化训练</string>
+    <string name="trainer_init_detail_auto">检测到备用在线大模型可用，将全自动：出题→本地回答→多轮追问→评分→记忆→循环</string>
+    <string name="trainer_init_detail_semi">无备用在线模型：仅自动出题和本地回答，评分需手动查看</string>
+    <string name="trainer_round_start">第 %1$d/%2$d 轮：开始</string>
+    <string name="trainer_step_a_gen">Step A/5：在线老师出题</string>
+    <string name="trainer_step_a_gen_detail">构造多样化题目 + 可选 skillMocks …</string>
+    <string name="trainer_step_a_done">Step A/5：题目已生成</string>
+    <string name="trainer_step_b_answer">Step B/5：本地模型回答</string>
+    <string name="trainer_step_b_wait">等待本地模型推理…</string>
+    <string name="trainer_step_b_done">Step B/5：回答完成</string>
+    <string name="trainer_step_b2_ban">Step B.2/5：禁令检测</string>
+    <string name="trainer_step_b5_notice">Step B.5/5：禁令提示</string>
+    <string name="trainer_step_b5_notify">正在将禁令违反情况通知训练老师…</string>
+    <string name="trainer_step_b5_followup">Step B.5/5：追问第 %1$d/%2$d 轮</string>
+    <string name="trainer_step_b5_reviewing">老师正在审视历史对话…</string>
+    <string name="trainer_step_b5_scored">Step B.5/5：追问结束</string>
+    <string name="trainer_step_b5_scored_detail">老师已在追问阶段给出综合评分，跳过 Step C</string>
+    <string name="trainer_step_b5_ready">Step B.5/5：追问结束</string>
+    <string name="trainer_step_b5_ready_detail">老师认为回答已到位，进入评分阶段</string>
+    <string name="trainer_step_c_extra">Step C/5：在线老师补充批改</string>
+    <string name="trainer_step_c_extra_detail">追问阶段已给分，正在生成具体点评…</string>
+    <string name="trainer_step_c_score">Step C/5：在线老师评分</string>
+    <string name="trainer_step_c_score_detail">正在评分并提取教训…</string>
+    <string name="trainer_step_c_wait">Step C/5：等待用户评分</string>
+    <string name="trainer_step_c_wait_detail">请在弹窗中评分</string>
+    <string name="trainer_step_d_memory">Step D/5：追加记忆</string>
+    <string name="trainer_no_new_lesson">（无新教训）</string>
+    <string name="trainer_done_title">训练完成：生成总体建议</string>
+    <string name="trainer_done_detail">在线老师正在回顾全部轮次…</string>
+    <string name="trainer_eta">约 %1$d 分 %2$d 秒（剩余 %3$d 轮，每轮约 %4$d 秒）</string>
+    <string name="trainer_finished">训练完成！已完成 %1$d 轮；总分=%2$s/100（标准化 %3$s%%）；记忆块长度=%4$d 字符。</string>
+    <string name="trainer_err_question">出题失败：%1$s</string>
+    <string name="trainer_err_local_answer">本地模型回答失败：%1$s</string>
+    <string name="trainer_err_followup_call">追问调用失败：%1$s</string>
+    <string name="trainer_err_followup_answer">追问回答失败：%1$s</string>
+    <string name="trainer_err_grade">评分失败：%1$s</string>
+    <string name="trainer_err_summary">总体建议生成失败：%1$s</string>
+    <string name="trainer_ban_triggered">本地模型回答触发禁令：%1$s</string>
+    <string name="trainer_ban_detail">检测到 %1$d 条禁令违反：
+%2$s</string>
+    <string name="trainer_student_answer_prefix">学生回答：%1$s</string>
+    <string name="trainer_teacher_followup_prefix">老师追问：%1$s</string>
+    <string name="trainer_err_grade2">评分生成失败</string>
+    <string name="trainer_local_unavailable">（本地模型不可用，跳过本轮）</string>
+    <string name="trainer_followup_answer_failed">（本地模型回答追问失败）</string>
+    <string name="trainer_err_summary_parenth">（总体建议生成失败：%1$s）</string>
+    <string name="trainer_done_word">已完成</string>
+    <string name="trainer_explain_answer">请解释你的回答。</string>
+    <string name="trainer_step_b5_fu_round">Step B.5/5：追问第 %1$d</string>
+    <string name="trainer_weight_label">本题权重=</string>
+    <string name="trainer_weight_value">%1$s</string>
+
+    <string name="trainer_online_model_error">在线模型异常：%1$s</string>
+    <string name="trainer_local_model_error">本地模型返回错误</string>
+    <string name="trainer_local_model_empty">本地模型返回为空</string>
 </resources>

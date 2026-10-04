@@ -2588,4 +2588,62 @@ Recommendation: close other running Termux sessions first, then try again.</stri
 
     <string name="llama_install_failed_full">llama.cpp install failed: run "pkg update &amp;&amp; pkg install -y llama.cpp" in a Termux terminal by hand, or check your network</string>
     <string name="downloading_pct_speed">Downloading %1$d%% (%2$s MB/s)</string>
+
+    <string name="trainer_status_auto">Training automatically with the online teacher (multi-turn follow-ups + Skill Mock)</string>
+    <string name="trainer_status_semi">Semi-automatic training (no online grading)</string>
+    <string name="trainer_init_title">Initializing training</string>
+    <string name="trainer_init_detail_auto">Fallback online model found, going fully automatic: question → local answer → follow-ups → grading → memory → loop</string>
+    <string name="trainer_init_detail_semi">No fallback online model: questions and local answers are automatic, grading is manual</string>
+    <string name="trainer_round_start">Round %1$d/%2$d: start</string>
+    <string name="trainer_step_a_gen">Step A/5: online teacher writes the question</string>
+    <string name="trainer_step_a_gen_detail">Building varied questions + optional skillMocks …</string>
+    <string name="trainer_step_a_done">Step A/5: question ready</string>
+    <string name="trainer_step_b_answer">Step B/5: local model answers</string>
+    <string name="trainer_step_b_wait">Waiting for the local model to infer…</string>
+    <string name="trainer_step_b_done">Step B/5: answer complete</string>
+    <string name="trainer_step_b2_ban">Step B.2/5: ban check</string>
+    <string name="trainer_step_b5_notice">Step B.5/5: ban notice</string>
+    <string name="trainer_step_b5_notify">Telling the training teacher about the ban violations…</string>
+    <string name="trainer_step_b5_followup">Step B.5/5: follow-up %1$d/%2$d</string>
+    <string name="trainer_step_b5_reviewing">The teacher is reviewing the conversation so far…</string>
+    <string name="trainer_step_b5_scored">Step B.5/5: follow-ups done</string>
+    <string name="trainer_step_b5_scored_detail">The teacher already graded during the follow-ups, skipping Step C</string>
+    <string name="trainer_step_b5_ready">Step B.5/5: follow-ups done</string>
+    <string name="trainer_step_b5_ready_detail">The teacher considers the answer sufficient, moving to grading</string>
+    <string name="trainer_step_c_extra">Step C/5: online teacher adds comments</string>
+    <string name="trainer_step_c_extra_detail">Already graded during the follow-ups, writing specific comments…</string>
+    <string name="trainer_step_c_score">Step C/5: online teacher grades</string>
+    <string name="trainer_step_c_score_detail">Grading and extracting lessons…</string>
+    <string name="trainer_step_c_wait">Step C/5: waiting for your grade</string>
+    <string name="trainer_step_c_wait_detail">Grade it in the dialog</string>
+    <string name="trainer_step_d_memory">Step D/5: appending to memory</string>
+    <string name="trainer_no_new_lesson">(no new lesson)</string>
+    <string name="trainer_done_title">Training done: writing the overall summary</string>
+    <string name="trainer_done_detail">The online teacher is reviewing every round…</string>
+    <string name="trainer_eta">~%1$dm%2$ds left (%3$d rounds, ~%4$ds each)</string>
+    <string name="trainer_finished">Training complete! %1$d rounds done; score=%2$s/100 (normalized %3$s%%); memory block=%4$d chars.</string>
+    <string name="trainer_err_question">Question failed: %1$s</string>
+    <string name="trainer_err_local_answer">Local model answer failed: %1$s</string>
+    <string name="trainer_err_followup_call">Follow-up call failed: %1$s</string>
+    <string name="trainer_err_followup_answer">Follow-up answer failed: %1$s</string>
+    <string name="trainer_err_grade">Grading failed: %1$s</string>
+    <string name="trainer_err_summary">Overall summary failed: %1$s</string>
+    <string name="trainer_ban_triggered">Local model answer broke a ban: %1$s</string>
+    <string name="trainer_ban_detail">%1$d ban violations found:
+%2$s</string>
+    <string name="trainer_student_answer_prefix">Student answer: %1$s</string>
+    <string name="trainer_teacher_followup_prefix">Teacher follow-up: %1$s</string>
+    <string name="trainer_err_grade2">Grading failed</string>
+    <string name="trainer_local_unavailable">(local model unavailable, round skipped)</string>
+    <string name="trainer_followup_answer_failed">(the local model failed to answer the follow-up)</string>
+    <string name="trainer_err_summary_parenth">(overall summary failed: %1$s)</string>
+    <string name="trainer_done_word">Done</string>
+    <string name="trainer_explain_answer">Explain your answer.</string>
+    <string name="trainer_step_b5_fu_round">Step B.5/5: follow-up %1$d</string>
+    <string name="trainer_weight_label">weight=</string>
+    <string name="trainer_weight_value">%1$s</string>
+
+    <string name="trainer_online_model_error">Online model error: %1$s</string>
+    <string name="trainer_local_model_error">the local model returned an error</string>
+    <string name="trainer_local_model_empty">the local model returned nothing</string>
 </resources>

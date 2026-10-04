@@ -304,7 +304,15 @@ private fun handleTrainerEvent(
             session.value.status = evt.status
             evt.message?.let { statusMsg.value = it }
         }
-        is LocalTrainerEvent.EtaUpdated -> etaText.value = evt.etaText
+        is LocalTrainerEvent.EtaUpdated -> etaText.value = if (evt.remainingRounds <= 0)
+            ctx.getString(R.string.trainer_done_word)
+        else {
+            val sec = evt.avgRoundMs * evt.remainingRounds / 1000
+            ctx.getString(
+                R.string.trainer_eta,
+                sec / 60, sec % 60, evt.remainingRounds, evt.avgRoundMs / 1000
+            )
+        }
         is LocalTrainerEvent.Step -> steps.add(
             Triple(evt.roundIndex, STEP_KIND, ctx.getString(R.string.trainer_step_header, evt.title, evt.detail))
         )

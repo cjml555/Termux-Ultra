@@ -2413,4 +2413,62 @@ Recomendación: cierra primero las demás sesiones de Termux en ejecución y vue
 
     <string name="llama_install_failed_full">Falló la instalación de llama.cpp: ejecuta «pkg update &amp;&amp; pkg install -y llama.cpp» a mano en una terminal de Termux, o revisa tu red</string>
     <string name="downloading_pct_speed">Descargando %1$d%% (%2$s MB/s)</string>
+
+    <string name="trainer_status_auto">Entrenamiento automático con el profesor en línea (preguntas de seguimiento de varias vueltas + Skill Mock)</string>
+    <string name="trainer_status_semi">Entrenamiento semiautomático (sin calificación en línea)</string>
+    <string name="trainer_init_title">Inicializando el entrenamiento</string>
+    <string name="trainer_init_detail_auto">Se encontró el modelo en línea de respaldo, será automático: pregunta → respuesta local → seguimiento → calificación → memoria → ciclo</string>
+    <string name="trainer_init_detail_semi">No hay modelo en línea de respaldo: las preguntas y las respuestas locales son automáticas, la calificación es manual</string>
+    <string name="trainer_round_start">Ronda %1$d/%2$d: inicio</string>
+    <string name="trainer_step_a_gen">Paso A/5: el profesor en línea redacta la pregunta</string>
+    <string name="trainer_step_a_gen_detail">Generando preguntas variadas + skillMocks opcionales …</string>
+    <string name="trainer_step_a_done">Paso A/5: pregunta lista</string>
+    <string name="trainer_step_b_answer">Paso B/5: responde el modelo local</string>
+    <string name="trainer_step_b_wait">Esperando la inferencia del modelo local…</string>
+    <string name="trainer_step_b_done">Paso B/5: respuesta completa</string>
+    <string name="trainer_step_b2_ban">Paso B.2/5: revisión de prohibiciones</string>
+    <string name="trainer_step_b5_notice">Paso B.5/5: aviso de prohibición</string>
+    <string name="trainer_step_b5_notify">Avisando al profesor de entrenamiento de las violaciones…</string>
+    <string name="trainer_step_b5_followup">Paso B.5/5: seguimiento %1$d/%2$d</string>
+    <string name="trainer_step_b5_reviewing">El profesor está revisando la conversación hasta ahora…</string>
+    <string name="trainer_step_b5_scored">Paso B.5/5: seguimientos terminados</string>
+    <string name="trainer_step_b5_scored_detail">El profesor ya calificó durante los seguimientos, se omite el Paso C</string>
+    <string name="trainer_step_b5_ready">Paso B.5/5: seguimientos terminados</string>
+    <string name="trainer_step_b5_ready_detail">El profesor considera suficiente la respuesta, pasa a calificar</string>
+    <string name="trainer_step_c_extra">Paso C/5: el profesor en línea añade comentarios</string>
+    <string name="trainer_step_c_extra_detail">Ya calificado en los seguimientos, redactando comentarios concretos…</string>
+    <string name="trainer_step_c_score">Paso C/5: el profesor en línea califica</string>
+    <string name="trainer_step_c_score_detail">Calificando y extrayendo lecciones…</string>
+    <string name="trainer_step_c_wait">Paso C/5: esperando tu calificación</string>
+    <string name="trainer_step_c_wait_detail">Califícala en el diálogo</string>
+    <string name="trainer_step_d_memory">Paso D/5: añadiendo a la memoria</string>
+    <string name="trainer_no_new_lesson">(sin lecciones nuevas)</string>
+    <string name="trainer_done_title">Entrenamiento terminado: redactando el resumen general</string>
+    <string name="trainer_done_detail">El profesor en línea está revisando todas las rondas…</string>
+    <string name="trainer_eta">~%1$dm%2$ds restantes (%3$d rondas, ~%4$ds cada una)</string>
+    <string name="trainer_finished">¡Entrenamiento completo! %1$d rondas hechas; puntaje=%2$s/100 (normalizado %3$s%%); bloque de memoria=%4$d caracteres.</string>
+    <string name="trainer_err_question">Falló la pregunta: %1$s</string>
+    <string name="trainer_err_local_answer">Falló la respuesta del modelo local: %1$s</string>
+    <string name="trainer_err_followup_call">Falló la llamada de seguimiento: %1$s</string>
+    <string name="trainer_err_followup_answer">Falló la respuesta de seguimiento: %1$s</string>
+    <string name="trainer_err_grade">Falló la calificación: %1$s</string>
+    <string name="trainer_err_summary">Falló el resumen general: %1$s</string>
+    <string name="trainer_ban_triggered">La respuesta del modelo local violó una prohibición: %1$s</string>
+    <string name="trainer_ban_detail">%1$d violaciones de prohibiciones encontradas:
+%2$s</string>
+    <string name="trainer_student_answer_prefix">Respuesta del estudiante: %1$s</string>
+    <string name="trainer_teacher_followup_prefix">Pregunta de seguimiento del profesor: %1$s</string>
+    <string name="trainer_err_grade2">Falló la calificación</string>
+    <string name="trainer_local_unavailable">(modelo local no disponible, ronda omitida)</string>
+    <string name="trainer_followup_answer_failed">(el modelo local no respondió el seguimiento)</string>
+    <string name="trainer_err_summary_parenth">(falló el resumen general: %1$s)</string>
+    <string name="trainer_done_word">Listo</string>
+    <string name="trainer_explain_answer">Explica tu respuesta.</string>
+    <string name="trainer_step_b5_fu_round">Paso B.5/5: seguimiento %1$d</string>
+    <string name="trainer_weight_label">peso=</string>
+    <string name="trainer_weight_value">%1$s</string>
+
+    <string name="trainer_online_model_error">Error del modelo en línea: %1$s</string>
+    <string name="trainer_local_model_error">el modelo local devolvió un error</string>
+    <string name="trainer_local_model_empty">el modelo local no devolvió nada</string>
 </resources>

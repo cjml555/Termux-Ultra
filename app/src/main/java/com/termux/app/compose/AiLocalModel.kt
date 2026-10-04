@@ -111,7 +111,7 @@ object AiLocalModel {
         appContext = context.applicationContext
     }
 
-    private fun context(): Context? = appContext
+    internal fun context(): Context? = appContext
 
     /**
      * Texto localizado del recurso [res], con el context de la app.

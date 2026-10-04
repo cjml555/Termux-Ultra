@@ -1,4 +1,6 @@
 package com.termux.app.compose
+import com.termux.R
+import androidx.annotation.StringRes
 
 import android.content.Context
 import android.util.Log
@@ -14,7 +16,7 @@ sealed class LocalTrainerEvent {
     /** 状态变更：running / paused / finished / error */
     data class StatusChanged(val status: String, val message: String? = null) : LocalTrainerEvent()
     /** 预估剩余时间更新 */
-    data class EtaUpdated(val remainingRounds: Int, val avgRoundMs: Long, val etaText: String) : LocalTrainerEvent()
+    data class EtaUpdated(val remainingRounds: Int, val avgRoundMs: Long) : LocalTrainerEvent()
     /** 流程日志（发给「详细训练流程」区） */
     data class Step(val roundIndex: Int, val title: String, val detail: String) : LocalTrainerEvent()
     /** 老师出题事件（用于「完整对话」区） */
@@ -74,6 +76,21 @@ data class FollowupDecision(
 
 /** 本地模型训练引擎（System Prompt 蒸馏迭代） */
 object AiLocalTrainer {
+
+    /**
+     * Texto localizado de un recurso, resuelto con el context de la app.
+     *
+     * El context ya lo inicializa AiLocalModel.init() desde la Activity, asi que
+     * los textos de progreso del trainer se resuelven por ahi en vez de propagar
+     * un Context por cada firma. Fuera de una sesion iniciada desde la UI puede
+     * ser null, y entonces se devuelve un guion: en la linea de progreso es
+     * preferible un texto vacio a que reviente con una excepcion.
+     */
+    private fun str(@StringRes res: Int, vararg args: Any): String {
+        val c = AiLocalModel.context() ?: return "-"
+        return if (args.isEmpty()) c.getString(res) else c.getString(res, *args)
+    }
+
 
     /** UI → 引擎：回传用户手动评分的通道 */
     internal val userRatingChannel = kotlinx.coroutines.channels.Channel<UserRatingProvided>(
@@ -257,8 +274,8 @@ object AiLocalTrainer {
             val autoTeacher = session.teacher == "online_fallback" && onlineReady
             Log.i(TAG, "runTraining: teacher=${session.teacher}, onlineReady=$onlineReady, autoTeacher=$autoTeacher")
 
-            emit(LocalTrainerEvent.StatusChanged("running", if (autoTeacher) "在线老师全自动训练中（含多轮追问 + Skill Mock）" else "半自动训练（无在线评分）"))
-            emit(LocalTrainerEvent.Step(-1, "初始化训练", if (autoTeacher) "检测到备用在线大模型可用，将全自动：出题→本地回答→多轮追问→评分→记忆→循环" else "无备用在线模型：仅自动出题和本地回答，评分需手动查看"))
+            emit(LocalTrainerEvent.StatusChanged("running", if (autoTeacher) str(R.string.trainer_status_auto) else str(R.string.trainer_status_semi)))
+            emit(LocalTrainerEvent.Step(-1, str(R.string.trainer_init_title), if (autoTeacher) str(R.string.trainer_init_detail_auto) else str(R.string.trainer_init_detail_semi)))
 
             // 因为 LocalTrainSession 的 avgScore / finalSummary 是 val，后续要用 copy 替换；
             // 这里用一个可变量持有最新 session 引用，便于在循环后写回
@@ -273,10 +290,10 @@ object AiLocalTrainer {
             loop@ while (roundCursor < targetRounds && !isCancelled() && curSession.status == "running") {
                 val t0 = System.currentTimeMillis()
                 val thisIdx = roundCursor + 1
-                emit(LocalTrainerEvent.Step(thisIdx, "第 ${thisIdx}/$targetRounds 轮：开始", ""))
+                emit(LocalTrainerEvent.Step(thisIdx, str(R.string.trainer_round_start), ""))
 
                 // ===== Step A: 在线老师出题 =====
-                emit(LocalTrainerEvent.Step(thisIdx, "Step A/5：在线老师出题", "构造多样化题目 + 可选 skillMocks …"))
+                emit(LocalTrainerEvent.Step(thisIdx, str(R.string.trainer_step_a_gen), str(R.string.trainer_step_a_gen_detail)))
                 var question: String = ""
                 var skillMocks: List<SkillMock> = emptyList()
                 var maxScore: Double = 100.0 / targetRounds  // 默认平均分配
@@ -300,22 +317,22 @@ object AiLocalTrainer {
                     }
                 }.getOrElse { e ->
                     Log.e(TAG, "出题失败", e)
-                    emit(LocalTrainerEvent.ErrorOccurred(thisIdx, "出题失败: ${e.message}"))
+                    emit(LocalTrainerEvent.ErrorOccurred(thisIdx, str(R.string.trainer_err_question, e.message ?: "")))
                     question = generateManualQuestion(thisIdx, targetRounds)
                 }
 
                 emit(LocalTrainerEvent.TeacherQuestion(thisIdx, question))
-                emit(LocalTrainerEvent.Step(thisIdx, "Step A/5：题目已生成", "${question.take(120)}${if (question.length > 120) "…" else ""} | 本题权重=${"%.2f".format(maxScore)}"))
+                emit(LocalTrainerEvent.Step(thisIdx, str(R.string.trainer_step_a_done), "${question.take(120)}${if (question.length > 120) "…" else ""} | " + str(R.string.trainer_weight_label) + str(R.string.trainer_weight_value, "%.2f".format(maxScore))))
 
                 // ===== Step B: 本地模型回答（注入 skillMocks 作为 system 前置） =====
-                emit(LocalTrainerEvent.Step(thisIdx, "Step B/5：本地模型回答", "等待本地模型推理…"))
+                emit(LocalTrainerEvent.Step(thisIdx, str(R.string.trainer_step_b_answer), str(R.string.trainer_step_b_wait)))
                 val answerT0 = System.currentTimeMillis()
                 val initialAnswer: String = runCatching {
                     val messages = buildLocalMessagesWithMocks(question, skillMocks)
                     callLocalComplete(context, messages)
                 }.getOrElse { e ->
                     Log.e(TAG, "本地模型回答失败", e)
-                    emit(LocalTrainerEvent.ErrorOccurred(thisIdx, "本地模型回答失败: ${e.message}"))
+                    emit(LocalTrainerEvent.ErrorOccurred(thisIdx, str(R.string.trainer_err_local_answer, e.message ?: "")))
                     "（本地模型不可用，跳过本轮）"
                 }
                 val answerDuration = System.currentTimeMillis() - answerT0
@@ -325,14 +342,14 @@ object AiLocalTrainer {
                 var latestStudentAnswer = initialAnswer
 
                 emit(LocalTrainerEvent.StudentAnswer(thisIdx, latestStudentAnswer, answerDuration))
-                emit(LocalTrainerEvent.Step(thisIdx, "Step B/5：回答完成", latestStudentAnswer.take(120) + if (latestStudentAnswer.length > 120) "…" else ""))
+                emit(LocalTrainerEvent.Step(thisIdx, str(R.string.trainer_step_b_done), latestStudentAnswer.take(120) + if (latestStudentAnswer.length > 120) "…" else ""))
 
                 // ===== Step B.2: 禁令检测（本地模型是否违反 Agent 禁令） =====
                 var banViolations: List<String> = emptyList()
                 val bannedCheck = SkillExecutor.detectFakeOutput(latestStudentAnswer, context = context)
                 if (bannedCheck.isFake && bannedCheck.violations.isNotEmpty()) {
                     banViolations = bannedCheck.violations
-                    emit(LocalTrainerEvent.Step(thisIdx, "Step B.2/5：禁令检测",
+                    emit(LocalTrainerEvent.Step(thisIdx, str(R.string.trainer_step_b2_ban),
                         "检测到 ${banViolations.size} 条禁令违反：\n" + banViolations.joinToString("\n")))
                     Log.w(TAG, "本地模型回答触发禁令：${banViolations.joinToString()}")
                 }
@@ -346,12 +363,12 @@ object AiLocalTrainer {
                 if (autoTeacher && latestStudentAnswer.isNotBlank()) {
                     // 如果检测到禁令违反，先通知老师（在线模型），让其在追问/评分中重点关注
                     if (banViolations.isNotEmpty()) {
-                        emit(LocalTrainerEvent.Step(thisIdx, "Step B.5/5：禁令提示", "正在将禁令违反情况通知训练老师…"))
+                        emit(LocalTrainerEvent.Step(thisIdx, str(R.string.trainer_step_b5_notice), str(R.string.trainer_step_b5_notify)))
                     }
                     followupLoop@ for (fRound in 1..MAX_FOLLOWUPS) {
                         if (isCancelled()) break@followupLoop
 
-                        emit(LocalTrainerEvent.Step(thisIdx, "Step B.5/5：追问第 $fRound/$MAX_FOLLOWUPS 轮", "老师正在审视历史对话…"))
+                        emit(LocalTrainerEvent.Step(thisIdx, str(R.string.trainer_step_b5_followup), str(R.string.trainer_step_b5_reviewing)))
                         val followupResult = runCatching {
                             val fPrompt = buildFollowupPrompt(
                                 context = context,
@@ -364,7 +381,7 @@ object AiLocalTrainer {
                             callOnlineNonStreamForFollowup(context, fPrompt)
                         }.getOrElse { e ->
                             Log.e(TAG, "追问调用失败", e)
-                            emit(LocalTrainerEvent.ErrorOccurred(thisIdx, "追问调用失败: ${e.message}"))
+                            emit(LocalTrainerEvent.ErrorOccurred(thisIdx, str(R.string.trainer_err_followup_call, e.message ?: "")))
                             FollowupDecision(needFollowup = false, followupText = "")
                         }
 
@@ -373,9 +390,9 @@ object AiLocalTrainer {
                             if (followupResult.shouldFinalizeNow && followupResult.score > 0) {
                                 preFinalScore = followupResult.score
                                 shouldSkipStepC = true
-                                emit(LocalTrainerEvent.Step(thisIdx, "Step B.5/5：追问结束", "老师已在追问阶段给出综合评分，跳过 Step C"))
+                                emit(LocalTrainerEvent.Step(thisIdx, str(R.string.trainer_step_b5_scored), str(R.string.trainer_step_b5_scored_detail)))
                             } else {
-                                emit(LocalTrainerEvent.Step(thisIdx, "Step B.5/5：追问结束", "老师认为回答已到位，进入评分阶段"))
+                                emit(LocalTrainerEvent.Step(thisIdx, str(R.string.trainer_step_b5_ready), str(R.string.trainer_step_b5_ready_detail)))
                             }
                             break@followupLoop
                         }
@@ -383,7 +400,7 @@ object AiLocalTrainer {
                         // 老师发追问
                         val followupText = followupResult.followupText.ifBlank { "请解释你的回答。" }
                         emit(LocalTrainerEvent.TeacherFollowup(thisIdx, followupText))
-                        emit(LocalTrainerEvent.Step(thisIdx, "Step B.5/5：追问第 $fRound", "老师追问：${followupText.take(100)}"))
+                        emit(LocalTrainerEvent.Step(thisIdx, str(R.string.trainer_step_b5_fu_round, fRound), str(R.string.trainer_teacher_followup_prefix) + followupText.take(100)))
 
                         // 学生回答追问 — 把历史（题目+初始回答+之前的追问对）喂给本地模型
                         val followupAnswer: String = runCatching {
@@ -397,12 +414,12 @@ object AiLocalTrainer {
                             callLocalComplete(context, messages)
                         }.getOrElse { e ->
                             Log.e(TAG, "追问回答失败", e)
-                            emit(LocalTrainerEvent.ErrorOccurred(thisIdx, "追问回答失败: ${e.message}"))
-                            "（本地模型回答追问失败）"
+                            emit(LocalTrainerEvent.ErrorOccurred(thisIdx, str(R.string.trainer_err_followup_answer, e.message ?: "")))
+                            str(R.string.trainer_followup_answer_failed)
                         }
 
                         emit(LocalTrainerEvent.StudentFollowupAnswer(thisIdx, followupAnswer))
-                        emit(LocalTrainerEvent.Step(thisIdx, "Step B.5/5：追问第 $fRound", "学生回答：${followupAnswer.take(100)}"))
+                        emit(LocalTrainerEvent.Step(thisIdx, str(R.string.trainer_step_b5_fu_round, fRound), str(R.string.trainer_student_answer_prefix) + followupAnswer.take(100)))
 
                         // 记录本轮对话对
                         dialogueHistory.add(Pair(followupAnswer, followupText))
@@ -418,7 +435,7 @@ object AiLocalTrainer {
                 if (autoTeacher) {
                     if (shouldSkipStepC && preFinalScore != null) {
                         // 追问阶段已给出综合评分 —— 这里仍然让老师生成 critique 和 memoryPatch（可选）
-                        emit(LocalTrainerEvent.Step(thisIdx, "Step C/5：在线老师补充批改", "追问阶段已给分，正在生成具体点评…"))
+                        emit(LocalTrainerEvent.Step(thisIdx, str(R.string.trainer_step_c_extra), str(R.string.trainer_step_c_extra_detail)))
                         val cT0 = System.currentTimeMillis()
                         val critResult = runCatching {
                             val cPrompt = buildCritiquePrompt(
@@ -431,7 +448,7 @@ object AiLocalTrainer {
                             callOnlineNonStreamForCritique(context, cPrompt, forcedScore = preFinalScore, maxScore = maxScore)
                         }.getOrElse { e ->
                             Log.e(TAG, "评分失败", e)
-                            emit(LocalTrainerEvent.ErrorOccurred(thisIdx, "评分失败: ${e.message}"))
+                            emit(LocalTrainerEvent.ErrorOccurred(thisIdx, str(R.string.trainer_err_grade, e.message ?: "")))
                             CritiqueResult(maxScore = maxScore, score = preFinalScore!!, critique = "评分生成失败", memoryPatch = "")
                         }
                         score = critResult.score
@@ -440,7 +457,7 @@ object AiLocalTrainer {
                         val cDuration = System.currentTimeMillis() - cT0
                         emit(LocalTrainerEvent.TeacherCritique(thisIdx, maxScore, score, critique, memoryPatch, cDuration))
                     } else {
-                        emit(LocalTrainerEvent.Step(thisIdx, "Step C/5：在线老师评分", "正在评分并提取教训…"))
+                        emit(LocalTrainerEvent.Step(thisIdx, str(R.string.trainer_step_c_score), str(R.string.trainer_step_c_score_detail)))
                         val cT0 = System.currentTimeMillis()
                         val critResult = runCatching {
                             val cPrompt = buildCritiquePrompt(
@@ -453,7 +470,7 @@ object AiLocalTrainer {
                             callOnlineNonStreamForCritique(context, cPrompt, maxScore = maxScore)
                         }.getOrElse { e ->
                             Log.e(TAG, "评分失败", e)
-                            emit(LocalTrainerEvent.ErrorOccurred(thisIdx, "评分失败: ${e.message}"))
+                            emit(LocalTrainerEvent.ErrorOccurred(thisIdx, str(R.string.trainer_err_grade, e.message ?: "")))
                             CritiqueResult(maxScore = maxScore, score = 0.0, critique = "评分失败", memoryPatch = "")
                         }
                         score = critResult.score
@@ -474,7 +491,7 @@ object AiLocalTrainer {
                         suggestedCritique = suggested.second,
                         suggestedMemoryPatch = suggested.third
                     ))
-                    emit(LocalTrainerEvent.Step(thisIdx, "Step C/5：等待用户评分", "请在弹窗中评分"))
+                    emit(LocalTrainerEvent.Step(thisIdx, str(R.string.trainer_step_c_wait), str(R.string.trainer_step_c_wait_detail)))
 
                     // 挂起等待用户实际评分（UI 端通过 provideUserRating 把评分送入 channel）
                     val userRating = userRatingChannel.receive()
@@ -485,7 +502,7 @@ object AiLocalTrainer {
                 }
 
                 // ===== Step D: 追加记忆 =====
-                emit(LocalTrainerEvent.Step(thisIdx, "Step D/5：追加记忆", if (memoryPatch.isNotBlank()) memoryPatch.take(100) + "…" else "（无新教训）"))
+                emit(LocalTrainerEvent.Step(thisIdx, str(R.string.trainer_step_d_memory), if (memoryPatch.isNotBlank()) memoryPatch.take(100) + "…" else str(R.string.trainer_no_new_lesson)))
                 if (memoryPatch.isNotBlank()) {
                     AiTermuxPrefs.appendLearnedMemory(context, memoryPatch)
                     AiTermuxPrefs.addLesson(context, memoryPatch, source = "auto")
@@ -540,7 +557,7 @@ object AiLocalTrainer {
             // 调用在线老师生成总体建议（仅 autoTeacher 且有分数时）
             var finalSummary = ""
             if (autoTeacher && totalScore > 0.0) {
-                emit(LocalTrainerEvent.Step(-1, "训练完成：生成总体建议", "在线老师正在回顾全部轮次…"))
+                emit(LocalTrainerEvent.Step(-1, str(R.string.trainer_done_title), str(R.string.trainer_done_detail)))
                 runCatching {
                     val sPrompt = buildFinalSummaryPrompt(context, curSession.rounds, normalizedPercent, AiTermuxPrefs.getLearnedMemoryBlock(context))
                     val summaryRaw = callOnlineNonStreamRaw(context, sPrompt)
@@ -551,7 +568,7 @@ object AiLocalTrainer {
                     }
                 }.getOrElse { e ->
                     Log.e(TAG, "总体建议生成失败", e)
-                    emit(LocalTrainerEvent.ErrorOccurred(-1, "总体建议生成失败: ${e.message}"))
+                    emit(LocalTrainerEvent.ErrorOccurred(-1, str(R.string.trainer_err_summary, e.message ?: "")))
                     finalSummary = "（总体建议生成失败：${e.message}）"
                 }
             } else {
@@ -566,8 +583,8 @@ object AiLocalTrainer {
             emit(LocalTrainerEvent.SessionSnapshot(curSession))
 
             val memLen = AiTermuxPrefs.getLearnedMemoryBlock(context).length
-            emit(LocalTrainerEvent.StatusChanged("finished",
-                "训练完成！已完成 $doneCount 轮；总分=${"%.2f".format(totalScore)}/100（标准化 ${"%.1f".format(normalizedPercent)}%）；记忆块长度=$memLen chars。"))
+            emit(LocalTrainerEvent.StatusChanged("finished", str(R.string.trainer_finished, doneCount,
+                "%.2f".format(totalScore), "%.1f".format(normalizedPercent), memLen)))
         }.flowOn(Dispatchers.IO)
     }
 
@@ -582,12 +599,7 @@ object AiLocalTrainer {
         val avgMs = if (session.avgRoundMs <= 0L) recentDur
         else (session.avgRoundMs * 0.7 + recentDur * 0.3).toLong()
         session.avgRoundMs = avgMs
-        val totalMs = avgMs * remain
-        val sec = totalMs / 1000
-        val mm = sec / 60
-        val ss = sec % 60
-        val etaText = if (remain <= 0) "已完成" else "约 ${mm}分${ss}秒（剩余 $remain 轮，每轮约 ${avgMs/1000}s）"
-        return LocalTrainerEvent.EtaUpdated(remain, avgMs, etaText)
+        return LocalTrainerEvent.EtaUpdated(remain, avgMs)
     }
 
     fun buildQuestionPrompt(context: Context, idx: Int, total: Int, memory: String): List<OpenAiMessage> {
@@ -1006,7 +1018,7 @@ ${memoryBlock.ifBlank { "(暂无)" }}
         )
         val resp = runCatching { AiApiClient.chat(context, providerCfg, msgs) }.getOrElse {
             Log.e(TAG, "在线批改失败: ${it.message}")
-            return CritiqueResult(maxScore = maxScore, score = 0.0, critique = "在线模型异常：${it.message}", memoryPatch = "")
+            return CritiqueResult(maxScore = maxScore, score = 0.0, critique = str(R.string.trainer_online_model_error, it.message ?: ""), memoryPatch = "")
         }
         val txt = resp.choices.firstOrNull()?.message?.content?.trim().orEmpty()
         Log.d(TAG, "批改模型输出前500chars: ${txt.take(500)}")
@@ -1032,10 +1044,10 @@ ${memoryBlock.ifBlank { "(暂无)" }}
             throw t
         }
         if (resp.error != null) {
-            throw IllegalStateException(resp.error.message ?: "本地模型返回错误")
+            throw IllegalStateException(resp.error.message ?: str(R.string.trainer_local_model_error))
         }
         val text = resp.choices.firstOrNull()?.message?.content?.trim().orEmpty()
-        if (text.isBlank()) throw IllegalStateException("本地模型返回为空")
+        if (text.isBlank()) throw IllegalStateException(str(R.string.trainer_local_model_empty))
         return text
     }
 
