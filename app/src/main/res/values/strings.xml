@@ -1670,16 +1670,9 @@
     <string name="vm_title">Virtual Machines</string>
     <string name="vm_new">New Virtual Machine</string>
     <string name="vm_delete_confirm_title">Delete Virtual Machine</string>
-    <string name="vm_delete_confirm_message">Delete the configuration for "%1$s"?
-Note: disk and image files will not be deleted — remove them manually if you want a full cleanup.</string>
+    <string name="vm_delete_confirm_message">Delete the configuration for "%1$s"?\nNote: disk and image files will not be deleted — remove them manually if you want a full cleanup.</string>
     <string name="vm_path_migration_title">Path Migration</string>
-    <string name="vm_path_migration_summary">Existing virtual machines still use the old default path.
-
-The default location has been updated to:
-• Disk: $HOME/virtual_disks/
-• Shared folder: $HOME/storage/shared/Termux/Sharing/
-
-Migrate disk files and the shared folder to the new location?</string>
+    <string name="vm_path_migration_summary">Existing virtual machines still use the old default path.\nThe default location has been updated to:\n• Disk: $HOME/virtual_disks/\n• Shared folder: $HOME/storage/shared/Termux/Sharing/\nMigrate disk files and the shared folder to the new location?</string>
     <string name="vm_migrating">Migrating, please wait...</string>
     <string name="vm_migrate_later">Later</string>
     <string name="vm_migrate_now">Migrate Now</string>
@@ -1688,10 +1681,7 @@ Migrate disk files and the shared folder to the new location?</string>
     <string name="vm_migration_done_line2">Moved %1$d disk file(s).</string>
     <string name="vm_migration_done_shared_yes">Shared folder migrated.</string>
     <string name="vm_migration_done_shared_no">Shared folder not migrated.</string>
-    <string name="vm_migration_errors">
-
-Errors:
-</string>
+    <string name="vm_migration_errors">\nErrors:\n</string>
     <string name="vm_empty">No virtual machines yet</string>
     <string name="vm_empty_hint">Tap the new button to create your first virtual machine and start running your QEMU environment.</string>
     <string name="vm_new_button">New Virtual Machine</string>
@@ -1975,14 +1965,7 @@ Errors:
     <string name="pkgdetail_cannot_install_yet">Cannot install right now</string>
     <string name="pkgdetail_ready_desc">Tap Install to start installing %1$s. Any required dependencies will be installed as well.</string>
     <string name="pkgdetail_cannot_install_desc">%1$s has unmet dependencies or conflicts — please check.</string>
-    <string name="pkgdetail_lock_busy_summary">Termux\'s apt/dpkg is currently locked by another process.
-
-Forcefully removing the lock may cause:
-• Interrupted install/upgrade processes
-• Inconsistent database state
-• Leftover downloaded package files
-
-Recommendation: close other running Termux sessions first, then try again.</string>
+    <string name="pkgdetail_lock_busy_summary">Termux\'s apt/dpkg is currently locked by another process.\nForcefully removing the lock may cause:\n• Interrupted install/upgrade processes\n• Inconsistent database state\n• Leftover downloaded package files\nRecommendation: close other running Termux sessions first, then try again.</string>
     <string name="pkgdetail_processing">Processing</string>
     <string name="pkgdetail_op_success">Operation completed successfully</string>
     <string name="pkgdetail_op_failed">Operation failed</string>
@@ -2629,8 +2612,7 @@ Recommendation: close other running Termux sessions first, then try again.</stri
     <string name="trainer_err_grade">Grading failed: %1$s</string>
     <string name="trainer_err_summary">Overall summary failed: %1$s</string>
     <string name="trainer_ban_triggered">Local model answer broke a ban: %1$s</string>
-    <string name="trainer_ban_detail">%1$d ban violations found:
-%2$s</string>
+    <string name="trainer_ban_detail">%1$d ban violations found:\n%2$s</string>
     <string name="trainer_student_answer_prefix">Student answer: %1$s</string>
     <string name="trainer_teacher_followup_prefix">Teacher follow-up: %1$s</string>
     <string name="trainer_err_grade2">Grading failed</string>
@@ -2715,4 +2697,313 @@ Recommendation: close other running Termux sessions first, then try again.</stri
     <string name="ft3_66">%1$s font metrics</string>
     <string name="ft3_67">%1$s executable</string>
     <string name="ft3_68">%1$s login config</string>
+
+    <string name="eng_service_not_connected">Termux service not connected</string>
+    <string name="eng_session_created_activated">Terminal session created and activated</string>
+    <string name="eng_session_card_generated">Terminal session card generated</string>
+    <string name="eng_new_session_activated_title">Terminal session created and activated</string>
+    <string name="eng_new_session_title">Terminal session created</string>
+    <string name="eng_new_session_desc">Session name: %1$s</string>
+    <string name="eng_new_session_desc_tap">Session name: %1$s (tap the card to start the terminal)</string>
+    <string name="eng_new_session_failed_empty">Could not create the session: empty result</string>
+    <string name="eng_new_session_error">Error creating the session: %1$s</string>
+    <string name="eng_new_session_failed_title">Could not create the terminal</string>
+    <string name="eng_unknown_error">Unknown error</string>
+    <string name="eng_missing_session_id">sessionId was not specified</string>
+    <string name="eng_session_closed">Closed session %1$s</string>
+    <string name="eng_session_closed_title">Session closed</string>
+    <string name="eng_session_label">Session: %1$s</string>
+    <string name="eng_session_not_found">Session not found: %1$s</string>
+    <string name="eng_close_session_error">Error closing the session: %1$s</string>
+    <string name="eng_termux_exited">Termux has exited</string>
+    <string name="eng_app_exited">The app has exited</string>
+    <string name="eng_exit_termux_error">Error exiting Termux: %1$s</string>
+    <string name="eng_session_line">- %1$s [handle=%2$s] running=%3$s</string>
+    <string name="eng_no_running_sessions">No running sessions</string>
+    <string name="eng_session_count">%1$d sessions in total</string>
+    <string name="eng_no_sessions">No sessions</string>
+    <string name="eng_session_info_title">Session info</string>
+    <string name="eng_no_active_sessions">There are no running sessions</string>
+    <string name="eng_session_info_error">Error getting the session info: %1$s</string>
+    <string name="eng_command_empty">Command is empty</string>
+    <string name="eng_dangerous_command_blocked">Dangerous command detected, execution refused</string>
+    <string name="eng_no_shell_found">No usable shell environment found</string>
+    <string name="eng_task_create_failed">Failed to create the execution task</string>
+    <string name="eng_task_create_failed_code">Failed to create the execution task (code=%1$d)</string>
+    <string name="eng_output_empty_completed">(Command finished with no output)</string>
+    <string name="eng_output_empty_timeout">(Command timed out with no output, it may still be running)</string>
+    <string name="eng_output_truncated_over">(output truncated, over %1$d characters)</string>
+    <string name="eng_command_completed">Command completed</string>
+    <string name="eng_command_completed_exit">Command completed (exit=%1$d)</string>
+    <string name="eng_command_may_still_running">Command may still be running, partial output captured</string>
+    <string name="eng_execution_error">Execution error: %1$s</string>
+    <string name="eng_command_auto_executed">Command executed automatically</string>
+    <string name="eng_command_card_created">Command card created</string>
+    <string name="eng_card_run_command">Run command</string>
+    <string name="eng_card_run_command_new_session">Run command in new session</string>
+    <string name="eng_session_create_failed">Failed to create the session</string>
+    <string name="eng_run_command_error">Error running command: %1$s</string>
+    <string name="eng_no_packages_specified">No packages specified</string>
+    <string name="eng_no_packages_to_remove">No packages specified to remove</string>
+    <string name="eng_session_install_name">Install-%1$s</string>
+    <string name="eng_session_uninstall_name">Uninstall-%1$s</string>
+    <string name="eng_app_install_needs_root">APP_INSTALL requires ROOT, but this device has no ROOT</string>
+    <string name="eng_no_apk_path">No APK path specified</string>
+    <string name="eng_apk_not_found">APK file not found: %1$s</string>
+    <string name="eng_desc_install_apk_root">Install APK (ROOT)</string>
+    <string name="eng_app_uninstall_needs_root">APP_UNINSTALL requires ROOT, but this device has no ROOT</string>
+    <string name="eng_no_package_name">No app package name specified</string>
+    <string name="eng_desc_uninstall_app_root">Uninstall app (ROOT)</string>
+    <string name="eng_activity_class_empty">The activityClass parameter is empty</string>
+    <string name="eng_activity_opened">Screen opened: %1$s</string>
+    <string name="eng_card_open_activity">Open screen</string>
+    <string name="eng_open_activity_error">Error opening screen: %1$s</string>
+    <string name="eng_broadcast_action_empty">The action parameter is empty</string>
+    <string name="eng_broadcast_sent">Broadcast sent: %1$s</string>
+    <string name="eng_card_send_broadcast">Send broadcast</string>
+    <string name="eng_send_broadcast_error">Error sending broadcast: %1$s</string>
+    <string name="eng_schedule_missing_task">Scheduled task is missing the task parameter</string>
+    <string name="eng_repeat_hourly">Hourly</string>
+    <string name="eng_repeat_daily">Daily</string>
+    <string name="eng_repeat_once">Once</string>
+    <string name="eng_delay_minutes">In %1$d min</string>
+    <string name="eng_delay_now">Immediately</string>
+    <string name="eng_schedule_created">Scheduled task created: %1$s (%2$s, %3$s)</string>
+    <string name="eng_card_scheduled_task">⏰ Scheduled task</string>
+    <string name="eng_clipboard_empty">Clipboard is empty</string>
+    <string name="eng_card_clipboard">Clipboard</string>
+    <string name="eng_clipboard_currently_empty">The clipboard is currently empty</string>
+    <string name="eng_clipboard_empty_paren">(Clipboard is empty)</string>
+    <string name="eng_truncated_short">(truncated)</string>
+    <string name="eng_clipboard_read">Clipboard read</string>
+    <string name="eng_card_clipboard_content">Clipboard content</string>
+    <string name="eng_length_chars">Length: %1$d characters</string>
+    <string name="eng_clipboard_read_failed">Failed to read the clipboard: %1$s</string>
+    <string name="eng_clipboard_content_empty">Content to write is empty</string>
+    <string name="eng_clipboard_written">Written to the clipboard</string>
+    <string name="eng_clipboard_write_failed">Failed to write to the clipboard: %1$s</string>
+
+    <!-- execSearchAgent / execWebSearch (AiTermuxEngine.kt) -->
+    <string name="eng_search_type_name">File name</string>
+    <string name="eng_search_type_content">File content</string>
+    <string name="eng_search_type_filetype">File type</string>
+    <string name="eng_search_type_generic">General</string>
+    <string name="eng_search_summary_header">=== Search results ===</string>
+    <string name="eng_search_type_label">Search type: %1$s</string>
+    <string name="eng_search_path_label">Search path: %1$s</string>
+    <string name="eng_search_keyword_label">Search keyword: %1$s</string>
+    <string name="eng_search_all">(all)</string>
+    <string name="eng_search_filter_type">File type filter: .%1$s</string>
+    <string name="eng_search_result_count">Results: %1$d files</string>
+    <string name="eng_search_results_marker">--- Search results ---</string>
+    <string name="eng_search_analysis_marker">--- Analysis ---</string>
+    <string name="eng_search_none_found">No matching files found.</string>
+    <string name="eng_search_found_few">Found %1$d matching files, see the list above.</string>
+    <string name="eng_search_found_truncated">Found %1$d matching files (possibly truncated). Try narrowing the search.</string>
+    <string name="eng_search_none_found_try">No matching files found. Try:</string>
+    <string name="eng_search_hint_path">- Check that the search path is correct</string>
+    <string name="eng_search_hint_broader">- Use a broader keyword</string>
+    <string name="eng_search_hint_exists">- Confirm that the files exist</string>
+    <string name="eng_search_card_title">Search: %1$s</string>
+    <string name="eng_search_card_count">%1$d results</string>
+    <string name="eng_web_no_query">No search keyword or URL specified</string>
+    <string name="eng_web_search_failed">Search failed, please check your network connection</string>
+    <string name="eng_web_fetch_label">Fetch page: %1$s</string>
+    <string name="eng_task_update_needs_args">TASK_UPDATE needs taskId or status/comment</string>
+    <string name="eng_task_not_found">Target task not found</string>
+    <string name="eng_task_updated">Task \"%1$s\" updated</string>
+    <string name="eng_task_update_title">Update Task</string>
+    <string name="eng_task_recent">Most recent task</string>
+    <string name="eng_tasks_count">%1$d tasks in total</string>
+    <string name="eng_task_delete_not_found">No task to delete found</string>
+    <string name="eng_task_delete_title">Delete Task</string>
+    <string name="eng_task_no_matching">No matching task</string>
+    <string name="eng_task_deleted">Task \"%1$s\" deleted</string>
+    <string name="eng_task_recent_done">Most recent completed task</string>
+    <string name="eng_dir_not_found">Directory not found: %1$s</string>
+    <string name="eng_not_a_directory">Not a directory: %1$s</string>
+    <string name="eng_dir_listed">Listed directory %1$s</string>
+    <string name="eng_dir_list_title">Directory Listing</string>
+    <string name="eng_dir_list_failed">Failed to list directory: %1$s</string>
+    <string name="eng_dir_list_failed_title">Directory Listing Failed</string>
+    <string name="eng_path_error">%1$s\nError: %2$s</string>
+    <string name="eng_path_required">No file path was provided</string>
+    <string name="eng_file_not_found">File not found: %1$s</string>
+    <string name="eng_not_a_file">Not a file: %1$s</string>
+    <string name="eng_file_too_large">File is too large (>1MB), open it with a terminal command instead</string>
+    <string name="eng_file_read_ok">File read</string>
+    <string name="eng_file_read_title">Read File</string>
+    <string name="eng_file_read_failed">Failed to read file: %1$s</string>
+    <string name="eng_file_append_ok">Content appended to file</string>
+    <string name="eng_file_write_ok">File written</string>
+    <string name="eng_file_append_title">Append to File</string>
+    <string name="eng_file_write_title">Write File</string>
+    <string name="eng_file_written_desc">%1$s (%2$d characters)</string>
+    <string name="eng_file_write_failed">Failed to write file: %1$s</string>
+    <string name="eng_file_deleted">Deleted %1$s</string>
+    <string name="eng_file_deleted_title">File Deleted</string>
+    <string name="eng_delete_failed">Could not delete: %1$s</string>
+    <string name="eng_file_delete_failed">Failed to delete file: %1$s</string>
+    <string name="eng_device_status_section_battery">=== Battery Status ===</string>
+    <string name="eng_device_status_section_network">=== Network Status ===</string>
+    <string name="eng_device_status_section_location">=== Location Info ===</string>
+    <string name="eng_status_unavailable">Unavailable</string>
+    <string name="eng_status_unavailable_location_permission">Unavailable (location permission missing)</string>
+    <string name="eng_device_status_unknown_info_type">Unknown infoType: %1$s (supported: battery, network, location, all)</string>
+    <string name="eng_device_status_query_ok">Device status query succeeded</string>
+    <string name="eng_device_status_query_empty">Device status query returned no results</string>
+    <string name="eng_device_status_title">📱 Device Status</string>
+    <string name="eng_battery_info_unavailable">Cannot read battery information</string>
+    <string name="eng_battery_status_charging">Charging</string>
+    <string name="eng_battery_status_discharging">Discharging</string>
+    <string name="eng_battery_status_not_charging">Not charging</string>
+    <string name="eng_battery_status_full">Full</string>
+    <string name="eng_battery_power_ac">AC (mains)</string>
+    <string name="eng_battery_power_wireless">Wireless</string>
+    <string name="eng_battery_power_none">Not connected</string>
+    <string name="eng_battery_level_line">Level: %1$s</string>
+    <string name="eng_battery_status_line">Status: %1$s</string>
+    <string name="eng_battery_power_line">Charging source: %1$s</string>
+    <string name="eng_battery_temp_line">Temperature: %1$s°C</string>
+    <string name="eng_battery_voltage_line">Voltage: %1$s mV</string>
+    <string name="eng_battery_tech_line">Technology: %1$s</string>
+    <string name="eng_battery_query_failed">Battery status query failed: %1$s</string>
+    <string name="eng_network_no_connection">No network connection</string>
+    <string name="eng_network_type_cellular">Cellular data</string>
+    <string name="eng_network_type_ethernet">Ethernet</string>
+    <string name="eng_network_type_bluetooth">Bluetooth</string>
+    <string name="eng_network_type_other">Other</string>
+    <string name="eng_network_type_line">Type: %1$s</string>
+    <string name="eng_network_connected_line">Connected: %1$s</string>
+    <string name="eng_network_available_line">Internet available: %1$s</string>
+    <string name="eng_network_unmetered_line">Unmetered network: %1$s</string>
+    <string name="eng_network_query_failed">Network status query failed: %1$s</string>
+    <string name="eng_switch_enabled">Enabled</string>
+    <string name="eng_switch_disabled">Disabled</string>
+    <string name="eng_location_gps_line">GPS switch: %1$s</string>
+    <string name="eng_location_network_toggle_line">Network location switch: %1$s</string>
+    <string name="eng_location_last_line">Last location: %1$s, %2$s</string>
+    <string name="eng_location_accuracy_line">Accuracy: %1$s m</string>
+    <string name="eng_location_time_line">Time: %1$s</string>
+    <string name="eng_location_no_known">No known location (location permission may be missing, or location was never requested)</string>
+    <string name="eng_location_permission_missing">Missing location access permission (ACCESS_FINE_LOCATION / ACCESS_COARSE_LOCATION)</string>
+    <string name="eng_location_query_failed">Location query failed: %1$s</string>
+    <string name="eng_compile_no_command">No build command specified</string>
+    <string name="eng_compile_default_desc">Build code</string>
+    <string name="eng_compile_header">=== Build result ===</string>
+    <string name="eng_compile_project">Project: %1$s</string>
+    <string name="eng_compile_status_line">Build status: %1$s</string>
+    <string name="eng_compile_status_ok">✅ Success</string>
+    <string name="eng_compile_status_fail">❌ Failed</string>
+    <string name="eng_compile_exit_code">Exit code: %1$s</string>
+    <string name="eng_compile_errors_marker">--- Errors ---</string>
+    <string name="eng_compile_warnings_marker">--- Warnings (first %1$d) ---</string>
+    <string name="eng_compile_ok_with_warnings">Build succeeded, with %1$d warnings.</string>
+    <string name="eng_compile_ok_clean">Build succeeded, no errors and no warnings.</string>
+    <string name="eng_compile_full_output">--- Full output ---</string>
+    <string name="eng_compile_success">Build succeeded</string>
+    <string name="eng_compile_failed">Build failed</string>
+    <string name="eng_compile_card_title">Build: %1$s</string>
+    <string name="eng_subagent_default_task">Sub-task</string>
+    <string name="eng_subagent_start">Sub-agent task started</string>
+    <string name="eng_subagent_task_line">Task: %1$s</string>
+    <string name="eng_subagent_task_desc">--- Task description ---</string>
+    <string name="eng_subagent_start_exec">--- Starting execution ---</string>
+    <string name="eng_subagent_end_exec">--- Execution finished ---</string>
+    <string name="eng_subagent_task_done">Sub-agent task [%1$s] completed</string>
+    <string name="eng_subagent_result_header">=== Sub-agent execution result ===</string>
+    <string name="eng_subagent_status_line">Status: %1$s</string>
+    <string name="eng_subagent_detail_line">Details: %1$s</string>
+    <string name="eng_subagent_output_marker">--- Execution output ---</string>
+    <string name="eng_subagent_no_output">(no output)</string>
+    <string name="eng_subagent_card_title">Sub-agent: %1$s</string>
+    <string name="eng_subagent_done_desc">Task completed</string>
+    <string name="eng_subagent_task_failed">Task failed</string>
+    <string name="eng_subagent_created_header">Sub-agent task created</string>
+    <string name="eng_subagent_instructions_written">Instructions written to /tmp/sub_agent_task.md</string>
+    <string name="eng_subagent_reply_hint">Finish the task in the terminal, then reply to the main AI.</string>
+    <string name="eng_subagent_subsession_created">Sub-session created, waiting to run</string>
+    <string name="eng_subagent_task_created">Sub-agent task created</string>
+
+    <string name="eng_unknown_skill_type">Unknown skill type: %1$s (no command parameter to fall back to)</string>
+    <string name="eng_ask_type_single">Single choice</string>
+    <string name="eng_ask_type_multi">Multiple choice</string>
+    <string name="eng_ask_type_text">Type your answer</string>
+    <string name="eng_ask_question_sent">Asking the user: %1$s</string>
+    <string name="eng_ask_card_title">The AI needs your answer (%1$s)</string>
+    <string name="eng_task_add_needs_title">TASK_ADD needs the title parameter</string>
+    <string name="eng_task_add_batch_summary">Added %1$d tasks at once, %2$d in total now</string>
+    <string name="eng_task_add_single_summary">Task "%1$s" added, %2$d in total now</string>
+    <string name="eng_task_add_batch_title">Add %1$d tasks at once</string>
+    <string name="eng_task_add_title">Add task</string>
+    <string name="eng_close_all_sessions_count">Closed all %1$d sessions</string>
+    <string name="eng_close_all_sessions_desc">%1$d sessions were closed</string>
+    <string name="eng_close_all_sessions_error">Error closing all sessions: %1$s</string>
+    <string name="eng_vm_qemu_page_opened">Opened the QEMU virtual machine manager</string>
+    <string name="eng_vm_qemu_open_title">Open QEMU virtual machine</string>
+    <string name="eng_vm_desc">Virtual machine: %1$s</string>
+    <string name="eng_vm_manager_page">Virtual machine manager</string>
+    <string name="eng_vm_open_failed">Failed to open the QEMU virtual machine: %1$s</string>
+    <string name="eng_vm_create_config_opened">Opened the new QEMU virtual machine setup screen</string>
+    <string name="eng_vm_create_title">New QEMU virtual machine</string>
+    <string name="eng_vm_configuring">Configuring the new virtual machine...</string>
+    <string name="eng_vm_create_failed">Failed to create the QEMU virtual machine: %1$s</string>
+    <string name="eng_vm_list_desc">List virtual machines</string>
+    <string name="eng_vm_list_needs_command">VM_LIST requires the command parameter</string>
+    <string name="eng_vnc_no_address">No VNC address was specified</string>
+    <string name="eng_vnc_card_generated">VNC connection card generated</string>
+    <string name="eng_vnc_connection">VNC connection</string>
+    <string name="eng_vnc_desc_tap">Address: %1$s (tap the card to connect)</string>
+    <string name="eng_vnc_connect_failed">VNC connection failed: %1$s</string>
+    <string name="eng_vnc_connection_named">VNC connection: %1$s</string>
+    <string name="eng_vnc_conn_addr">%1$s:%2$d (tap the card to connect)</string>
+    <string name="eng_ssh_no_host">No SSH host was specified</string>
+    <string name="eng_ssh_session_created">SSH connection session created</string>
+    <string name="eng_ssh_card_generated">SSH connection card generated</string>
+    <string name="eng_ssh_connection">SSH connection</string>
+    <string name="eng_ssh_conn_addr">%1$s@%2$s:%3$d</string>
+    <string name="eng_ssh_conn_addr_tap">%1$s@%2$s:%3$d (tap the card to connect)</string>
+    <string name="eng_ssh_session_create_failed">Failed to create the SSH session</string>
+    <string name="eng_ssh_connect_failed">SSH connection failed: %1$s</string>
+    <string name="eng_ssh_connection_named">SSH connection: %1$s</string>
+    <string name="eng_remote_saved_header">=== Saved remote connections ===</string>
+    <string name="eng_remote_ssh_label">[SSH connections]</string>
+    <string name="eng_remote_vnc_label">[VNC connections]</string>
+    <string name="eng_remote_none_saved">There are no saved remote connections.</string>
+    <string name="eng_remote_total_hint">%1$d connections in total. Use connectionId to pick the one to connect to.</string>
+    <string name="eng_remote_listed">Remote connections listed</string>
+    <string name="eng_remote_list_title">Remote connection list</string>
+    <string name="eng_remote_list_summary">%1$d SSH + %2$d VNC</string>
+    <string name="eng_remote_no_id">No connection ID or name was specified</string>
+    <string name="eng_remote_not_found">No matching remote connection was found: %1$s</string>
+    <string name="eng_session_line_active">- %1$s [handle=%2$s] running=%3$s (currently active)</string>
+    <string name="eng_no_specific_session">(not in any specific session)</string>
+    <string name="eng_marker_current">" ◀ current"</string>
+    <string name="eng_current_session_report">Currently active session:
+%1$s
+
+All sessions:
+%2$s</string>
+    <string name="eng_current_session_title">Current session</string>
+    <string name="eng_current_session_error">Failed to get the current session: %1$s</string>
+    <string name="eng_file_generate_ok">File generated</string>
+    <string name="eng_file_generate_title">Generate File</string>
+    <string name="eng_file_generate_failed">Error generating file: %1$s</string>
+    <string name="eng_file_modify_ok">File modified</string>
+    <string name="eng_file_modify_title">Modify File</string>
+    <string name="eng_file_modify_desc">%1$s (%2$d changes)</string>
+    <string name="eng_file_modify_failed">Error modifying file: %1$s</string>
+    <string name="eng_no_modify_operations">No modification operations were specified</string>
+    <string name="eng_file_too_large_modify">File is too large (&gt;1MB), it cannot be modified</string>
+    <string name="eng_empty_response">Empty response</string>
+    <string name="eng_parse_response_failed">Failed to parse response (%1$s): %2$s</string>
+    <string name="eng_request_failed">Request failed: %1$s</string>
+    <string name="eng_local_fallback_warn">⚠️ Local model call failed: %1$s. Switched to the fallback online model.</string>
+    <string name="eng_local_fallback_failed">Local failed: %1$s; the fallback online model failed too: %2$s</string>
+    <string name="eng_local_fallback_warn_stream">⚠️ Local model call failed: %1$s.
+Switched to the fallback online model, please wait...</string>
+    <string name="eng_local_no_output">The local model produced no output; the model may have failed to load or the inference failed</string>
+    <string name="eng_ollama_auto_selected">%1$s model selected automatically, thinking…</string>
+    <string name="eng_ollama_no_model">Install and select an Ollama model in the settings first. Go to "Settings → Local LLM → Ollama models", download a model and try again.</string>
+    <string name="eng_ollama_not_installed_chat">Ollama is not installed. Install it first in "Settings → Local LLM" and try again.</string>
 </resources>

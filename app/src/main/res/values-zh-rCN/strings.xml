@@ -1707,16 +1707,9 @@
     <string name="vm_title">虚拟机</string>
     <string name="vm_new">新建虚拟机</string>
     <string name="vm_delete_confirm_title">删除虚拟机</string>
-    <string name="vm_delete_confirm_message">确定删除 "%1$s" 的配置吗？
-注意：磁盘和镜像文件不会被删除，如需彻底删除请手动清除。</string>
+    <string name="vm_delete_confirm_message">确定删除 "%1$s" 的配置吗？\n注意：磁盘和镜像文件不会被删除，如需彻底删除请手动清除。</string>
     <string name="vm_path_migration_title">路径迁移</string>
-    <string name="vm_path_migration_summary">检测到现有虚拟机使用旧版默认路径。
-
-新版本已更新默认位置：
-• 硬盘：$HOME/virtual_disks/
-• 共享目录：$HOME/storage/shared/Termux/Sharing/
-
-是否一键迁移硬盘文件和共享目录到新位置？</string>
+    <string name="vm_path_migration_summary">检测到现有虚拟机使用旧版默认路径。\n新版本已更新默认位置：\n• 硬盘：$HOME/virtual_disks/\n• 共享目录：$HOME/storage/shared/Termux/Sharing/\n是否一键迁移硬盘文件和共享目录到新位置？</string>
     <string name="vm_migrating">正在迁移，请稍候...</string>
     <string name="vm_migrate_later">稍后</string>
     <string name="vm_migrate_now">一键迁移</string>
@@ -1725,10 +1718,7 @@
     <string name="vm_migration_done_line2">成功移动 %1$d 个硬盘文件。</string>
     <string name="vm_migration_done_shared_yes">共享目录已迁移。</string>
     <string name="vm_migration_done_shared_no">共享目录未迁移。</string>
-    <string name="vm_migration_errors">
-
-错误信息：
-</string>
+    <string name="vm_migration_errors">\n错误信息：\n</string>
     <string name="vm_empty">暂无虚拟机</string>
     <string name="vm_empty_hint">点击新建按钮创建第一台虚拟机，开始运行你的 QEMU 环境。</string>
     <string name="vm_new_button">新建虚拟机</string>
@@ -1884,10 +1874,7 @@
     <string name="qemu_done">完成</string>
     <string name="qemu_src_disk_title">选择磁盘文件方式</string>
     <string name="qemu_src_iso_title">选择 ISO 文件方式</string>
-    <string name="qemu_src_summary">请选择文件来源：
-
-• Termux 环境内：浏览 /data/data/com.termux 下的文件（如 \$HOME/virtual_disks/）
-• 外部存储：使用系统文件选择器选择 Termux 之外的文件（自动复制到内部）</string>
+    <string name="qemu_src_summary">请选择文件来源：\n• Termux 环境内：浏览 /data/data/com.termux 下的文件（如 \$HOME/virtual_disks/）\n• 外部存储：使用系统文件选择器选择 Termux 之外的文件（自动复制到内部）</string>
     <string name="qemu_src_internal">Termux 环境内</string>
     <string name="qemu_src_external">外部存储（系统选择器）</string>
     <string name="plugin_install_success_named">插件&quot;%1$s&quot;安装成功</string>
@@ -1969,14 +1956,7 @@
     <string name="pkgdetail_cannot_install_yet">暂时无法安装</string>
     <string name="pkgdetail_ready_desc">点击安装按钮开始安装%1$s，如有需要的依赖也将一并安装</string>
     <string name="pkgdetail_cannot_install_desc">%1$s 有依赖或冲突项无法满足，请检查</string>
-    <string name="pkgdetail_lock_busy_summary">检测到 Termux 的 apt/dpkg 正在被其他进程占用。
-
-强行解除锁可能导致：
-• 正在进行的安装/升级进程被中断
-• 数据库状态不一致
-• 已下载的包文件残留
-
-建议：先关闭其他正在运行的 Termux 会话，然后再试。</string>
+    <string name="pkgdetail_lock_busy_summary">检测到 Termux 的 apt/dpkg 正在被其他进程占用。\n强行解除锁可能导致：\n• 正在进行的安装/升级进程被中断\n• 数据库状态不一致\n• 已下载的包文件残留\n建议：先关闭其他正在运行的 Termux 会话，然后再试。</string>
     <string name="pkgdetail_processing">正在处理</string>
     <string name="pkgdetail_op_success">操作成功</string>
     <string name="pkgdetail_op_failed">操作失败</string>
@@ -2623,8 +2603,7 @@
     <string name="trainer_err_grade">评分失败：%1$s</string>
     <string name="trainer_err_summary">总体建议生成失败：%1$s</string>
     <string name="trainer_ban_triggered">本地模型回答触发禁令：%1$s</string>
-    <string name="trainer_ban_detail">检测到 %1$d 条禁令违反：
-%2$s</string>
+    <string name="trainer_ban_detail">检测到 %1$d 条禁令违反：\n%2$s</string>
     <string name="trainer_student_answer_prefix">学生回答：%1$s</string>
     <string name="trainer_teacher_followup_prefix">老师追问：%1$s</string>
     <string name="trainer_err_grade2">评分生成失败</string>
@@ -2709,4 +2688,313 @@
     <string name="ft3_66">%1$s 字体度量</string>
     <string name="ft3_67">%1$s 可执行</string>
     <string name="ft3_68">%1$s 登录配置</string>
+
+    <string name="eng_service_not_connected">Termux 服务未连接</string>
+    <string name="eng_session_created_activated">已创建并激活终端会话</string>
+    <string name="eng_session_card_generated">已生成终端会话卡片</string>
+    <string name="eng_new_session_activated_title">已新建并激活终端会话</string>
+    <string name="eng_new_session_title">已新建终端会话</string>
+    <string name="eng_new_session_desc">会话名称：%1$s</string>
+    <string name="eng_new_session_desc_tap">会话名称：%1$s（点击卡片以初始化终端）</string>
+    <string name="eng_new_session_failed_empty">创建会话失败：返回值为空</string>
+    <string name="eng_new_session_error">创建会话出错：%1$s</string>
+    <string name="eng_new_session_failed_title">新建终端失败</string>
+    <string name="eng_unknown_error">未知错误</string>
+    <string name="eng_missing_session_id">未指定 sessionId</string>
+    <string name="eng_session_closed">已关闭会话 %1$s</string>
+    <string name="eng_session_closed_title">已关闭会话</string>
+    <string name="eng_session_label">会话：%1$s</string>
+    <string name="eng_session_not_found">未找到会话：%1$s</string>
+    <string name="eng_close_session_error">关闭会话出错：%1$s</string>
+    <string name="eng_termux_exited">已退出 Termux</string>
+    <string name="eng_app_exited">应用已退出</string>
+    <string name="eng_exit_termux_error">退出 Termux 出错：%1$s</string>
+    <string name="eng_session_line">- %1$s [handle=%2$s] 运行中=%3$s</string>
+    <string name="eng_no_running_sessions">当前无运行会话</string>
+    <string name="eng_session_count">共 %1$d 个会话</string>
+    <string name="eng_no_sessions">无会话</string>
+    <string name="eng_session_info_title">会话信息</string>
+    <string name="eng_no_active_sessions">当前没有运行中的会话</string>
+    <string name="eng_session_info_error">获取会话信息出错：%1$s</string>
+    <string name="eng_command_empty">命令为空</string>
+    <string name="eng_dangerous_command_blocked">检测到危险命令，已拒绝执行</string>
+    <string name="eng_no_shell_found">找不到可用的 shell 环境</string>
+    <string name="eng_task_create_failed">创建执行任务失败</string>
+    <string name="eng_task_create_failed_code">创建执行任务失败 (code=%1$d)</string>
+    <string name="eng_output_empty_completed">(命令执行完成但无输出)</string>
+    <string name="eng_output_empty_timeout">(命令执行超时或无输出，命令可能仍在运行中)</string>
+    <string name="eng_output_truncated_over">(输出已截断，超过%1$d字符)</string>
+    <string name="eng_command_completed">命令已完成</string>
+    <string name="eng_command_completed_exit">命令已完成 (exit=%1$d)</string>
+    <string name="eng_command_may_still_running">命令可能仍在运行，已捕获部分输出</string>
+    <string name="eng_execution_error">执行出错: %1$s</string>
+    <string name="eng_command_auto_executed">命令已自动执行</string>
+    <string name="eng_command_card_created">已生成命令卡片</string>
+    <string name="eng_card_run_command">执行命令</string>
+    <string name="eng_card_run_command_new_session">新会话执行命令</string>
+    <string name="eng_session_create_failed">创建会话失败</string>
+    <string name="eng_run_command_error">执行命令出错: %1$s</string>
+    <string name="eng_no_packages_specified">未指定安装包</string>
+    <string name="eng_no_packages_to_remove">未指定卸载包</string>
+    <string name="eng_session_install_name">安装-%1$s</string>
+    <string name="eng_session_uninstall_name">卸载-%1$s</string>
+    <string name="eng_app_install_needs_root">APP_INSTALL 需要 ROOT 权限，但设备未获取 ROOT</string>
+    <string name="eng_no_apk_path">未指定 APK 路径</string>
+    <string name="eng_apk_not_found">APK 文件不存在: %1$s</string>
+    <string name="eng_desc_install_apk_root">安装 APK (ROOT)</string>
+    <string name="eng_app_uninstall_needs_root">APP_UNINSTALL 需要 ROOT 权限，但设备未获取 ROOT</string>
+    <string name="eng_no_package_name">未指定应用包名</string>
+    <string name="eng_desc_uninstall_app_root">卸载应用 (ROOT)</string>
+    <string name="eng_activity_class_empty">activityClass 参数为空</string>
+    <string name="eng_activity_opened">已打开页面: %1$s</string>
+    <string name="eng_card_open_activity">打开页面</string>
+    <string name="eng_open_activity_error">打开页面出错: %1$s</string>
+    <string name="eng_broadcast_action_empty">action 参数为空</string>
+    <string name="eng_broadcast_sent">已发送广播: %1$s</string>
+    <string name="eng_card_send_broadcast">发送广播</string>
+    <string name="eng_send_broadcast_error">发送广播出错: %1$s</string>
+    <string name="eng_schedule_missing_task">定时任务缺少 task 参数</string>
+    <string name="eng_repeat_hourly">每小时</string>
+    <string name="eng_repeat_daily">每天</string>
+    <string name="eng_repeat_once">单次</string>
+    <string name="eng_delay_minutes">%1$d分钟后</string>
+    <string name="eng_delay_now">立即</string>
+    <string name="eng_schedule_created">定时任务已创建：%1$s（%2$s，%3$s）</string>
+    <string name="eng_card_scheduled_task">⏰ 定时任务</string>
+    <string name="eng_clipboard_empty">剪贴板为空</string>
+    <string name="eng_card_clipboard">剪贴板</string>
+    <string name="eng_clipboard_currently_empty">剪贴板当前为空</string>
+    <string name="eng_clipboard_empty_paren">(剪贴板为空)</string>
+    <string name="eng_truncated_short">(已截断)</string>
+    <string name="eng_clipboard_read">已读取剪贴板</string>
+    <string name="eng_card_clipboard_content">剪贴板内容</string>
+    <string name="eng_length_chars">长度: %1$d 字符</string>
+    <string name="eng_clipboard_read_failed">读取剪贴板失败: %1$s</string>
+    <string name="eng_clipboard_content_empty">写入内容为空</string>
+    <string name="eng_clipboard_written">已写入剪贴板</string>
+    <string name="eng_clipboard_write_failed">写入剪贴板失败: %1$s</string>
+
+    <!-- execSearchAgent / execWebSearch (AiTermuxEngine.kt) -->
+    <string name="eng_search_type_name">文件名</string>
+    <string name="eng_search_type_content">文件内容</string>
+    <string name="eng_search_type_filetype">文件类型</string>
+    <string name="eng_search_type_generic">通用</string>
+    <string name="eng_search_summary_header">=== 搜索结果 ===</string>
+    <string name="eng_search_type_label">搜索类型: %1$s</string>
+    <string name="eng_search_path_label">搜索路径: %1$s</string>
+    <string name="eng_search_keyword_label">搜索关键词: %1$s</string>
+    <string name="eng_search_all">(全部)</string>
+    <string name="eng_search_filter_type">文件类型过滤: .%1$s</string>
+    <string name="eng_search_result_count">结果数量: %1$d 个文件</string>
+    <string name="eng_search_results_marker">--- 搜索结果 ---</string>
+    <string name="eng_search_analysis_marker">--- 分析 ---</string>
+    <string name="eng_search_none_found">未找到匹配的文件。</string>
+    <string name="eng_search_found_few">找到 %1$d 个匹配文件，请查看上方列表。</string>
+    <string name="eng_search_found_truncated">找到 %1$d 个匹配文件（可能已截断），建议缩小搜索范围。</string>
+    <string name="eng_search_none_found_try">未找到匹配的文件。请尝试：</string>
+    <string name="eng_search_hint_path">- 检查搜索路径是否正确</string>
+    <string name="eng_search_hint_broader">- 使用更宽泛的关键词</string>
+    <string name="eng_search_hint_exists">- 确认文件是否存在</string>
+    <string name="eng_search_card_title">搜索: %1$s</string>
+    <string name="eng_search_card_count">%1$d 个结果</string>
+    <string name="eng_web_no_query">未指定搜索关键词或 URL</string>
+    <string name="eng_web_search_failed">搜索失败，请检查网络连接</string>
+    <string name="eng_web_fetch_label">抓取网页: %1$s</string>
+    <string name="eng_task_update_needs_args">TASK_UPDATE 需要 taskId 或 status/comment</string>
+    <string name="eng_task_not_found">未找到目标任务</string>
+    <string name="eng_task_updated">任务「%1$s」已更新</string>
+    <string name="eng_task_update_title">更新任务</string>
+    <string name="eng_task_recent">最近任务</string>
+    <string name="eng_tasks_count">共 %1$d 个任务</string>
+    <string name="eng_task_delete_not_found">未找到要删除的任务</string>
+    <string name="eng_task_delete_title">删除任务</string>
+    <string name="eng_task_no_matching">未找到匹配的任务</string>
+    <string name="eng_task_deleted">已删除任务「%1$s」</string>
+    <string name="eng_task_recent_done">最近已完成任务</string>
+    <string name="eng_dir_not_found">目录不存在: %1$s</string>
+    <string name="eng_not_a_directory">不是目录: %1$s</string>
+    <string name="eng_dir_listed">列出目录 %1$s</string>
+    <string name="eng_dir_list_title">目录列表</string>
+    <string name="eng_dir_list_failed">列出目录出错: %1$s</string>
+    <string name="eng_dir_list_failed_title">目录列表失败</string>
+    <string name="eng_path_error">%1$s\n错误: %2$s</string>
+    <string name="eng_path_required">未指定文件路径</string>
+    <string name="eng_file_not_found">文件不存在: %1$s</string>
+    <string name="eng_not_a_file">不是文件: %1$s</string>
+    <string name="eng_file_too_large">文件过大（>1MB），请使用终端命令查看</string>
+    <string name="eng_file_read_ok">已读取文件</string>
+    <string name="eng_file_read_title">读取文件</string>
+    <string name="eng_file_read_failed">读取文件出错: %1$s</string>
+    <string name="eng_file_append_ok">已追加写入文件</string>
+    <string name="eng_file_write_ok">已写入文件</string>
+    <string name="eng_file_append_title">追加写入文件</string>
+    <string name="eng_file_write_title">写入文件</string>
+    <string name="eng_file_written_desc">%1$s (%2$d 字符)</string>
+    <string name="eng_file_write_failed">写入文件出错: %1$s</string>
+    <string name="eng_file_deleted">已删除 %1$s</string>
+    <string name="eng_file_deleted_title">已删除文件</string>
+    <string name="eng_delete_failed">删除失败: %1$s</string>
+    <string name="eng_file_delete_failed">删除文件出错: %1$s</string>
+    <string name="eng_device_status_section_battery">=== 电池状态 ===</string>
+    <string name="eng_device_status_section_network">=== 网络状态 ===</string>
+    <string name="eng_device_status_section_location">=== 位置信息 ===</string>
+    <string name="eng_status_unavailable">不可用</string>
+    <string name="eng_status_unavailable_location_permission">不可用（缺少位置权限）</string>
+    <string name="eng_device_status_unknown_info_type">未知的 infoType: %1$s（支持: battery, network, location, all）</string>
+    <string name="eng_device_status_query_ok">设备状态查询成功</string>
+    <string name="eng_device_status_query_empty">设备状态查询无结果</string>
+    <string name="eng_device_status_title">📱 设备状态</string>
+    <string name="eng_battery_info_unavailable">无法获取电池信息</string>
+    <string name="eng_battery_status_charging">充电中</string>
+    <string name="eng_battery_status_discharging">放电中</string>
+    <string name="eng_battery_status_not_charging">未充电</string>
+    <string name="eng_battery_status_full">已满</string>
+    <string name="eng_battery_power_ac">AC 交流电</string>
+    <string name="eng_battery_power_wireless">无线</string>
+    <string name="eng_battery_power_none">未连接</string>
+    <string name="eng_battery_level_line">电量: %1$s</string>
+    <string name="eng_battery_status_line">状态: %1$s</string>
+    <string name="eng_battery_power_line">充电方式: %1$s</string>
+    <string name="eng_battery_temp_line">温度: %1$s°C</string>
+    <string name="eng_battery_voltage_line">电压: %1$s mV</string>
+    <string name="eng_battery_tech_line">技术: %1$s</string>
+    <string name="eng_battery_query_failed">查询电池状态失败: %1$s</string>
+    <string name="eng_network_no_connection">无网络连接</string>
+    <string name="eng_network_type_cellular">蜂窝移动数据</string>
+    <string name="eng_network_type_ethernet">以太网</string>
+    <string name="eng_network_type_bluetooth">蓝牙</string>
+    <string name="eng_network_type_other">其他</string>
+    <string name="eng_network_type_line">类型: %1$s</string>
+    <string name="eng_network_connected_line">已连接: %1$s</string>
+    <string name="eng_network_available_line">网络可用: %1$s</string>
+    <string name="eng_network_unmetered_line">非计费网络: %1$s</string>
+    <string name="eng_network_query_failed">查询网络状态失败: %1$s</string>
+    <string name="eng_switch_enabled">已开启</string>
+    <string name="eng_switch_disabled">已关闭</string>
+    <string name="eng_location_gps_line">GPS 开关: %1$s</string>
+    <string name="eng_location_network_toggle_line">网络定位开关: %1$s</string>
+    <string name="eng_location_last_line">最后位置: %1$s, %2$s</string>
+    <string name="eng_location_accuracy_line">精度: %1$s m</string>
+    <string name="eng_location_time_line">时间: %1$s</string>
+    <string name="eng_location_no_known">无已知位置（可能缺少位置权限或从未请求过位置）</string>
+    <string name="eng_location_permission_missing">缺少位置访问权限（ACCESS_FINE_LOCATION / ACCESS_COARSE_LOCATION）</string>
+    <string name="eng_location_query_failed">查询位置失败: %1$s</string>
+    <string name="eng_compile_no_command">未指定编译命令</string>
+    <string name="eng_compile_default_desc">编译代码</string>
+    <string name="eng_compile_header">=== 编译结果 ===</string>
+    <string name="eng_compile_project">项目: %1$s</string>
+    <string name="eng_compile_status_line">编译状态: %1$s</string>
+    <string name="eng_compile_status_ok">✅ 成功</string>
+    <string name="eng_compile_status_fail">❌ 失败</string>
+    <string name="eng_compile_exit_code">退出码: %1$s</string>
+    <string name="eng_compile_errors_marker">--- 错误信息 ---</string>
+    <string name="eng_compile_warnings_marker">--- 警告 (前%1$d条) ---</string>
+    <string name="eng_compile_ok_with_warnings">编译成功，但有 %1$d 条警告。</string>
+    <string name="eng_compile_ok_clean">编译成功，无错误无警告。</string>
+    <string name="eng_compile_full_output">--- 完整输出 ---</string>
+    <string name="eng_compile_success">编译成功</string>
+    <string name="eng_compile_failed">编译失败</string>
+    <string name="eng_compile_card_title">编译: %1$s</string>
+    <string name="eng_subagent_default_task">子任务</string>
+    <string name="eng_subagent_start">子 Agent 任务开始</string>
+    <string name="eng_subagent_task_line">任务: %1$s</string>
+    <string name="eng_subagent_task_desc">--- 任务说明 ---</string>
+    <string name="eng_subagent_start_exec">--- 开始执行 ---</string>
+    <string name="eng_subagent_end_exec">--- 执行结束 ---</string>
+    <string name="eng_subagent_task_done">子 Agent 任务 [%1$s] 已完成</string>
+    <string name="eng_subagent_result_header">=== 子 Agent 执行结果 ===</string>
+    <string name="eng_subagent_status_line">状态: %1$s</string>
+    <string name="eng_subagent_detail_line">详情: %1$s</string>
+    <string name="eng_subagent_output_marker">--- 执行输出 ---</string>
+    <string name="eng_subagent_no_output">(无输出)</string>
+    <string name="eng_subagent_card_title">子 Agent: %1$s</string>
+    <string name="eng_subagent_done_desc">任务已完成</string>
+    <string name="eng_subagent_task_failed">任务执行失败</string>
+    <string name="eng_subagent_created_header">子 Agent 任务已创建</string>
+    <string name="eng_subagent_instructions_written">指令已写入 /tmp/sub_agent_task.md</string>
+    <string name="eng_subagent_reply_hint">请在终端中完成任务后回复主 AI。</string>
+    <string name="eng_subagent_subsession_created">子会话已创建，等待执行</string>
+    <string name="eng_subagent_task_created">子 Agent 任务已创建</string>
+
+    <string name="eng_unknown_skill_type">未知的技能类型：%1$s（没有 command 参数可兜底执行）</string>
+    <string name="eng_ask_type_single">单选</string>
+    <string name="eng_ask_type_multi">多选</string>
+    <string name="eng_ask_type_text">请输入</string>
+    <string name="eng_ask_question_sent">向用户提问：%1$s</string>
+    <string name="eng_ask_card_title">AI 需要你的回答（%1$s）</string>
+    <string name="eng_task_add_needs_title">TASK_ADD 需要 title 参数</string>
+    <string name="eng_task_add_batch_summary">已批量添加 %1$d 个任务，当前共 %2$d 个</string>
+    <string name="eng_task_add_single_summary">已添加任务「%1$s」，当前共 %2$d 个</string>
+    <string name="eng_task_add_batch_title">批量添加 %1$d 个任务</string>
+    <string name="eng_task_add_title">添加任务</string>
+    <string name="eng_close_all_sessions_count">已关闭全部 %1$d 个会话</string>
+    <string name="eng_close_all_sessions_desc">共 %1$d 个会话被关闭</string>
+    <string name="eng_close_all_sessions_error">关闭全部会话出错：%1$s</string>
+    <string name="eng_vm_qemu_page_opened">已打开 QEMU 虚拟机管理页</string>
+    <string name="eng_vm_qemu_open_title">打开 QEMU 虚拟机</string>
+    <string name="eng_vm_desc">虚拟机：%1$s</string>
+    <string name="eng_vm_manager_page">虚拟机管理页</string>
+    <string name="eng_vm_open_failed">打开 QEMU 虚拟机失败：%1$s</string>
+    <string name="eng_vm_create_config_opened">已打开新建 QEMU 虚拟机配置页</string>
+    <string name="eng_vm_create_title">新建 QEMU 虚拟机</string>
+    <string name="eng_vm_configuring">正在配置新建虚拟机...</string>
+    <string name="eng_vm_create_failed">新建 QEMU 虚拟机失败：%1$s</string>
+    <string name="eng_vm_list_desc">列出虚拟机</string>
+    <string name="eng_vm_list_needs_command">VM_LIST 需要 command 参数</string>
+    <string name="eng_vnc_no_address">未指定 VNC 地址</string>
+    <string name="eng_vnc_card_generated">已生成 VNC 连接卡片</string>
+    <string name="eng_vnc_connection">VNC 连接</string>
+    <string name="eng_vnc_desc_tap">地址：%1$s（点击卡片以连接）</string>
+    <string name="eng_vnc_connect_failed">VNC 连接失败：%1$s</string>
+    <string name="eng_vnc_connection_named">VNC 连接：%1$s</string>
+    <string name="eng_vnc_conn_addr">%1$s:%2$d（点击卡片以连接）</string>
+    <string name="eng_ssh_no_host">未指定 SSH 主机</string>
+    <string name="eng_ssh_session_created">已创建 SSH 连接会话</string>
+    <string name="eng_ssh_card_generated">已生成 SSH 连接卡片</string>
+    <string name="eng_ssh_connection">SSH 连接</string>
+    <string name="eng_ssh_conn_addr">%1$s@%2$s:%3$d</string>
+    <string name="eng_ssh_conn_addr_tap">%1$s@%2$s:%3$d（点击卡片以连接）</string>
+    <string name="eng_ssh_session_create_failed">创建 SSH 会话失败</string>
+    <string name="eng_ssh_connect_failed">SSH 连接失败：%1$s</string>
+    <string name="eng_ssh_connection_named">SSH 连接：%1$s</string>
+    <string name="eng_remote_saved_header">=== 已保存的远程连接 ===</string>
+    <string name="eng_remote_ssh_label">【SSH 连接】</string>
+    <string name="eng_remote_vnc_label">【VNC 连接】</string>
+    <string name="eng_remote_none_saved">暂无已保存的远程连接。</string>
+    <string name="eng_remote_total_hint">共 %1$d 个连接。使用 connectionId 指定要连接的连接。</string>
+    <string name="eng_remote_listed">已列出远程连接</string>
+    <string name="eng_remote_list_title">远程连接列表</string>
+    <string name="eng_remote_list_summary">%1$d 个 SSH + %2$d 个 VNC</string>
+    <string name="eng_remote_no_id">未指定连接 ID 或名称</string>
+    <string name="eng_remote_not_found">未找到匹配的远程连接：%1$s</string>
+    <string name="eng_session_line_active">- %1$s [handle=%2$s] 运行中=%3$s（当前活跃）</string>
+    <string name="eng_no_specific_session">(未在任何特定会话中)</string>
+    <string name="eng_marker_current">" ◀ 当前"</string>
+    <string name="eng_current_session_report">当前活跃会话：
+%1$s
+
+全部会话：
+%2$s</string>
+    <string name="eng_current_session_title">当前会话</string>
+    <string name="eng_current_session_error">获取当前会话失败：%1$s</string>
+    <string name="eng_file_generate_ok">文件已生成</string>
+    <string name="eng_file_generate_title">生成文件</string>
+    <string name="eng_file_generate_failed">生成文件出错: %1$s</string>
+    <string name="eng_file_modify_ok">文件已修改</string>
+    <string name="eng_file_modify_title">修改文件</string>
+    <string name="eng_file_modify_desc">%1$s (%2$d 处修改)</string>
+    <string name="eng_file_modify_failed">修改文件出错: %1$s</string>
+    <string name="eng_no_modify_operations">未指定修改操作</string>
+    <string name="eng_file_too_large_modify">文件过大（&gt;1MB），无法修改</string>
+    <string name="eng_empty_response">空响应</string>
+    <string name="eng_parse_response_failed">解析响应失败(%1$s): %2$s</string>
+    <string name="eng_request_failed">请求失败: %1$s</string>
+    <string name="eng_local_fallback_warn">⚠️ 本地模型调用失败：%1$s。已自动切换到备用在线模型。</string>
+    <string name="eng_local_fallback_failed">本地失败：%1$s；备用在线也失败：%2$s</string>
+    <string name="eng_local_fallback_warn_stream">⚠️ 本地模型调用失败：%1$s。
+已自动切换到备用在线模型，请稍候...</string>
+    <string name="eng_local_no_output">本地模型未输出任何内容，可能是模型加载失败或推理异常</string>
+    <string name="eng_ollama_auto_selected">已自动选择 %1$s 模型，正在推理…</string>
+    <string name="eng_ollama_no_model">请先在设置页面安装并选择 Ollama 模型。进入「设置 → 本地大模型 → Ollama 模型」下载模型后重试。</string>
+    <string name="eng_ollama_not_installed_chat">Ollama 尚未安装。请先进入「设置 → 本地大模型」安装 Ollama 后再试。</string>
 </resources>
