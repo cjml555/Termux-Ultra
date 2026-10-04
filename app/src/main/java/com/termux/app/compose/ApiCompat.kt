@@ -45,37 +45,36 @@ object ApiCompat {
      * @param minApi 该功能所需的最低 SDK 版本
      * @param page 所属页面
      * @param requiredVersionLabel 所需 Android 版本的可读名称（用于禁用提示）
-     * @param label 功能中文名（用于弹窗显示）
+     * @param labelRes 功能名的资源，供 display(context) 解析成任何语言
      */
     enum class Feature(
         val minApi: Int,
         val page: Page,
         val requiredVersionLabel: String,
-        val label: String,
         val labelRes: Int
     ) {
         // 终端页
-        KEEP_ALIVE_WARNING(31, Page.TERMINAL, "Android 12", "会话保活警告", R.string.api_keep_alive_warning),
-        LIVE_UPDATE_NOTIFICATION(36, Page.TERMINAL, "Android 16", "实时更新通知", R.string.api_live_update_notification),
+        KEEP_ALIVE_WARNING(31, Page.TERMINAL, "Android 12", R.string.api_keep_alive_warning),
+        LIVE_UPDATE_NOTIFICATION(36, Page.TERMINAL, "Android 16", R.string.api_live_update_notification),
         // 远程页
-        VNC_PICTURE_IN_PICTURE(26, Page.REMOTE, "Android 8.0", "VNC 画中画", R.string.api_vnc_pip),
-        VNC_POINTER_CAPTURE(26, Page.REMOTE, "Android 8.0", "VNC 鼠标捕获", R.string.api_vnc_pointer),
-        VNC_AUDIO(31, Page.REMOTE, "Android 12", "VNC 音频", R.string.api_vnc_audio),
+        VNC_PICTURE_IN_PICTURE(26, Page.REMOTE, "Android 8.0", R.string.api_vnc_pip),
+        VNC_POINTER_CAPTURE(26, Page.REMOTE, "Android 8.0", R.string.api_vnc_pointer),
+        VNC_AUDIO(31, Page.REMOTE, "Android 12", R.string.api_vnc_audio),
         // 资源页
-        QEMU_CONTAINER_MODE(35, Page.RESOURCES, "Android 15", "QEMU 容器模式", R.string.api_qemu_container),
-        QEMU_AUDIO_PULSE(31, Page.RESOURCES, "Android 12", "QEMU PulseAudio 音频", R.string.api_qemu_pulse),
-        QEMU_VM_MANAGER(31, Page.RESOURCES, "Android 12", "QEMU 虚拟机管理", R.string.api_qemu_manager),
-        MOE_ALL_IN_ONE(31, Page.RESOURCES, "Android 12", "MOE 全能脚本", R.string.api_moe_script),
-        ALPINE_QEMU(31, Page.RESOURCES, "Android 12", "Alpine QEMU", R.string.api_alpine_qemu),
-        DEBIAN_QEMU(31, Page.RESOURCES, "Android 12", "Debian QEMU", R.string.api_debian_qemu),
-        DOCKER_MANAGER(31, Page.RESOURCES, "Android 12", "Docker 容器管理", R.string.api_docker_manager),
-        PULSEAUDIO_PLAYER(31, Page.RESOURCES, "Android 12", "PulseAudio 播放器", R.string.api_pulse_player),
+        QEMU_CONTAINER_MODE(35, Page.RESOURCES, "Android 15", R.string.api_qemu_container),
+        QEMU_AUDIO_PULSE(31, Page.RESOURCES, "Android 12", R.string.api_qemu_pulse),
+        QEMU_VM_MANAGER(31, Page.RESOURCES, "Android 12", R.string.api_qemu_manager),
+        MOE_ALL_IN_ONE(31, Page.RESOURCES, "Android 12", R.string.api_moe_script),
+        ALPINE_QEMU(31, Page.RESOURCES, "Android 12", R.string.api_alpine_qemu),
+        DEBIAN_QEMU(31, Page.RESOURCES, "Android 12", R.string.api_debian_qemu),
+        DOCKER_MANAGER(31, Page.RESOURCES, "Android 12", R.string.api_docker_manager),
+        PULSEAUDIO_PLAYER(31, Page.RESOURCES, "Android 12", R.string.api_pulse_player),
         // 设置页
-        POST_NOTIFICATIONS_RUNTIME(33, Page.SETTINGS, "Android 13", "通知权限", R.string.api_notif_perm),
-        MANAGE_ALL_FILES(30, Page.SETTINGS, "Android 11", "所有文件访问", R.string.api_all_files),
-        INTEGRATED_TOOLS(31, Page.SETTINGS, "Android 12", "集成工具（API/Boot/Styling/Tasker/Widget）", R.string.api_integrated),
-        MIUIX_DYNAMIC_COLOR(31, Page.SETTINGS, "Android 12", "动态取色主题", R.string.api_miuix_dyncolor),
-        GLASS_NAVIGATION_BAR(30, Page.SETTINGS, "Android 11", "玻璃导航栏", R.string.api_glass_navbar);
+        POST_NOTIFICATIONS_RUNTIME(33, Page.SETTINGS, "Android 13", R.string.api_notif_perm),
+        MANAGE_ALL_FILES(30, Page.SETTINGS, "Android 11", R.string.api_all_files),
+        INTEGRATED_TOOLS(31, Page.SETTINGS, "Android 12", R.string.api_integrated),
+        MIUIX_DYNAMIC_COLOR(31, Page.SETTINGS, "Android 12", R.string.api_miuix_dyncolor),
+        GLASS_NAVIGATION_BAR(30, Page.SETTINGS, "Android 11", R.string.api_glass_navbar);
 
                 /** Nombre localizado de la funcionalidad, para los sitios con Context. */
                 fun display(context: Context): String = context.getString(labelRes)
