@@ -620,7 +620,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
             RiskConfirmManager._dialogState.value = RiskConfirmManager.DialogState(
                 command = command,
                 riskDescription = detection.description,
-                riskType = detection.riskType?.displayName ?: "高危操作",
+                riskType = detection.riskType?.display(ctx) ?: ctx.getString(R.string.risk_high_risk_op),
                 environmentType = RiskConfirmManager.EnvironmentType.NATIVE,
                 isWindowsDiskCommand = detection.isWindowsDiskCommand
             )

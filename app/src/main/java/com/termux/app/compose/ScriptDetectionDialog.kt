@@ -64,6 +64,7 @@ fun ScriptDetectionDialog(
     onCancel: () -> Unit = {}
 ) {
     var showDialog by remember { mutableStateOf(true) }
+    val context = LocalContext.current
     val isDark = androidx.compose.foundation.isSystemInDarkTheme()
 
     OverlayDialog(
@@ -133,7 +134,7 @@ fun ScriptDetectionDialog(
                                     )
                                     Spacer(Modifier.width(8.dp))
                                     Text(
-                                        text = result.detection.riskType?.displayName ?: "未知风险",
+                                        text = result.detection.riskType?.display(context) ?: stringResource(R.string.risk_type_generic),
                                         fontSize = 11.sp,
                                         color = Color(0xFFD32F2F),
                                         fontWeight = FontWeight.Medium

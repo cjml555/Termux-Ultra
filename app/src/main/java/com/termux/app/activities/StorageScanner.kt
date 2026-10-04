@@ -165,8 +165,8 @@ internal object StorageScanner {
         if (cacheSize > 0) {
             out += CleanableItem(
                 category = StorageCategory.OTHER,
-                name = "缓存文件",
-                description = "应用缓存数据",
+                name = context.getString(R.string.storage_clean_cache),
+                description = context.getString(R.string.storage_clean_cache_desc),
                 sizeBytes = cacheSize,
                 path = cacheDir.absolutePath,
                 type = CleanableType.CACHE
@@ -177,8 +177,8 @@ internal object StorageScanner {
         if (tempDir.exists()) {
             out += CleanableItem(
                 category = StorageCategory.OTHER,
-                name = "临时文件",
-                description = "临时下载和处理文件",
+                name = context.getString(R.string.storage_clean_temp),
+                description = context.getString(R.string.storage_clean_temp_desc),
                 sizeBytes = sumDiskUsage(tempDir),
                 path = tempDir.absolutePath,
                 type = CleanableType.TEMP
@@ -189,8 +189,8 @@ internal object StorageScanner {
         if (logDir.exists()) {
             out += CleanableItem(
                 category = StorageCategory.OTHER,
-                name = "日志文件",
-                description = "运行日志和崩溃报告",
+                name = context.getString(R.string.storage_clean_logs),
+                description = context.getString(R.string.storage_clean_logs_desc),
                 sizeBytes = sumDiskUsage(logDir),
                 path = logDir.absolutePath,
                 type = CleanableType.LOGS
@@ -201,8 +201,8 @@ internal object StorageScanner {
         if (thumbDir.exists()) {
             out += CleanableItem(
                 category = StorageCategory.OTHER,
-                name = "缩略图缓存",
-                description = "文件管理器生成的缩略图",
+                name = context.getString(R.string.storage_clean_thumbnails),
+                description = context.getString(R.string.storage_clean_thumbnails_desc),
                 sizeBytes = sumDiskUsage(thumbDir),
                 path = thumbDir.absolutePath,
                 type = CleanableType.THUMBNAIL
@@ -213,8 +213,8 @@ internal object StorageScanner {
         if (backupDir.exists()) {
             out += CleanableItem(
                 category = StorageCategory.OTHER,
-                name = "旧备份文件",
-                description = "过期的 Termux 备份文件",
+                name = context.getString(R.string.storage_clean_backup),
+                description = context.getString(R.string.storage_clean_backup_desc),
                 sizeBytes = sumDiskUsage(backupDir),
                 path = backupDir.absolutePath,
                 type = CleanableType.BACKUP

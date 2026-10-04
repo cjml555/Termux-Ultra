@@ -1746,7 +1746,7 @@ Errores:
     <string name="risk_level_warn_verify_desc">Diálogo + cuenta atrás + verificación biométrica</string>
     <string name="risk_level_auto_block">Bloqueo automático</string>
     <string name="risk_level_auto_block_desc">Rechaza directamente los comandos peligrosos</string>
-    <string name="risk_type_generic">Operación de alto riesgo</string>
+    <string name="risk_type_generic">Riesgo desconocido</string>
     <string name="risk_skip_protection_off">La protección está desactivada: el script se dejó pasar directamente</string>
     <string name="risk_ssh_remote_label">Remoto (SSH): %1$s</string>
     <string name="risk_access_denied">Acceso denegado (permiso denegado)</string>
@@ -2172,4 +2172,35 @@ Recomendación: cierra primero las demás sesiones de Termux en ejecución y vue
     <string name="vnc_mouse_back">Función del botón atrás del ratón</string>
     <string name="vnc_kb_rows">Filas del teclado virtual</string>
     <string name="warn_title">Advertencia</string>
+
+    <!-- TextEditorScreen -->
+    <string name="editor_unsaved_name">Archivo sin título</string>
+    <string name="editor_unsaved">● Sin guardar</string>
+    <string name="editor_saved">✓ Guardado</string>
+    <string name="editor_modified_at">Modificado %1$s</string>
+    <string name="editor_placeholder">Escribe aquí…</string>
+    <string name="editor_unsaved_confirm">Este archivo tiene cambios sin guardar. ¿Cerrar de todos modos?</string>
+    <string name="editor_save_and_exit">Guardar y salir</string>
+    <string name="editor_select_dir">Selecciona el directorio de guardado</string>
+    <string name="editor_save_file">Guardar archivo</string>
+    <string name="editor_save_to">Guardar en: %1$s</string>
+    <string name="editor_permissions">Permisos del archivo</string>
+    <string name="editor_readable">Legible (r)</string>
+    <string name="editor_writable">Escribible (w)</string>
+    <string name="editor_executable">Ejecutable (x)</string>
+
+    <!-- RiskCommandDetector.RiskType -->
+    <string name="risk_dd_disk_write">dd 磁盘写入</string>
+    <string name="risk_su_sudo_escalate">su/sudo 提权</string>
+    <string name="risk_format_partition">格式化/分区</string>
+    <string name="risk_rm_rf_root">递归删除根目录</string>
+    <string name="risk_fork_bomb">fork bomb 资源耗尽</string>
+    <string name="risk_kernel_module">内核模块操作</string>
+    <string name="risk_raw_disk_write">原始磁盘写入</string>
+    <string name="risk_shutdown_reboot">关机/重启</string>
+    <string name="risk_setprop">系统属性修改</string>
+    <string name="risk_root_cmd">ROOT 特权命令</string>
+
+    <!-- Ajustes de nombres de riesgo -->
+    <string name="risk_high_risk_op">Operación de alto riesgo</string>
 </resources>

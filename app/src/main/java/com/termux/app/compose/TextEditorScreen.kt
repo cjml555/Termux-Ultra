@@ -78,7 +78,7 @@ fun TextEditorScreen(
     var pickedDir by remember { mutableStateOf<String?>(null) }
     var fileNameInput by remember { mutableStateOf("") }
 
-    val fileName = file?.name ?: "未命名文件"
+    val fileName = file?.name ?: stringResource(R.string.editor_unsaved_name)
     val fileInfo = SyntaxHighlighter.fileInfo(file)
     val perms = SyntaxHighlighter.permissions(file)
 
@@ -202,7 +202,7 @@ fun TextEditorScreen(
                         }
                         Spacer(modifier = Modifier.weight(1f))
                         Text(
-                            text = if (modified) "● 未保存" else "✓ 已保存",
+                            text = if (modified) stringResource(R.string.editor_unsaved) else stringResource(R.string.editor_saved),
                             fontSize = 11.sp,
                             color = if (modified) Color(0xFFFF9F0A) else MiuixTheme.colorScheme.onSurfaceVariantSummary
                         )
@@ -210,7 +210,7 @@ fun TextEditorScreen(
                     // 第二行：修改时间
                     infoParts.getOrNull(2)?.let { date ->
                         Text(
-                            text = "修改时间 $date",
+                            text = stringResource(R.string.editor_modified_at, date),
                             fontSize = 11.sp,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.7f)
                         )
@@ -256,7 +256,7 @@ fun TextEditorScreen(
                 ) {
                     if (textFieldState.text.isEmpty()) {
                         Text(
-                            text = "在此输入...",
+                            text = stringResource(R.string.editor_placeholder),
                             fontSize = 14.sp,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.5f),
                             fontFamily = FontFamily.Monospace,
@@ -285,7 +285,7 @@ fun TextEditorScreen(
                 show = showConfirmExit,
                 onDismissRequest = { showConfirmExit = false },
                 title = stringResource(R.string.unsaved_changes),
-                summary = "文件有未保存的修改，确定要关闭吗？",
+                summary = stringResource(R.string.editor_unsaved_confirm),
                 content = {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -297,7 +297,7 @@ fun TextEditorScreen(
                             modifier = Modifier.weight(1f)
                         )
                         TextButton(
-                            text = "保存并退出",
+                            text = stringResource(R.string.editor_save_and_exit),
                             onClick = {
                                 doSave()
                                 showConfirmExit = false
@@ -320,7 +320,7 @@ fun TextEditorScreen(
         // 保存位置选择器（新建文件时）
         TermuxInternalFilePicker(
             show = showDirPicker,
-            title = "选择保存目录",
+            title = stringResource(R.string.editor_select_dir),
             allowFolders = true,
             onDismiss = { showDirPicker = false },
             onFileSelected = { path ->
@@ -335,8 +335,8 @@ fun TextEditorScreen(
             OverlayDialog(
                 show = true,
                 onDismissRequest = { showFileNameDialog = false },
-                title = "保存文件",
-                summary = "保存到: $pickedDir",
+                title = stringResource(R.string.editor_save_file),
+                summary = stringResource(R.string.editor_save_to),
                 content = {
                     androidx.compose.material3.OutlinedTextField(
                         value = fileNameInput,
@@ -388,13 +388,13 @@ private fun FilePermissionDialog(file: File, onDismiss: () -> Unit) {
     OverlayDialog(
         show = true,
         onDismissRequest = onDismiss,
-        title = "文件权限",
+        title = stringResource(R.string.editor_permissions),
         summary = file.absolutePath,
         content = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                PermissionRow("可读 (r)", readable) { readable = it }
-                PermissionRow("可写 (w)", writable) { writable = it }
-                PermissionRow("可执行 (x)", executable) { executable = it }
+                PermissionRow(stringResource(R.string.editor_readable), readable) { readable = it }
+                PermissionRow(stringResource(R.string.editor_writable), writable) { writable = it }
+                PermissionRow(stringResource(R.string.editor_executable), executable) { executable = it }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

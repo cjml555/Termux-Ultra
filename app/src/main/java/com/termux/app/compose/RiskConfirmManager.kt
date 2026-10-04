@@ -895,7 +895,7 @@ object RiskConfirmManager {
                 _dialogState.value = DialogState(
                     command = command,
                     riskDescription = detection.description,
-                    riskType = detection.riskType?.displayName ?: context.getString(R.string.risk_type_generic),
+                    riskType = detection.riskType?.display(context) ?: context.getString(R.string.risk_type_generic),
                     environmentType = environmentType,
                     requestId = requestId
                 )
@@ -1030,7 +1030,7 @@ object RiskConfirmManager {
         return doDialogConfirmationBlocking(
             context, command,
             detection.description,
-            detection.riskType?.displayName ?: context.getString(R.string.risk_type_generic),
+            detection.riskType?.display(context) ?: context.getString(R.string.risk_type_generic),
             environmentType
         )
     }

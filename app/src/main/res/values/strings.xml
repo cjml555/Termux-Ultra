@@ -1921,7 +1921,7 @@ Errors:
     <string name="risk_level_warn_verify_desc">Dialog + countdown + biometric check</string>
     <string name="risk_level_auto_block">Auto-block</string>
     <string name="risk_level_auto_block_desc">Refuses to run dangerous commands outright</string>
-    <string name="risk_type_generic">High-risk operation</string>
+    <string name="risk_type_generic">Unknown risk</string>
     <string name="risk_skip_protection_off">Protection is off — the script was let through directly</string>
     <string name="risk_ssh_remote_label">Remote (SSH): %1$s</string>
     <string name="risk_access_denied">Access Denied (permission denied)</string>
@@ -2347,4 +2347,35 @@ Recommendation: close other running Termux sessions first, then try again.</stri
     <string name="vnc_mouse_back">Set mouse back button function</string>
     <string name="vnc_kb_rows">Set virtual keyboard rows</string>
     <string name="warn_title">Warning</string>
+
+    <!-- TextEditorScreen -->
+    <string name="editor_unsaved_name">Untitled file</string>
+    <string name="editor_unsaved">● Unsaved</string>
+    <string name="editor_saved">✓ Saved</string>
+    <string name="editor_modified_at">Modified %1$s</string>
+    <string name="editor_placeholder">Type here…</string>
+    <string name="editor_unsaved_confirm">This file has unsaved changes. Close anyway?</string>
+    <string name="editor_save_and_exit">Save and exit</string>
+    <string name="editor_select_dir">Select save directory</string>
+    <string name="editor_save_file">Save file</string>
+    <string name="editor_save_to">Save to: %1$s</string>
+    <string name="editor_permissions">File permissions</string>
+    <string name="editor_readable">Readable (r)</string>
+    <string name="editor_writable">Writable (w)</string>
+    <string name="editor_executable">Executable (x)</string>
+
+    <!-- RiskCommandDetector.RiskType -->
+    <string name="risk_dd_disk_write">dd escritura en disco</string>
+    <string name="risk_su_sudo_escalate">su/sudo escalamiento de privilegios</string>
+    <string name="risk_format_partition">Formato/partición</string>
+    <string name="risk_rm_rf_root">Borrado recursivo de la raíz</string>
+    <string name="risk_fork_bomb">fork bomb agotamiento de recursos</string>
+    <string name="risk_kernel_module">Operación de módulo del kernel</string>
+    <string name="risk_raw_disk_write">Escritura directa al disco</string>
+    <string name="risk_shutdown_reboot">Apagado/reinicio</string>
+    <string name="risk_setprop">Cambio de propiedad del sistema</string>
+    <string name="risk_root_cmd">Comando privilegiado ROOT</string>
+
+    <!-- Ajustes de nombres de riesgo -->
+    <string name="risk_high_risk_op">High-risk operation</string>
 </resources>

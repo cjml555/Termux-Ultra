@@ -1,5 +1,7 @@
 package com.termux.app.compose
 
+import android.content.Context
+import com.termux.R
 import java.util.regex.Pattern
 
 /**
@@ -23,17 +25,23 @@ object RiskCommandDetector {
     private const val MAX_EXPAND_INPUT = 64 * 1024
 
     /** 危险命令类型 */
-    enum class RiskType(val displayName: String) {
-        DD("dd 磁盘写入"),
-        SU_SUDO("su/sudo 提权"),
-        FORMAT("格式化/分区"),
-        RM_RF_ROOT("递归删除根目录"),
-        FORK_BOMB("fork bomb 资源耗尽"),
-        KERNEL_MODULE("内核模块操作"),
-        RAW_DISK_WRITE("原始磁盘写入"),
-        SHUTDOWN_REBOOT("关机/重启"),
-        SETPROP("系统属性修改"),
-        ROOT_CMD("ROOT 特权命令")
+    // displayName se conserva como valor por defecto para las rutas que no
+    // tienen Context (logs, mensajes de red). Los textos visibles se resuelven
+    // con displayRes(context), que si traduce.
+    enum class RiskType(val displayName: String, val displayRes: Int) {
+        DD("dd disk write", R.string.risk_dd_disk_write),
+        SU_SUDO("su/sudo privilege escalation", R.string.risk_su_sudo_escalate),
+        FORMAT("Format/partition", R.string.risk_format_partition),
+        RM_RF_ROOT("Recursively delete root", R.string.risk_rm_rf_root),
+        FORK_BOMB("fork bomb resource exhaustion", R.string.risk_fork_bomb),
+        KERNEL_MODULE("Kernel module operation", R.string.risk_kernel_module),
+        RAW_DISK_WRITE("Raw disk write", R.string.risk_raw_disk_write),
+        SHUTDOWN_REBOOT("Shutdown/reboot", R.string.risk_shutdown_reboot),
+        SETPROP("System property change", R.string.risk_setprop),
+        ROOT_CMD("ROOT privileged command", R.string.risk_root_cmd);
+
+        /** Nombre localizado del riesgo, para los sitios que tienen Context. */
+        fun display(context: Context): String = context.getString(displayRes)
     }
 
     data class DetectionResult(
