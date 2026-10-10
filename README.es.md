@@ -14,6 +14,18 @@
 
 </div>
 
+## ⚠️ Advertencia de seguridad y permisos
+
+Termux Ultra requiere ciertos permisos para proporcionar su funcionalidad completa. A continuación se explica lo necesario y los riesgos asociados:
+
+- **WRITE_SECURE_SETTINGS**: Permite modificar la configuración de seguridad del sistema (como el bloqueo de pantalla, cifrado). Este permiso tiene un riesgo alto, ya que podría ser utilizado para reducir la seguridad del dispositivo. Solo se solicita cuando es necesario (por ejemplo, al detectar ROOT para elevar privilegios automáticamente).
+- **REQUEST_INSTALL_PACKAGES**: Permite instalar aplicaciones de fuentes desconocidas. Este permiso tiene un riesgo medio, ya que podría llevar a la instalación de aplicaciones maliciosas. Solo se utiliza cuando el usuario solicita explícitamente instalar un APK.
+- **DUMP** y **READ_LOGS**: Permite leer los registros del sistema y volcados de memoria. Este permiso tiene un riesgo alto, ya que podría exponer información sensible (como contraseñas, tokens). Solo se necesita para depuración o diagnóstico.
+- **MANAGE_EXTERNAL_STORAGE**: Permite el acceso completo al almacenamiento externo. Este permiso tiene un riesgo medio, ya que permite a la aplicación leer, modificar o eliminar cualquier archivo en el almacenamiento. Solo se utiliza cuando es necesario acceder a los archivos del usuario.
+- **SYSTEM_ALERT_WINDOW**: Permite mostrar ventanas sobre otras aplicaciones. Este permiso tiene un riesgo bajo, pero podría ser utilizado para ataques de phishing. Solo se utiliza cuando es necesario mostrar una ventana flotante o una notificación.
+
+Le recomendamos que solo conceda estos permisos si comprende los riesgos y confía en la fuente de la aplicación. Termux Ultra solo solicita estos permisos cuando es absolutamente necesario y siempre que sea posible utiliza alternativas más seguras.
+
 ## Descripción de ramas
 
 | Rama | Base | Versión | Estado |
