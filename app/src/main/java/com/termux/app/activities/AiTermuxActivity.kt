@@ -15,14 +15,28 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.viewModels
 import androidx.fragment.app.FragmentActivity
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.foundation.border
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.horizontalScroll
@@ -34,12 +48,15 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Send
-import androidx.compose.material.icons.rounded.Checklist
+import androidx.compose.material.icons.rounded.ArrowUpward
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Lightbulb
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.Share
 import androidx.compose.runtime.*
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
@@ -50,7 +67,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -63,6 +80,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.widthIn
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -76,16 +94,36 @@ import com.termux.app.utils.SnackbarHelper
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import top.yukonga.miuix.kmp.glass.GlassIconButton
 import top.yukonga.miuix.kmp.glass.GlassTopAppBar
+import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
+import top.yukonga.miuix.kmp.glass.GlassPopupAnchor
+import top.yukonga.miuix.kmp.glass.GlassPopupItem
+import top.yukonga.miuix.kmp.glass.GlassTransformPopup
+import top.yukonga.miuix.kmp.glass.glassPopupAnchor
+import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Back
+import top.yukonga.miuix.kmp.icon.glass.Add
+import top.yukonga.miuix.kmp.icon.glass.Back
+import top.yukonga.miuix.kmp.icon.glass.ChevronBackward
+import top.yukonga.miuix.kmp.icon.glass.ExpandMore
+import top.yukonga.miuix.kmp.icon.glass.More
+import top.yukonga.miuix.kmp.icon.glass.MiuixGlassIcons
+import top.yukonga.miuix.kmp.icon.glass.Tasks
 import top.yukonga.miuix.kmp.window.WindowDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
+import com.paw.agent.core.agent.AgentEvent
+import com.paw.agent.core.llm.OpenAiCompatibleClient
+import com.paw.agent.core.model.Message as PawMessage
+import com.paw.agent.core.model.MessageRole as PawMessageRole
+import com.paw.agent.device.accessibility.AgentAccessibilityService
+import com.paw.agent.device.floating.AgentStopFloatingButton
 import java.io.File
 
 /**
@@ -106,8 +144,14 @@ class AiTermuxActivity : FragmentActivity() {
     /** 停止 Agent 的广播接收器（onCreate 注册，onDestroy 反注册，避免泄漏）。 */
     private var stopReceiver: android.content.BroadcastReceiver? = null
 
+    /** 用户是否主动离开对话页（区别于被系统/其他页面遮挡）——离开后才决定要不要弹悬浮窗 */
+    private var leavingChatPage = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // 进程级前台状态追踪（决定悬浮窗显示与否），进程内只注册一次
+        AgentChatBubblePolicy.register(this)
 
         val vm: AiTermuxViewModel by viewModels()
 
@@ -136,7 +180,15 @@ class AiTermuxActivity : FragmentActivity() {
                 LocalNavigationEventDispatcherOwner provides navDispatcherOwner
             ) {
                 com.termux.app.compose.KiTerminalTheme {
-                    AiTermuxRoot(vm) { finish() }
+                    AiTermuxRoot(vm) {
+                        // 唯一的"用户主动离开对话页"入口：先决定要不要悬浮窗，再真正 finish
+                        leavingChatPage = true
+                        val ctx = applicationContext
+                        AgentChatBubblePolicy.onLeftChatPage(ctx) {
+                            AgentChatBubblePolicy.launchChatPage(ctx)
+                        }
+                        finish()
+                    }
                 }
             }
         }
@@ -146,6 +198,11 @@ class AiTermuxActivity : FragmentActivity() {
         super.onResume()
         val vm: AiTermuxViewModel by viewModels()
         handlePendingAgentResult(vm)
+        // 回到对话页：悬浮气泡（含"回答完成"提示）让位给真实页面
+        if (leavingChatPage) {
+            leavingChatPage = false
+            AgentChatBubblePolicy.onReturnedToChatPage()
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -247,10 +304,13 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
             && AiTermuxPrefs.isFallbackOnlineConfigReady(ctx)
     }
 
-    private var cancelled = false
-
-    /** 白名单每次实时读取：设置页改完回到对话页立即生效，不必重建 Activity */
-    private fun autoExecSkills(): Set<String> = AiTermuxPrefs.getAutoExecSkills(getApplication())
+    // 该标志既被主线程写、也被 AgentPaw 引擎的工作协程读，需要可见性保证 ——
+    // @Volatile 施加在 AgentChatSession.cancelled 字段本身（属性改为委托后不能再标注）
+    // 实际存放于进程级 AgentChatSession —— 页面销毁后新页面读到的是同一个标志，
+    // 否则重建的 Activity 会以为「没在跑」而漏掉 isCancelled 判定。
+    private var cancelled: Boolean
+        get() = AgentChatSession.cancelled
+        set(value) { AgentChatSession.cancelled = value }
 
     fun cancelGeneration() {
         cancelled = true
@@ -258,7 +318,8 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
         isLoading = false
         LiveUpdateState.agentStop()
         // 取消协程本身：否则正在执行的技能跑完后本轮循环会继续调用模型
-        generationJob?.cancel()
+        // 同时清掉会话宿主上的执行标记，避免悬浮窗误以为还在跑
+        AgentChatSession.cancel()
         generationJob = null
         // 停止时丢弃待确认的危险操作，避免回到页面后又被自动执行
         pendingDanger.clear()
@@ -307,6 +368,7 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
 
     init {
         val ctx = getApplication<android.app.Application>()
+        AgentPawPrefs.init(ctx)
         // 加载全部对话（含旧版本单对话迁移到默认「Termux Agent」），并恢复当前对话
         val loaded = AiTermuxPrefs.getConversations(ctx)
         conversations.addAll(loaded)
@@ -412,6 +474,8 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
 
     override fun onCleared() {
         super.onCleared()
+        // 注意：这里**不能**取消 AgentChatSession —— 离开对话页时 ViewModel 必然被清，
+        // 而对话要在后台继续跑到完成。对话协程由进程级 AgentChatSession.scope 持有。
         if (bound) {
             runCatching { getApplication<android.app.Application>().unbindService(serviceConn) }
         }
@@ -428,10 +492,20 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
     }
 
     /** 当前进行中的生成任务。「停止」时真正取消协程，而不只是置标志位 */
-    private var generationJob: kotlinx.coroutines.Job? = null
+    private var generationJob: kotlinx.coroutines.Job?
+        get() = AgentChatSession.generationJob
+        set(value) { AgentChatSession.generationJob = value }
 
+    /**
+     * 在**进程级** scope 中执行一个对话回合。
+     *
+     * 这里刻意不用 `viewModelScope`：它绑定 Activity 的 ViewModelStore，
+     * 用户离开对话页（finish）时 ViewModel 被 onCleared，viewModelScope 随即取消，
+     * 正在跑的对话会被强杀。改用 [AgentChatSession.scope] 后，页面销毁不再中断执行；
+     * 同一进程内重新进入对话页会拿到同一份状态，继续观察流式输出。
+     */
     private fun runInScope(block: suspend () -> Unit): kotlinx.coroutines.Job {
-        return viewModelScope.launch(exceptionHandler) {
+        return AgentChatSession.scope.launch(exceptionHandler) {
             try {
                 block()
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -799,11 +873,147 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
     // 待执行的危险操作：messageId -> (skillType, params)
     private val pendingDanger = mutableMapOf<String, Pair<String, JsonObject>>()
 
+    // 重复操作确认：messageId -> 用户选择（true=继续 / false=取消）。执行循环在遇到已执行过的
+    // 重复技能时挂起等待用户决定，按钮回调通过 complete() 唤醒。
+    private val pendingDupConfirm = mutableMapOf<String, CompletableDeferred<Boolean>>()
+
     /** 获取待执行的危险操作（用于从主页返回后恢复执行） */
     fun getPendingDanger(messageId: String): Pair<String, JsonObject>? = pendingDanger[messageId]
 
+    /** 用户在重复操作确认卡片中选择「继续」：唤醒挂起的执行循环，照常执行该技能 */
+    fun confirmDuplicate(messageId: String) {
+        pendingDupConfirm[messageId]?.complete(true)
+    }
+
+    /** 用户在重复操作确认卡片中选择「取消」：唤醒挂起的执行循环，跳过该技能（走原跳过逻辑） */
+    fun cancelDuplicate(messageId: String) {
+        pendingDupConfirm[messageId]?.complete(false)
+    }
+
+
     private suspend fun processUserMessage(ctx: Context, userText: String) {
-        processAiTurn(ctx, userText)
+        val manualPaw = AgentPawPrefs.manualMode.value
+        val autoDelegate = !manualPaw &&
+            AgentPawPrefs.isAutoSwitchEnabled(ctx) &&
+            AgentPawEngine.canUseAgentPaw(ctx) &&
+            AgentPawEngine.shouldAutoDelegate(ctx, userText)
+        if (manualPaw || autoDelegate) {
+            processAgentPawTurn(ctx, userText, autoDelegated = autoDelegate)
+        } else {
+            processAiTurn(ctx, userText)
+        }
+    }
+
+    /** AgentPaw 引擎装配较重（PhoneController/技能表），VM 级缓存复用 */
+    private val pawEngineParts by lazy {
+        val appCtx = getApplication<android.app.Application>()
+        AgentPawEngine.Parts(
+            llmClient = com.paw.agent.core.llm.OpenAiCompatibleClient(),
+            toolRegistry = AgentPawEngine.buildToolRegistry(appCtx),
+        )
+    }
+
+    /**
+     * AgentPaw 回合：由 agentpaw-core 的 Agent 循环接管（手机操控/沙盒脚本/Web 搜索），
+     * LLM 连接沿用 Termux Agent 配置。自动切换场景在任务完成后下一条消息即回到
+     * Termux Agent 模式（本函数无状态，模式由调用方逐条判定）。
+     */
+    private suspend fun processAgentPawTurn(ctx: Context, userText: String, autoDelegated: Boolean) {
+        val llmConfig = AgentPawEngine.buildLlmConfig(ctx)
+        if (llmConfig?.isUsable != true) {
+            // 本地模型 / 连接信息缺失时无法桥接 AgentPaw（只支持 OpenAI 兼容端点）
+            android.widget.Toast.makeText(
+                ctx, "AgentPaw 需要在线模型（当前为本地模型或配置不完整），已回退 Termux Agent",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+            processAiTurn(ctx, userText)
+            return
+        }
+
+        cancelled = false
+        val history: List<PawMessage> = synchronized(messages) {
+            messages.dropLast(1)
+                .filter { (it.role == "user" || it.role == "assistant") && it.errorMessage == null && it.content.isNotBlank() }
+                .map { msg ->
+                    PawMessage(
+                        id = msg.id,
+                        role = if (msg.role == "user") PawMessageRole.USER else PawMessageRole.ASSISTANT,
+                        content = msg.content,
+                    )
+                } + PawMessage(
+                id = "paw_user_${System.currentTimeMillis()}",
+                role = PawMessageRole.USER,
+                content = userText,
+            )
+        }
+
+        val streamMsgId = "paw_stream_${System.currentTimeMillis()}"
+        synchronized(messages) {
+            messages.add(ChatMessage(id = streamMsgId, role = "assistant", content = ""))
+        }
+        isStreaming = true
+
+        // 工具执行轨迹逐行追加进消息正文，让用户看到 AgentPaw 的操作过程
+        val toolLog = mutableListOf<String>()
+        if (autoDelegated) toolLog.add("🐾 检测到手机操控任务，已切换到 AgentPaw 模式")
+
+        // AssistantDelta 是当轮累计内容，工具轮之间会被清零；工具事件时保留最后正文避免闪断
+        var lastBody = ""
+
+        fun renderBody(body: String): String =
+            ((if (toolLog.isEmpty()) "" else toolLog.joinToString("\n") + "\n\n") + body).trim()
+
+        fun updateStream(body: String, error: String? = null) {
+            synchronized(messages) {
+                val idx = messages.indexOfFirst { it.id == streamMsgId }
+                if (idx >= 0) {
+                    messages[idx] = messages[idx].copy(content = renderBody(body), errorMessage = error)
+                }
+            }
+        }
+
+        try {
+            // 新一轮开始：清掉上一轮的用户停止标志，并显示可拖拽的停止悬浮按钮；
+            // 无悬浮窗权限时库内静默返回 false（返回值仅主线程调用时可信，此处运行于主线程协程）
+            AgentAccessibilityService.instance?.clearUserStop()
+            AgentStopFloatingButton.show(getApplication()) { cancelGeneration() }
+
+            val agent = AgentPawEngine.buildAgent(pawEngineParts.llmClient, pawEngineParts.toolRegistry)
+            agent.run(
+                config = llmConfig,
+                history = history,
+                isCancelled = { cancelled },
+                enableAdaptivePacing = AgentPawEngine.isAdaptivePacingEnabled(ctx),
+            ).collect { event ->
+                when (event) {
+                    is AgentEvent.AssistantDelta -> {
+                        lastBody = event.message.content
+                        updateStream(lastBody)
+                    }
+                    is AgentEvent.ToolStarted -> {
+                        toolLog.add("⚙ ${event.call.name} ${event.call.arguments.take(80)}")
+                        updateStream(lastBody)
+                    }
+                    is AgentEvent.ToolFinished -> {
+                        val brief = event.result.content.take(120)
+                        toolLog.add(if (event.result.isError) "✗ ${event.result.name} 失败：$brief" else "✓ ${event.result.name}")
+                        updateStream(lastBody)
+                    }
+                    is AgentEvent.Completed -> updateStream(event.message.content)
+                    is AgentEvent.Failed -> updateStream(
+                        event.message.content.ifBlank { "AgentPaw 执行出错" },
+                        error = event.message.error ?: "AgentPaw 执行出错"
+                    )
+                    is AgentEvent.Cancelled -> updateStream(event.message.content)
+                    // v0.2.0 新增事件：AssistantTurn（assistant 回合结束、即将进入工具调用）
+                    // 和 AdaptivePaced（AI 智能步间延时）。我们暂不展示，直接忽略。
+                    else -> Unit
+                }
+            }
+        } finally {
+            AgentStopFloatingButton.hide()
+            isStreaming = false
+        }
     }
 
     /**
@@ -830,8 +1040,8 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
         var consecutiveSimilarReplies = 0
         val maxConsecutiveSimilarReplies = 3
 
-        // 每轮对话最多迭代次数：防止技能→结果→技能无限循环
-        val maxRounds = 20
+        // 每轮对话最多迭代次数：防止技能→结果→技能无限循环，上限由「对话参数」设置页控制
+        val maxRounds = AiTermuxPrefs.getMaxRounds(ctx)
         // 上下文条数与 maxTokens 由设置页控制
         val contextMessages = AiTermuxPrefs.getContextMessages(ctx)
         val maxTokens = AiTermuxPrefs.getMaxTokens(ctx)
@@ -1232,16 +1442,17 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
             }
 
             // === 去重检查 2：与已执行的历史比较，检测 AI 重复执行同一操作 ===
+            // 不再自动跳过：改为在执行前询问用户是否继续（见下方执行循环）。
             val trulyNewSkills = mutableListOf<Pair<String, JsonObject>>()
+            val pendingDupKeys = mutableSetOf<String>()
             for (skill in newSkills) {
                 val key = "${skill.first}:${skill.second}"
                 if (key in executedHistory) {
-                    // AI 试图重复执行已执行过的相同技能
-                    skippedSkills.add(skill)
-                    android.util.Log.w("AiTermux", "AI 试图重复执行已执行的技能: $key")
-                } else {
-                    trulyNewSkills.add(skill)
+                    // 已执行过的相同操作：保留到执行列表，但先询问用户是否继续
+                    pendingDupKeys.add(key)
+                    android.util.Log.w("AiTermux", "AI 试图重复执行已执行的技能: $key（将询问用户）")
                 }
+                trulyNewSkills.add(skill)
             }
 
             // 检查连续相同技能，检测 AI 陷入循环
@@ -1335,54 +1546,49 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
             hallucinatedTotalCount = 0
 
             // === 文本重复检测：检测 AI 是否在反复输出相同/相似的回答 ===
-            val normalizedReply = plainText.trim().lowercase().replace(Regex("\\s+"), " ")
-            if (normalizedReply.length > 20) {
-                // 与历史回复比较相似度
-                val isSimilarToRecent = recentAiReplies.any { prev ->
-                    calcTextSimilarity(normalizedReply, prev) > 0.85
-                }
-                if (isSimilarToRecent) {
-                    consecutiveSimilarReplies++
-                    android.util.Log.w("AiTermux", "AI 文本重复: 连续相似回复 $consecutiveSimilarReplies 次")
-                } else {
-                    consecutiveSimilarReplies = 1
-                }
-                recentAiReplies.add(normalizedReply)
-                if (recentAiReplies.size > maxReplyHistory) {
-                    recentAiReplies.removeAt(0)
-                }
-
-                if (consecutiveSimilarReplies >= maxConsecutiveSimilarReplies) {
-                    android.util.Log.e("AiTermux", "AI 陷入文本循环：连续 $consecutiveSimilarReplies 次相似回复")
-                    synchronized(messages) {
-                        val idx = messages.indexOfFirst { it.id == streamMsgId }
-                        if (idx >= 0) {
-                            messages[idx] = messages[idx].copy(
-                                content = plainText.ifBlank { str(R.string.agent_repeat_reply_stopped) } +
-                                    "\n\n" + ctx.getString(R.string.agent_repeat_loop, consecutiveSimilarReplies),
-                                isWarning = true
-                            )
-                        }
+            // 本轮执行过技能说明任务仍在推进，只有纯文本回复才计入重复检测：多步任务里
+            // 每轮的过渡语（"好的，接下来…"）彼此相近，若一并计入会被误判成循环而提前终止
+            if (skillsToExecute.isEmpty()) {
+                val normalizedReply = plainText.trim().lowercase().replace(Regex("\\s+"), " ")
+                if (normalizedReply.length > 20) {
+                    // 与历史回复比较相似度
+                    val isSimilarToRecent = recentAiReplies.any { prev ->
+                        calcTextSimilarity(normalizedReply, prev) > 0.85
                     }
-                    persistConversations(ctx)
-                    return
+                    if (isSimilarToRecent) {
+                        consecutiveSimilarReplies++
+                        android.util.Log.w("AiTermux", "AI 文本重复: 连续相似回复 $consecutiveSimilarReplies 次")
+                    } else {
+                        consecutiveSimilarReplies = 1
+                    }
+                    recentAiReplies.add(normalizedReply)
+                    if (recentAiReplies.size > maxReplyHistory) {
+                        recentAiReplies.removeAt(0)
+                    }
+
+                    if (consecutiveSimilarReplies >= maxConsecutiveSimilarReplies) {
+                        android.util.Log.e("AiTermux", "AI 陷入文本循环：连续 $consecutiveSimilarReplies 次相似回复")
+                        synchronized(messages) {
+                            val idx = messages.indexOfFirst { it.id == streamMsgId }
+                            if (idx >= 0) {
+                                messages[idx] = messages[idx].copy(
+                                    content = plainText.ifBlank { "（AI 重复回答已停止）" } +
+                                        "\n\n⚠️ 检测到 AI 陷入重复回答循环（$consecutiveSimilarReplies 次相似回复），已自动停止。",
+                                    isWarning = true
+                                )
+                            }
+                        }
+                        persistConversations(ctx)
+                        return
+                    }
                 }
             }
-
-            // 检测是否有重复执行的技能（触犯禁令第四条）
-            val hasDuplicateViolation = skippedSkills.isNotEmpty() && hallucinatedSkillKeys.isEmpty()
-            // 构建警告消息，用于告知 AI 触犯了禁令
-            val duplicateWarning = if (hasDuplicateViolation) {
-                "[系统警告] 你违反了输出规范禁令第四条：禁止重复执行已执行过的技能。以下 ${skippedSkills.size} 个技能已跳过执行。请直接回答用户的问题，不要再重复执行已完成的操作。"
-            } else null
 
             // === 智能终止逻辑 ===
             if (skillsToExecute.isEmpty()) {
                 // 无新技能要执行 → 视为回复完成
-                if (hasDuplicateViolation) {
-                    currentUserText = duplicateWarning!!
-                    continue
-                }
+                // 注：已执行过的重复操作不再自动跳过，改为执行前询问用户（见上面执行循环），
+                // 因此这里不再对重复执行做自动告警/终止。
                 android.util.Log.d("AiTermux", "AI 回复完成（无技能），终止循环")
                 return
             }
@@ -1393,6 +1599,69 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
             for ((skillTypeStr, params) in skillsToExecute) {
                 // 停止信号在技能之间也要生效：技能执行可能耗时几十秒，不能等它跑完才判定
                 if (cancelled) break
+
+                val key = "$skillTypeStr:$params"
+                // === 重复操作确认：已执行过的相同操作，执行前先询问用户 ===
+                var confirmId: String? = null
+                var reuseCard = false
+                if (key in pendingDupKeys) {
+                    val deferred = CompletableDeferred<Boolean>()
+                    val cId = "dup_${System.currentTimeMillis()}_${Math.random()}"
+                    pendingDupConfirm[cId] = deferred
+                    synchronized(messages) {
+                        messages.add(
+                            ChatMessage(
+                                id = cId,
+                                role = "assistant",
+                                content = "",
+                                skillCard = SkillCardData(
+                                    skillType = SkillType.CONFIRM_DUPLICATE,
+                                    title = "重复操作确认",
+                                    description = "该操作与之前执行过的相同，是否继续执行？",
+                                    status = SkillStatus.RUNNING
+                                )
+                            )
+                        )
+                    }
+                    persistConversations(ctx)
+                    val approved = try {
+                        deferred.await()
+                    } finally {
+                        pendingDupConfirm.remove(cId)
+                    }
+                    if (!approved) {
+                        // 用户选择取消：走原跳过逻辑，不执行该操作
+                        synchronized(messages) {
+                            val idx = messages.indexOfFirst { it.id == cId }
+                            if (idx >= 0) {
+                                messages[idx] = messages[idx].copy(
+                                    skillCard = messages[idx].skillCard?.copy(
+                                        status = SkillStatus.FAILED,
+                                        title = "已跳过（重复执行）",
+                                        description = "用户选择不执行该重复操作"
+                                    )
+                                )
+                            }
+                        }
+                        persistConversations(ctx)
+                        continue
+                    }
+                    // 用户选择继续：复用该卡片作为执行卡片
+                    confirmId = cId
+                    reuseCard = true
+                    synchronized(messages) {
+                        val idx = messages.indexOfFirst { it.id == cId }
+                        if (idx >= 0) {
+                            messages[idx] = messages[idx].copy(
+                                skillCard = messages[idx].skillCard?.copy(
+                                    status = SkillStatus.RUNNING,
+                                    title = "执行技能中…",
+                                    description = skillTypeStr
+                                )
+                            )
+                        }
+                    }
+                }
 
                 val st = runCatching { SkillType.valueOf(skillTypeStr) }.getOrNull()
                 val dangerReason = if (st != null) SkillExecutor.checkDangerous(ctx, st, params) else null
@@ -1428,16 +1697,18 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                     description = skillTypeStr,
                     status = SkillStatus.RUNNING
                 )
-                val tempId = "skill_${System.currentTimeMillis()}_${Math.random()}"
-                synchronized(messages) {
-                    messages.add(
-                        ChatMessage(
-                            id = tempId,
-                            role = "assistant",
-                            content = "",
-                            skillCard = runningCard
+                val tempId = if (reuseCard) confirmId!! else "skill_${System.currentTimeMillis()}_${Math.random()}"
+                if (!reuseCard) {
+                    synchronized(messages) {
+                        messages.add(
+                            ChatMessage(
+                                id = tempId,
+                                role = "assistant",
+                                content = "",
+                                skillCard = runningCard
+                            )
                         )
-                    )
+                    }
                 }
 
                 val svc = termuxService
@@ -1489,18 +1760,13 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
                 return
             }
 
-            // 如果所有执行的技能都是"需点击执行"类型，终止循环
-            // AI 已经生成了卡片并告知用户点击，不应再继续生成更多卡片
-            val unlimitedModeActive = AiTermuxPrefs.isUnlimitedModeActive(ctx)
-            if (executedSkillTypes.isNotEmpty() &&
-                executedSkillTypes.all { it.requiresClick(autoExecSkills(), unlimitedModeActive) }) {
-                return
-            }
+            // 原「所有技能都需点击执行则终止」的判断已移除：技能在 SkillExecutor.executeSkill
+            // 里是真实执行的（不存在等用户点击才跑的卡片），而真正需要用户介入的分支
+            // （危险操作确认 / ASK_USER）已由上面的 needsUserInput 提前结束一轮。
+            // 保留该判断会让默认（非无限制）模式下的多步任务执行完第一条命令就被截断。
 
             val allResultsText = allResultTexts.joinToString("\n")
-            currentUserText = if (hasDuplicateViolation) {
-                "[技能执行完成，请根据以下执行结果继续回复用户：]\n$allResultsText\n\n[系统警告] 你违反了输出规范禁令第四条：禁止重复执行已执行过的技能。请直接回答用户的问题，不要再重复执行已完成的操作。"
-            } else if (allResultsText.isNotBlank()) {
+            currentUserText = if (allResultsText.isNotBlank()) {
                 "[技能执行完成，请根据以下执行结果继续回复用户：]\n$allResultsText"
             } else {
                 ""
@@ -1546,14 +1812,15 @@ class AiTermuxViewModel(app: android.app.Application) : AndroidViewModel(app) {
             ?.let { params.get(it).asString }
             .orEmpty()
         return when (type) {
-            SkillType.RUN_COMMAND -> str(R.string.agent_cmd_run, command)
-            SkillType.CUSTOM_COMMAND -> str(R.string.agent_cmd_custom, command)
-            SkillType.CAPTURE_OUTPUT -> str(R.string.agent_cmd_run_capture, command)
-            SkillType.COMPILE_CODE -> str(R.string.agent_cmd_build, command)
-            SkillType.SUB_AGENT -> str(R.string.agent_cmd_subagent, command)
-            SkillType.FILE_DELETE -> str(R.string.agent_card_path, if (params.has("path")) params.get("path").asString else "")
-            SkillType.CLOSE_ALL_SESSIONS -> str(R.string.agent_close_all_sessions)
-            SkillType.EXIT_TERMUX -> str(R.string.agent_cmd_exit)
+            SkillType.RUN_COMMAND -> "执行命令：$command"
+            SkillType.CUSTOM_COMMAND -> "执行自定义命令：$command"
+            SkillType.CAPTURE_OUTPUT -> "执行并捕获输出：$command"
+            SkillType.RUN_COMMAND_SANDBOX -> "沙箱预演：$command"
+            SkillType.COMPILE_CODE -> "执行编译命令：$command"
+            SkillType.SUB_AGENT -> "子 Agent 执行：$command"
+            SkillType.FILE_DELETE -> "删除：${if (params.has("path")) params.get("path").asString else ""}"
+            SkillType.CLOSE_ALL_SESSIONS -> "关闭全部会话"
+            SkillType.EXIT_TERMUX -> "退出 Termux"
             else -> type.name
         }
     }
@@ -1726,13 +1993,13 @@ private fun AiSetupScreen(vm: AiTermuxViewModel, onBack: () -> Unit) {
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             GlassTopAppBar(
-                title = stringResource(R.string.agent_settings),
-                backdrop = glassPage.backdrop,
-                scrollBehavior = scrollBehavior,
-                navigationIcon = {
-                    GlassIconButton(onClick = { onBack() }) {
-                        Icon(
-                            imageVector = MiuixIcons.Back,
+            title = "Termux Agent 设置",
+            backdrop = glassPage.backdrop,
+            scrollBehavior = scrollBehavior,
+            navigationIcon = {
+                GlassIconButton(onClick = { onBack() }) {
+                    Icon(
+                        imageVector = MiuixGlassIcons.ChevronBackward,
                             contentDescription = null,
                             modifier = Modifier.size(24.dp),
                             tint = MiuixTheme.colorScheme.onSurface
@@ -2670,14 +2937,14 @@ private fun AiConversationManagementScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             GlassTopAppBar(
-                title = DEFAULT_CONVERSATION_TITLE,
-                backdrop = glassPage.backdrop,
-                subtitle = modelStatusSubtitle(ctx, vm),
-                scrollBehavior = scrollBehavior,
-                navigationIcon = {
-                    GlassIconButton(onClick = { onBack() }) {
-                        Icon(
-                            imageVector = MiuixIcons.Back,
+            title = DEFAULT_CONVERSATION_TITLE,
+            backdrop = glassPage.backdrop,
+            subtitle = modelStatusSubtitle(ctx, vm),
+            scrollBehavior = scrollBehavior,
+            navigationIcon = {
+                GlassIconButton(onClick = { onBack() }) {
+                    Icon(
+                        imageVector = MiuixGlassIcons.ChevronBackward,
                             contentDescription = null,
                             modifier = Modifier.size(24.dp),
                             tint = MiuixTheme.colorScheme.onSurface
@@ -2843,10 +3110,33 @@ private fun AiConversationManagementScreen(
 private fun AiChatScreen(vm: AiTermuxViewModel, conversationId: String, onBack: () -> Unit, onOpenSetup: () -> Unit) {
     val ctx = LocalContext.current
     val listState = rememberLazyListState()
-    val isDark = isSystemInDarkTheme()
     val focusRequester = remember { FocusRequester() }
     var inputText by remember { mutableStateOf("") }
     var pendingAttachment by remember { mutableStateOf<Triple<String, String, Long>?>(null) }
+
+    // 「更多」玻璃下拉菜单：锚点与开关上提到本屏，弹层挂在根 Box（避免被顶栏裁剪 / 坐标错位）
+    val moreAnchor = top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor()
+    var showMoreMenu by remember { mutableStateOf(false) }
+    var showFullHistoryDialog by remember { mutableStateOf(false) }
+    var showClearConfirm by remember { mutableStateOf(false) }
+    val pawManual by AgentPawPrefs.manualMode.collectAsState()
+    // 对话页默认滚到底（最新消息在底），内容 offset=0 但有历史可向上滚；
+    // 把 TopAppBarState 的 heightOffset 直接预置到极限负值，首帧即收缩态（小标题 + 玻璃按钮）。
+    // 切换对话时重建 state，避免上一个对话的收缩状态"粘"过来。
+    val topAppBarState = remember(conversationId) { TopAppBarState(0f, 0f, 0f) }
+    val scrollBehavior = MiuixScrollBehavior(state = topAppBarState)
+
+    // 进入后强制把顶栏打到完全收缩态（heightOffsetLimit 在 layout 阶段才被赋值，因此延迟几帧）。
+    LaunchedEffect(conversationId) {
+        var attempts = 0
+        while (attempts < 10 && topAppBarState.heightOffsetLimit == 0f) {
+            yield()
+            attempts++
+        }
+        if (topAppBarState.heightOffsetLimit != 0f) {
+            topAppBarState.heightOffset = topAppBarState.heightOffsetLimit
+        }
+    }
 
     // 进入对话页时，若当前激活对话不是目标对话，则切换（从管理页点进来 / 新建后进入）
     LaunchedEffect(conversationId) {
@@ -2918,20 +3208,41 @@ private fun AiChatScreen(vm: AiTermuxViewModel, conversationId: String, onBack: 
         }
     }
 
+    // 本页在 MainScreen 取景层之外，自建一层供玻璃顶栏折射页面内容
+    val glassPage = rememberGlassPageBackdrop()
+
     Box {
         Scaffold(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
-                AiChatImessageTopBar(
+                AiChatGlassTopBar(
                     vm = vm,
+                    scrollBehavior = scrollBehavior,
+                    isContentScrolled = listState.canScrollBackward,
+                    backdrop = glassPage.backdrop,
                     onBack = onBack,
                     onOpenSetup = onOpenSetup,
-                    onNewConversation = { vm.newConversation(ctx) }
+                    onNewConversation = { vm.newConversation(ctx) },
+                    pawManual = pawManual,
+                    moreAnchor = moreAnchor,
+                    onMoreOpen = { showMoreMenu = true }
                 )
             },
             bottomBar = {
                 Column {
-                    HorizontalDivider(color = if (isDark) Color(0xFF2A2A2A) else Color(0xFFE8E8E8))
+                    // 输入区上沿的渐隐过渡，消息从输入器下方滚出时不再是硬切线
+                    if (vm.messages.isNotEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(16.dp)
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(Color.Transparent, MiuixTheme.colorScheme.surface)
+                                    )
+                                )
+                        )
+                    }
                     // 模型切换开关（仅当本地模式且配置了备用在线模型时显示）
                     if (vm.shouldShowModelSwitch()) {
                         Row(
@@ -2958,7 +3269,6 @@ private fun AiChatScreen(vm: AiTermuxViewModel, conversationId: String, onBack: 
                                 onCheckedChange = { vm.updateLocalModelSelection(!it) }
                             )
                         }
-                        HorizontalDivider(color = if (isDark) Color(0xFF2A2A2A) else Color(0xFFE8E8E8))
                     }
                     // 选中的附件标签
                     pendingAttachment?.let { (fileName, filePath, sizeB) ->
@@ -2967,16 +3277,14 @@ private fun AiChatScreen(vm: AiTermuxViewModel, conversationId: String, onBack: 
                             sizeB >= 1024 -> "%.1f KB".format(sizeB.toFloat() / 1024)
                             else -> "$sizeB B"
                         }
-                        val attachCardBg = if (isDark) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
-                        val attachBorder = if (isDark) Color(0xFF2C2C2E) else Color(0xFFE8E8E8)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp)
-                                .padding(top = 6.dp)
+                                .padding(horizontal = 14.dp)
+                                .padding(bottom = 6.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(attachCardBg)
-                                .then(Modifier.border(0.5.dp, attachBorder, RoundedCornerShape(12.dp)))
+                                .background(MiuixTheme.colorScheme.surfaceContainer)
+                                .border(0.5.dp, MiuixTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
                                 .padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -2984,15 +3292,15 @@ private fun AiChatScreen(vm: AiTermuxViewModel, conversationId: String, onBack: 
                             Icon(
                                 painter = painterResource(R.drawable.ic_upload),
                                 contentDescription = null,
-                                modifier = Modifier.size(18.dp),
+                                modifier = Modifier.size(16.dp),
                                 tint = MiuixTheme.colorScheme.primary
                             )
                             Text(
                                 text = fileName,
-                                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MiuixTheme.colorScheme.onSurface),
+                                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MiuixTheme.colorScheme.onSurface),
                                 modifier = Modifier.weight(1f),
                                 maxLines = 1,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = sizeStr,
@@ -3000,161 +3308,253 @@ private fun AiChatScreen(vm: AiTermuxViewModel, conversationId: String, onBack: 
                             )
                             Box(
                                 modifier = Modifier
-                                    .size(24.dp)
+                                    .size(22.dp)
                                     .clip(CircleShape)
                                     .clickable { pendingAttachment = null },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.ic_close),
-                                    contentDescription = stringResource(R.string.agent_remove_attachment),
-                                    modifier = Modifier.size(14.dp),
+                                    contentDescription = "移除附件",
+                                    modifier = Modifier.size(13.dp),
                                     tint = MiuixTheme.colorScheme.onSurfaceVariantSummary
                                 )
                             }
                         }
                     }
-                    Row(
+                    // 一体化输入容器：文本区在上、操作行在下，聚焦/输入/执行只变状态不搬入口
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .navigationBarsPadding()
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            .padding(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 12.dp)
                     ) {
-                        // 上传按钮
-                        Box(
+                        Column(
                             modifier = Modifier
-                                .size(42.dp)
-                                .clip(CircleShape)
-                                .background(if (isDark) Color(0xFF242424) else Color(0xFFFFFFFF))
-                                .then(Modifier.border(0.5.dp, if (isDark) Color(0xFF3A3A3A) else Color(0xFFE8E8E8), CircleShape))
-                                .clickable { filePickerLauncher.launch(arrayOf("*/*")) },
-                            contentAlignment = Alignment.Center
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(MiuixTheme.colorScheme.surfaceContainer)
+                                .border(0.5.dp, MiuixTheme.colorScheme.outline.copy(alpha = 0.55f), RoundedCornerShape(20.dp))
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
                         ) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_upload),
-                                contentDescription = stringResource(R.string.agent_attach_file),
-                                modifier = Modifier.size(20.dp),
-                                tint = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                            TextField(
+                                value = inputText,
+                                onValueChange = { inputText = it },
+                                label = "需要 Agent 做什么…",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(focusRequester),
+                                useLabelAsPlaceholder = true,
+                                singleLine = false,
+                                maxLines = 4,
+                                colors = TextFieldDefaults.textFieldColors(backgroundColor = Color.Transparent)
                             )
-                        }
-                        TextField(
-                            value = inputText,
-                            onValueChange = { inputText = it },
-                            label = stringResource(R.string.agent_prompt_hint),
-                            modifier = Modifier
-                                .weight(1f)
-                                .focusRequester(focusRequester),
-                            useLabelAsPlaceholder = true,
-                            singleLine = false,
-                            maxLines = 4
-                        )
-                        val canSend = (inputText.isNotBlank() || pendingAttachment != null) && !vm.isLoading
-                        val sendBtnBg = when {
-                            vm.isStreaming -> Color(0xFFDC2626)
-                            canSend -> MiuixTheme.colorScheme.primary
-                            isDark -> Color(0xFF333333)
-                            else -> Color(0xFFE0E0E0)
-                        }
-                        val sendBtnIconTint = when {
-                            canSend || vm.isStreaming -> Color.White
-                            else -> Color.Gray
-                        }
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(sendBtnBg)
-                                .clickable(enabled = canSend || vm.isStreaming) {
-                                    if (vm.isStreaming) {
-                                        vm.cancelGeneration()
-                                    } else {
-                                        val text = inputText.trim()
-                                        if ((text.isNotBlank() || pendingAttachment != null)) {
-                                            val finalMsg = buildString {
-                                                pendingAttachment?.let { (fname, fpath, sz) ->
-                                                    val sizeStr = when {
-                                                        sz >= 1024 * 1024 -> "%.1fMB".format(sz.toFloat() / (1024 * 1024))
-                                                        sz >= 1024 -> "%.1fKB".format(sz.toFloat() / 1024)
-                                                        else -> "${sz}B"
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // 上传按钮
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .clickable { filePickerLauncher.launch(arrayOf("*/*")) },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_upload),
+                                        contentDescription = "上传文件/图片",
+                                        modifier = Modifier.size(19.dp),
+                                        tint = MiuixTheme.colorScheme.onSurfaceVariantActions
+                                    )
+                                }
+                                Spacer(Modifier.weight(1f))
+                                // 发送 / 停止按钮：三态色随状态过渡
+                                val canSend = (inputText.isNotBlank() || pendingAttachment != null) && !vm.isLoading
+                                val sendBg by animateColorAsState(
+                                    targetValue = when {
+                                        vm.isStreaming -> MiuixTheme.colorScheme.onSurface
+                                        canSend -> MiuixTheme.colorScheme.primary
+                                        else -> MiuixTheme.colorScheme.surfaceContainerHigh
+                                    },
+                                    animationSpec = tween(durationMillis = 160),
+                                    label = "send_button_color"
+                                )
+                                val sendIconTint = when {
+                                    vm.isStreaming -> MiuixTheme.colorScheme.surface
+                                    canSend -> MiuixTheme.colorScheme.onPrimary
+                                    else -> MiuixTheme.colorScheme.onSurfaceVariantActions
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(sendBg)
+                                        .clickable(enabled = canSend || vm.isStreaming) {
+                                            if (vm.isStreaming) {
+                                                vm.cancelGeneration()
+                                            } else {
+                                                val text = inputText.trim()
+                                                if ((text.isNotBlank() || pendingAttachment != null)) {
+                                                    val finalMsg = buildString {
+                                                        pendingAttachment?.let { (fname, fpath, sz) ->
+                                                            val sizeStr = when {
+                                                                sz >= 1024 * 1024 -> "%.1fMB".format(sz.toFloat() / (1024 * 1024))
+                                                                sz >= 1024 -> "%.1fKB".format(sz.toFloat() / 1024)
+                                                                else -> "${sz}B"
+                                                            }
+                                                            append("📎 附件：$fname（$sizeStr，路径：$fpath）\n")
+                                                        }
+                                                        if (text.isNotBlank()) append(text)
                                                     }
-                                                    append(ctx.getString(R.string.agent_attachment_meta, fname, sizeStr, fpath) + "\\n")
+                                                    vm.sendUserMessage(finalMsg)
+                                                    inputText = ""
+                                                    pendingAttachment = null
                                                 }
-                                                if (text.isNotBlank()) append(text)
                                             }
-                                            vm.sendUserMessage(finalMsg)
-                                            inputText = ""
-                                            pendingAttachment = null
-                                        }
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (vm.isLoading && !vm.isStreaming) {
+                                        androidx.compose.material3.CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            strokeWidth = 2.dp,
+                                            color = MiuixTheme.colorScheme.primary
+                                        )
+                                    } else if (vm.isStreaming) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Stop,
+                                            contentDescription = "停止生成",
+                                            modifier = Modifier.size(14.dp),
+                                            tint = sendIconTint
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Rounded.ArrowUpward,
+                                            contentDescription = "发送",
+                                            tint = sendIconTint,
+                                            modifier = Modifier.size(17.dp)
+                                        )
                                     }
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (vm.isLoading && !vm.isStreaming) {
-                                androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = Color.White)
-                            } else if (vm.isStreaming) {
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_close),
-                                    contentDescription = stringResource(R.string.agent_stop_generating),
-                                    modifier = Modifier.size(20.dp),
-                                    tint = Color.White
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Rounded.Send,
-                                    contentDescription = stringResource(R.string.vnc_send_button),
-                                    tint = sendBtnIconTint,
-                                    modifier = Modifier.size(22.dp)
-                                )
+                                }
                             }
                         }
                     }
                 }
             }
         ) { padding ->
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(pagePaddingWithoutTop(padding)),
-                contentPadding = standaloneContentPadding(padding, top = 14.dp, bottom = 14.dp, start = 14.dp, end = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
+            Box(modifier = Modifier.fillMaxSize().then(glassPage.contentModifier)) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .widthIn(max = 640.dp)
+                        .fillMaxSize()
+                        .nestedScroll(scrollBehavior.nestedScrollConnection)
+                        .padding(pagePaddingWithoutTop(padding)),
+                    contentPadding = standaloneContentPadding(padding, top = 12.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    if (vm.messages.isEmpty()) {
+                        // 空状态：欢迎语 + 建议卡 + 免责声明（Eta 式居中布局）
+                        item {
+                            Column(modifier = Modifier.fillParentMaxSize()) {
+                                Spacer(Modifier.weight(1f))
+                                AiChatEmptyState(vm = vm, setInput = { inputText = it })
+                                Spacer(Modifier.weight(1f))
+                                AiDisclaimerCard()
+                                Spacer(Modifier.height(10.dp))
+                            }
+                        }
+                    } else {
+                        items(vm.messages, key = { it.id }) { msg ->
+                            ChatBubble(
+                                msg = msg,
+                                vm = vm,
+                                modifier = Modifier.animateItem(
+                                    fadeInSpec = tween(durationMillis = 180),
+                                    placementSpec = null,
+                                    fadeOutSpec = null
+                                )
+                            )
+                        }
 
-                item {
-                    AiDisclaimerCard(isDark)
+                        if (vm.isLoading && vm.messages.lastOrNull()?.role != "assistant") {
+                            item { TypingIndicator() }
+                        }
+                    }
+
+                    item { Spacer(Modifier.height(10.dp)) }
                 }
 
-                item { WelcomeChatCard(isDark) }
-                item { QuickChips(vm, inputText = "") { inputText = it } }
-
-                items(vm.messages, key = { it.id }) { msg ->
-                    ChatBubble(msg = msg, vm = vm)
+                // 任务进度浮层：贴在玻璃顶栏下方
+                val tasks by SkillExecutor.tasksFlow.collectAsState()
+                var showTaskBar by remember { mutableStateOf(true) }
+                LaunchedEffect(tasks) {
+                    val hasPending = tasks.any { it.status != "done" && it.status != "cancelled" }
+                    if (hasPending) showTaskBar = true
                 }
-
-                if (vm.isLoading && vm.messages.lastOrNull()?.role != "assistant") {
-                    item { TypingIndicator(isDark) }
+                AnimatedVisibility(
+                    visible = showTaskBar && tasks.isNotEmpty(),
+                    enter = fadeIn(tween(160)) + scaleIn(tween(180), initialScale = 0.9f),
+                    exit = fadeOut(tween(120)) + scaleOut(tween(120), targetScale = 0.9f),
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 8.dp, start = 16.dp, end = 16.dp)
+                ) {
+                    TaskBar(tasks, showTaskBar, onClose = { showTaskBar = false }, onClear = { SkillExecutor.clearTasks() })
                 }
-
-                item { Spacer(Modifier.height(10.dp)) }
             }
         }
 
-        // Overlay: TaskBar 放在 TopAppBar 下方
-        val tasks by SkillExecutor.tasksFlow.collectAsState()
-        var showTaskBar by remember { mutableStateOf(true) }
-        LaunchedEffect(tasks) {
-            val hasPending = tasks.any { it.status != "done" && it.status != "cancelled" }
-            if (hasPending) showTaskBar = true
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 64.dp, start = 14.dp, end = 14.dp)
+        // 玻璃「更多」菜单 + 清空确认弹窗：挂在根 Box，避免被顶栏裁剪 / 坐标错位
+        GlassTransformPopup(
+            show = showMoreMenu,
+            onDismissRequest = { showMoreMenu = false },
+            anchor = moreAnchor,
+            backdrop = glassPage.backdrop,
+            anchorContent = {
+                Icon(MiuixGlassIcons.More, null, Modifier.size(22.dp), tint = MiuixTheme.colorScheme.onSurface)
+            },
+            simplified = true,
         ) {
-            TaskBar(tasks, showTaskBar, isDark, onClose = { showTaskBar = false }, onClear = { SkillExecutor.clearTasks() })
+            GlassPopupItem(text = "Agent 设置", onClick = { showMoreMenu = false; onOpenSetup() })
+            GlassPopupItem(
+                text = if (pawManual) "退出 AgentPaw 模式" else "进入 AgentPaw 模式",
+                onClick = { showMoreMenu = false; AgentPawPrefs.setManualMode(ctx, !pawManual) }
+            )
+            GlassPopupItem(text = "完整对话记录", onClick = { showMoreMenu = false; showFullHistoryDialog = true })
+            GlassPopupItem(text = "导出对话（分享）", onClick = { showMoreMenu = false; vm.exportConversation(ctx) })
+            GlassPopupItem(text = "清空对话历史", onClick = { showMoreMenu = false; showClearConfirm = true })
         }
+        OverlayDialog(
+            show = showClearConfirm,
+            onDismissRequest = { showClearConfirm = false },
+            title = "清空对话历史",
+            summary = "将删除当前所有对话内容，此操作不可撤销。",
+            content = {
+                Row(horizontalArrangement = Arrangement.SpaceBetween) {
+                    TextButton(text = "取消", onClick = { showClearConfirm = false }, modifier = Modifier.weight(1f))
+                    Spacer(Modifier.width(16.dp))
+                    TextButton(
+                        text = "清空",
+                        onClick = {
+                            vm.clearHistory()
+                            showClearConfirm = false
+                            SnackbarHelper.show(ctx, "对话历史已清空", Snackbar.LENGTH_SHORT)
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.textButtonColors(color = StatusError)
+                    )
+                }
+            }
+        )
+        AgentFullHistoryDialog(
+            show = showFullHistoryDialog,
+            onDismiss = { showFullHistoryDialog = false },
+            context = ctx,
+            initialConversationId = conversationId
+        )
     }
 
     // 风险命令确认弹窗
@@ -3162,96 +3562,94 @@ private fun AiChatScreen(vm: AiTermuxViewModel, conversationId: String, onBack: 
 }
 
 /**
- * 对话页自建顶栏：iMessage 对话风格（居中大标题 + 副标题在线/离线模型 + 返回 chevron），
- * 不使用 GlassTopAppBar。按钮与主题元素沿用 miuix / miuix-glass（GlassIconButton）。
+ * 对话页玻璃顶栏：GlassTopAppBar + miuix-glass 玻璃按钮。
+ * 右上角「更多」为 GlassIconButton 触发器；下拉面板由根 Box 中的 GlassTransformPopup 承载，
+ * 通过 glassPopupAnchor 与按钮共享玻璃质感（避免被顶栏裁剪 / 坐标错位）。
  */
 @Composable
-private fun AiChatImessageTopBar(
+private fun AiChatGlassTopBar(
     vm: AiTermuxViewModel,
+    scrollBehavior: ScrollBehavior? = null,
+    isContentScrolled: Boolean = true,
+    backdrop: top.yukonga.miuix.kmp.blur.Backdrop?,
     onBack: () -> Unit,
     onOpenSetup: () -> Unit,
-    onNewConversation: () -> Unit
+    onNewConversation: () -> Unit,
+    pawManual: Boolean,
+    moreAnchor: GlassPopupAnchor,
+    onMoreOpen: () -> Unit
 ) {
-    val ctx = LocalContext.current
-    val isDark = isSystemInDarkTheme()
-    val subtitle = modelStatusSubtitle(ctx, vm)
-    val surface = MiuixTheme.colorScheme.surface
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(surface.copy(alpha = 0.96f))
-            .statusBarsPadding()
-    ) {
-        Column(Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-                    .padding(horizontal = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 左侧：返回 chevron（miuix-glass 玻璃按钮）
-                GlassIconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = MiuixIcons.Back,
-                        contentDescription = stringResource(R.string.back),
-                        modifier = Modifier.size(24.dp),
-                        tint = MiuixTheme.colorScheme.onSurface
-                    )
-                }
-                // 居中：标题 + 副标题（iMessage 风格）
-                Column(
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = vm.activeConversationTitle,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MiuixTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (subtitle.isNotBlank()) {
-                        Text(
-                            text = subtitle,
-                            fontSize = 12.sp,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-                // 右侧：新建对话 + 任务/更多（沿用 AiChatTopActions）
-                GlassIconButton(onClick = onNewConversation) {
-                    Icon(
-                        imageVector = Icons.Rounded.Add,
-                        contentDescription = stringResource(R.string.agent_conv_new),
-                        modifier = Modifier.size(24.dp),
-                        tint = MiuixTheme.colorScheme.onSurface
-                    )
-                }
-                AiChatTopActions(vm, onOpenSetup = onOpenSetup)
-            }
-            HorizontalDivider(color = if (isDark) Color(0xFF2A2A2A) else Color(0xFFE8E8E8))
-        }
-    }
-}
-
-/** 对话页顶栏右侧操作：任务全量列表 + 更多操作菜单 */
-@Composable
-private fun AiChatTopActions(vm: AiTermuxViewModel, onOpenSetup: () -> Unit) {
     val context = LocalContext.current
     val tasks by SkillExecutor.tasksFlow.collectAsState()
     var showTaskList by remember { mutableStateOf(false) }
-    var showMoreMenu by remember { mutableStateOf(false) }
-    var showClearConfirm by remember { mutableStateOf(false) }
     val pendingCount = tasks.count { it.status != "done" && it.status != "cancelled" }
-
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 4.dp)) {
-        TopActionButton(Icons.Rounded.Checklist, stringResource(R.string.task_list), badge = pendingCount > 0) { showTaskList = true }
-        TopActionButton(Icons.Rounded.MoreVert, stringResource(R.string.more_actions)) { showMoreMenu = true }
+    val subtitle = if (pawManual) {
+        "AgentPaw 模式 · ${modelStatusSubtitle(context, vm)}"
+    } else {
+        modelStatusSubtitle(context, vm)
     }
+
+    GlassTopAppBar(
+        title = vm.activeConversationTitle,
+        isContentScrolled = isContentScrolled,
+        subtitle = subtitle,
+        scrollBehavior = scrollBehavior,
+        backdrop = backdrop,
+        navigationIcon = {
+            GlassIconButton(onClick = onBack) {
+                Icon(
+                    imageVector = MiuixGlassIcons.ChevronBackward,
+                    contentDescription = "返回",
+                    modifier = Modifier.size(24.dp),
+                    tint = MiuixTheme.colorScheme.onSurface
+                )
+            }
+        },
+        actions = {
+            GlassIconButton(onClick = onNewConversation) {
+                Icon(
+                    imageVector = MiuixGlassIcons.Add,
+                    contentDescription = "新建对话",
+                    modifier = Modifier.size(22.dp),
+                    tint = MiuixTheme.colorScheme.onSurface
+                )
+            }
+            GlassIconButton(onClick = { showTaskList = true }) {
+                Box(Modifier.fillMaxSize()) {
+                    Icon(
+                        imageVector = MiuixGlassIcons.Tasks,
+                        contentDescription = "任务列表",
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .size(22.dp),
+                        tint = MiuixTheme.colorScheme.onSurface
+                    )
+                    if (pendingCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(MiuixTheme.colorScheme.primary)
+                        )
+                    }
+                }
+            }
+            // 更多选项：玻璃图标按钮（与 Add / Tasks 同填充、同尺寸、同间隔），
+            // 下拉面板由根 Box 中的 GlassTransformPopup 承载（避免被顶栏裁剪 / 坐标错位）。
+            GlassIconButton(
+                onClick = onMoreOpen,
+                modifier = Modifier.glassPopupAnchor(moreAnchor, cornerRadius = GlassTopAppBarDefaults.ButtonSize / 2),
+            ) {
+                Icon(
+                    imageVector = MiuixGlassIcons.More,
+                    contentDescription = "更多操作",
+                    modifier = Modifier.size(22.dp),
+                    tint = MiuixTheme.colorScheme.onSurface
+                )
+            }
+        }
+    )
 
     OverlayDialog(
         show = showTaskList,
@@ -3264,13 +3662,11 @@ private fun AiChatTopActions(vm: AiTermuxViewModel, onOpenSetup: () -> Unit) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     tasks.forEach { task ->
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            val statusColor = when (task.status) {
-                                "done" -> MiuixTheme.colorScheme.primary
-                                "in_progress" -> Color(0xFFFF9800)
-                                "cancelled" -> MiuixTheme.colorScheme.onSurfaceVariantSummary
-                                else -> MiuixTheme.colorScheme.onSurface
-                            }
-                            Text(text = statusLabel(task.status), fontSize = 11.sp, color = statusColor)
+                            Text(
+                                text = statusLabel(task.status),
+                                fontSize = 11.sp,
+                                color = taskStatusColor(task.status)
+                            )
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 text = task.title,
@@ -3292,50 +3688,6 @@ private fun AiChatTopActions(vm: AiTermuxViewModel, onOpenSetup: () -> Unit) {
         }
     )
 
-    OverlayDialog(
-        show = showMoreMenu,
-        onDismissRequest = { showMoreMenu = false },
-        title = stringResource(R.string.more_actions),
-        content = {
-            Column {
-                TopActionRow(stringResource(R.string.agent_menu_settings)) {
-                    showMoreMenu = false
-                    onOpenSetup()
-                }
-                TopActionRow(stringResource(R.string.agent_menu_export)) {
-                    showMoreMenu = false
-                    vm.exportConversation(context)
-                }
-                TopActionRow(stringResource(R.string.clear_chat), danger = true) {
-                    showMoreMenu = false
-                    showClearConfirm = true
-                }
-            }
-        }
-    )
-
-    OverlayDialog(
-        show = showClearConfirm,
-        onDismissRequest = { showClearConfirm = false },
-        title = stringResource(R.string.clear_chat),
-        summary = stringResource(R.string.clear_chat_warn),
-        content = {
-            Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                TextButton(text = stringResource(R.string.cancel), onClick = { showClearConfirm = false }, modifier = Modifier.weight(1f))
-                Spacer(Modifier.width(16.dp))
-                TextButton(
-                    text = stringResource(R.string.clear),
-                    onClick = {
-                        vm.clearHistory()
-                        showClearConfirm = false
-                        SnackbarHelper.show(context, context.getString(R.string.agent_history_cleared), Snackbar.LENGTH_SHORT)
-                    },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.textButtonColors(color = Color(0xFFF44336))
-                )
-            }
-        }
-    )
 }
 
 /** 消息长按操作：复制 / 重新生成 / 删除 */
@@ -3364,40 +3716,6 @@ private fun MessageActionDialog(
 }
 
 @Composable
-private fun TopActionButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    description: String,
-    badge: Boolean = false,
-    onClick: () -> Unit
-) {
-    Box(contentAlignment = Alignment.Center) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .clickable(onClick = onClick),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = description,
-                modifier = Modifier.size(22.dp),
-                tint = MiuixTheme.colorScheme.onSurface
-            )
-        }
-        if (badge) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(MiuixTheme.colorScheme.primary)
-            )
-        }
-    }
-}
-
-@Composable
 private fun TopActionRow(text: String, danger: Boolean = false, onClick: () -> Unit) {
     TextButton(
         text = text,
@@ -3406,11 +3724,26 @@ private fun TopActionRow(text: String, danger: Boolean = false, onClick: () -> U
             .fillMaxWidth()
             .padding(vertical = 8.dp),
         colors = if (danger) {
-            ButtonDefaults.textButtonColors(color = Color(0xFFF44336))
+            ButtonDefaults.textButtonColors(color = StatusError)
         } else {
             ButtonDefaults.textButtonColors()
         }
     )
+}
+
+// ---------- Eta 语义状态色 ----------
+// 参考 Eta ui/components/StatusColors.kt：成功/警告为固定色，错误/进行中/空闲取主题。
+private val StatusSuccess = Color(0xFF00BD13)
+private val StatusWarning = Color(0xFFFFB200)
+private val StatusError: Color @Composable get() = MiuixTheme.colorScheme.error
+
+/** TaskItem.status（字符串）→ 状态色 */
+@Composable
+private fun taskStatusColor(status: String): Color = when (status) {
+    "done" -> StatusSuccess
+    "in_progress" -> MiuixTheme.colorScheme.primary
+    "cancelled" -> MiuixTheme.colorScheme.onSurfaceVariantSummary
+    else -> StatusWarning
 }
 
 private fun statusLabel(status: String): String = when (status) {
@@ -3424,7 +3757,6 @@ private fun statusLabel(status: String): String = when (status) {
 fun TaskBar(
     tasks: List<TaskItem>,
     visible: Boolean,
-    isDark: Boolean,
     onClose: () -> Unit,
     onClear: () -> Unit = {}
 ) {
@@ -3437,16 +3769,12 @@ fun TaskBar(
     val totalCount = tasks.size
     val progress = if (totalCount > 0) doneCount.toFloat() / totalCount else 0f
 
-    val cardBg = if (isDark) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
-    val border = if (isDark) Color(0xFF2C2C2E) else Color(0xFFE0E0E0)
-    val primary = if (isDark) Color(0xFF818CF8) else Color(0xFF6366F1)
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(cardBg)
-            .then(Modifier.border(0.5.dp, border, RoundedCornerShape(16.dp)))
+            .background(MiuixTheme.colorScheme.surface)
+            .border(0.5.dp, MiuixTheme.colorScheme.outline.copy(alpha = 0.55f), RoundedCornerShape(16.dp))
             .padding(horizontal = 14.dp, vertical = 12.dp)
             .clickable(enabled = false) {}
     ) {
@@ -3457,10 +3785,10 @@ fun TaskBar(
             Icon(
                 painter = painterResource(R.drawable.ic_service_notification),
                 contentDescription = null,
-                modifier = Modifier.size(18.dp),
-                tint = primary
+                modifier = Modifier.size(16.dp),
+                tint = MiuixTheme.colorScheme.primary
             )
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(8.dp))
             Text(
                 text = stringResource(R.string.agent_task_progress, doneCount, totalCount),
                 style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MiuixTheme.colorScheme.onSurface)
@@ -3470,7 +3798,7 @@ fun TaskBar(
                 painter = painterResource(R.drawable.ic_close),
                 contentDescription = stringResource(R.string.agent_hide_taskbar),
                 modifier = Modifier
-                    .size(20.dp)
+                    .size(18.dp)
                     .clickable {
                         if (allDone) onClear()
                         onClose()
@@ -3490,8 +3818,8 @@ fun TaskBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = stringResource(R.string.agent_task_done_all),
-                    style = TextStyle(fontSize = 13.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Medium)
+                    text = "所有任务已完成",
+                    style = TextStyle(fontSize = 13.sp, color = StatusSuccess, fontWeight = FontWeight.Medium)
                 )
             }
         } else {
@@ -3500,25 +3828,23 @@ fun TaskBar(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val statusIcon = when (t.status) {
-                    "in_progress" -> "\uD83D\uDD04"
-                    else -> "\u23F3"
-                }
-                val statusColor = when (t.status) {
-                    "in_progress" -> Color(0xFFF59E0B)
-                    else -> Color(0xFF94A3B8)
-                }
-                Text(
-                    text = statusIcon,
-                    style = TextStyle(fontSize = 11.sp)
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(taskStatusColor(t.status))
                 )
-                Spacer(Modifier.width(4.dp))
+                Spacer(Modifier.width(8.dp))
                 Text(
                     text = t.title,
                     style = TextStyle(fontSize = 12.sp, color = MiuixTheme.colorScheme.onSurface),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = statusLabel(t.status),
+                    style = TextStyle(fontSize = 10.sp, color = taskStatusColor(t.status))
                 )
             }
         }
@@ -3534,20 +3860,20 @@ fun TaskBar(
 }
 
 @Composable
-private fun AiDisclaimerCard(isDark: Boolean) {
+private fun AiDisclaimerCard() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (isDark) Color(0xFF1E1E1E) else Color(0xFFF5F5F5))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .clip(RoundedCornerShape(999.dp))
+            .background(MiuixTheme.colorScheme.surfaceContainer.copy(alpha = 0.6f))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Icon(
             painter = painterResource(R.drawable.ic_info),
             contentDescription = null,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(14.dp),
             tint = MiuixTheme.colorScheme.onSurfaceVariantSummary
         )
         Text(
@@ -3557,147 +3883,115 @@ private fun AiDisclaimerCard(isDark: Boolean) {
     }
 }
 
+/** 空状态：欢迎语 + 两列建议卡（Eta 式，键盘弹出不隐藏由输入区遮挡自然处理） */
 @Composable
-private fun WelcomeChatCard(isDark: Boolean) {
-    val gradient = Brush.linearGradient(
-        colors = listOf(Color(0xFF7C3AED), Color(0xFFEC4899))
+private fun AiChatEmptyState(vm: AiTermuxViewModel, setInput: (String) -> Unit) {
+    data class Suggestion(val title: String, val prompt: String, val iconRes: Int)
+
+    val suggestions = listOf(
+        Suggestion("执行命令", "查看当前目录", R.drawable.ic_terminal),
+        Suggestion("安装软件包", "安装 Python 包", R.drawable.ic_download),
+        Suggestion("远程连接", "新建 SSH 会话", R.drawable.ic_ssh),
+        Suggestion("QEMU 虚拟机", "启动 QEMU 虚拟机", R.drawable.ic_computer)
     )
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(gradient)
-            .padding(16.dp)
+            .padding(horizontal = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
-                .size(38.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color.White.copy(alpha = 0.22f)),
+                .size(52.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MiuixTheme.colorScheme.primary.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_auto_awesome),
                 contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = Color.White
+                modifier = Modifier.size(26.dp),
+                tint = MiuixTheme.colorScheme.primary
             )
         }
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(14.dp))
         Text(
-            stringResource(R.string.agent_welcome_title),
-            color = Color.White,
-            fontWeight = FontWeight.Bold,
-            fontSize = 16.sp
+            text = "你好，我是 Termux Agent",
+            style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.onSurface)
         )
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(6.dp))
         Text(
-            stringResource(R.string.agent_intro),
-            color = Color.White.copy(alpha = 0.92f),
-            fontSize = 12.5.sp,
-            lineHeight = 20.sp
+            text = "用自然语言管理你的终端 —— 执行命令、管理文件、连接 VNC/SSH、启动 QEMU 虚拟机。",
+            style = TextStyle(fontSize = 13.sp, lineHeight = 20.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp)
         )
-        Spacer(Modifier.height(13.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            val examples = listOf(stringResource(R.string.agent_example_cmd), stringResource(R.string.agent_example_pkg), stringResource(R.string.agent_example_vnc), stringResource(R.string.agent_example_qemu))
-            for (ex in examples) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(Color.White.copy(alpha = 0.18f))
-                        .padding(horizontal = 10.dp, vertical = 5.dp)
-                ) {
-                    Text(
-                        ex,
-                        color = Color.White,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
-                    )
+        Spacer(Modifier.height(24.dp))
+        // 两列建议卡（Eta SuggestionCard 风格）
+        suggestions.chunked(2).forEach { rowItems ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                rowItems.forEach { item ->
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MiuixTheme.colorScheme.surface)
+                            .border(0.5.dp, MiuixTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                            .clickable {
+                                if (!vm.isLoading) vm.sendUserMessage(item.prompt)
+                            }
+                            .padding(horizontal = 13.dp, vertical = 12.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(item.iconRes),
+                            contentDescription = null,
+                            modifier = Modifier.size(17.dp),
+                            tint = MiuixTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.height(9.dp))
+                        Text(
+                            text = item.title,
+                            style = TextStyle(fontSize = 13.sp, color = MiuixTheme.colorScheme.onSurface),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
+                // 奇数行补位
+                if (rowItems.size == 1) Spacer(Modifier.weight(1f))
             }
+            Spacer(Modifier.height(10.dp))
         }
     }
 }
 
+/** 等待首个回复片段：三点呼吸（Eta AITypingIndicator 风格，仅透明度动画） */
 @Composable
-private fun QuickChips(vm: AiTermuxViewModel, inputText: String, setInput: (String) -> Unit) {
-    val suggestions = listOf(
-        stringResource(R.string.agent_suggest_dir),
-        stringResource(R.string.agent_suggest_pip),
-        stringResource(R.string.agent_suggest_ssh),
-        stringResource(R.string.agent_suggest_qemu),
-        stringResource(R.string.agent_suggest_clean)
-    )
-    val isDark = isSystemInDarkTheme()
-    val chipBg = if (isDark) Color(0xFF242424) else Color(0xFFFFFFFF)
-    val chipBorder = if (isDark) Color(0xFF3A3A3A) else Color(0xFFE8E8E8)
+private fun TypingIndicator() {
+    val infiniteTransition = rememberInfiniteTransition(label = "ai_typing_dots")
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.padding(start = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        suggestions.forEach { s ->
+        repeat(3) { index ->
+            val alpha by infiniteTransition.animateFloat(
+                initialValue = 0.3f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(600, delayMillis = index * 150, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "dot_alpha_$index"
+            )
             Box(
                 modifier = Modifier
-                    .height(34.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(chipBg)
-                    .then(Modifier.border(0.5.dp, chipBorder, RoundedCornerShape(999.dp)))
-                    .clickable {
-                        if (!vm.isLoading) vm.sendUserMessage(s)
-                    }
-            ) {
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxHeight().padding(horizontal = 13.dp)) {
-                    Text(
-                        s,
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MiuixTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TypingIndicator(isDark: Boolean) {
-    Row(
-        modifier = Modifier
-            .padding(end = 60.dp)
-            .clip(RoundedCornerShape(18.dp, 18.dp, 18.dp, 6.dp))
-            .background(if (isDark) Color(0xFF242424) else Color(0xFFF3F3F3))
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp)
-    ) {
-        val dotColor = if (isDark) Color(0xFFAAA) else Color(0xFF888)
-        repeat(3) { i ->
-            var offsetY by remember { mutableStateOf(0f) }
-            LaunchedEffect(i) {
-                while (true) {
-                    kotlinx.coroutines.delay((i * 150).toLong())
-                    offsetY = -3f
-                    kotlinx.coroutines.delay(300)
-                    offsetY = 0f
-                    kotlinx.coroutines.delay(600)
-                }
-            }
-            Box(
-                Modifier
-                    .size(7.dp)
-                    .graphicsLayer { translationY = offsetY }
-                    .clip(CircleShape)
-                    .background(dotColor)
+                    .size(6.dp)
+                    .graphicsLayer(alpha = alpha)
+                    .background(MiuixTheme.colorScheme.onSurfaceVariantSummary, CircleShape)
             )
         }
     }
@@ -3815,77 +4109,117 @@ private fun AnnotatedString.Builder.appendInlineFormatted(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ChatBubble(msg: ChatMessage, vm: AiTermuxViewModel) {
-    val isDark = isSystemInDarkTheme()
+private fun ChatBubble(msg: ChatMessage, vm: AiTermuxViewModel, modifier: Modifier = Modifier) {
+    val ctx = LocalContext.current
     val isUser = msg.role == "user"
     val isWarning = msg.isWarning
     var showRawResponse by remember { mutableStateOf(false) }
     var showMessageMenu by remember { mutableStateOf(false) }
+    var copied by remember(msg.id) { mutableStateOf(false) }
+
+    fun copyToClipboard() {
+        val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("消息", msg.content))
+        copied = true
+    }
+
+    LaunchedEffect(copied) {
+        if (copied) {
+            kotlinx.coroutines.delay(1400)
+            copied = false
+        }
+    }
 
     // 空内容且只有卡片，不画文本气泡
     if (msg.content.isBlank() && msg.skillCard != null) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = modifier.fillMaxWidth(),
             horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
         ) {
-            SkillCard(msgId = msg.id, card = msg.skillCard, errorMsg = msg.errorMessage, isDark = isDark, vm = vm)
+            SkillCard(msgId = msg.id, card = msg.skillCard, errorMsg = msg.errorMessage, vm = vm)
         }
         return
     }
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
     ) {
         // 本地模型准备中卡片（样式类似深度思考；一旦有思考或回复就自动隐藏）
         val preparingStatus = msg.preparingStatus
         if (!isUser && preparingStatus != null) {
-            PreparingBlock(status = preparingStatus, details = msg.preparingDetails, isDark = isDark)
+            PreparingBlock(status = preparingStatus, details = msg.preparingDetails)
             Spacer(Modifier.height(6.dp))
         }
         // 深度思考内容（可折叠）
         if (!isUser && !msg.reasoningContent.isNullOrBlank()) {
-            ReasoningBlock(reasoning = msg.reasoningContent, isDone = msg.reasoningDone, isDark = isDark)
+            ReasoningBlock(reasoning = msg.reasoningContent, isDone = msg.reasoningDone)
             Spacer(Modifier.height(6.dp))
         }
 
         if (msg.content.isNotBlank()) {
-            val bg = when {
-                isWarning -> if (isDark) Color(0xFF4A2C00) else Color(0xFFFFF3CD)
-                isUser -> MiuixTheme.colorScheme.primary
-                isDark -> Color(0xFF242424)
-                else -> Color(0xFFF3F3F3)
-            }
-            val textColor = when {
-                isWarning -> if (isDark) Color(0xFFFFD666) else Color(0xFF856404)
-                isUser -> Color.White
-                else -> MiuixTheme.colorScheme.onSurface
-            }
-            val corners = if (isUser) {
-                RoundedCornerShape(18.dp, 6.dp, 18.dp, 18.dp)
-            } else {
-                RoundedCornerShape(6.dp, 18.dp, 18.dp, 18.dp)
-            }
-            val ctx = LocalContext.current
-            Box(
-                modifier = Modifier
-                    .then(if (isUser) Modifier.padding(start = 40.dp) else Modifier.padding(end = 40.dp))
-                    .clip(corners)
-                    .background(bg)
-                    .then(
-                        if (msg.content.isNotBlank()) {
-                            Modifier.combinedClickable(
-                                onLongClick = { showMessageMenu = true },
-                                onClick = {}
-                            )
-                        } else Modifier
+            if (isUser) {
+                // 用户消息：轻盈气泡（Eta UserMessageBubble）
+                Box(
+                    modifier = Modifier
+                        .widthIn(max = 320.dp)
+                        .clip(RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp))
+                        .background(MiuixTheme.colorScheme.surfaceContainerHigh)
+                        .combinedClickable(
+                            onLongClick = { showMessageMenu = true },
+                            onClick = {}
+                        )
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                ) {
+                    Text(
+                        text = parseMarkdown(msg.content, isDark = isSystemInDarkTheme()),
+                        style = TextStyle(fontSize = 15.sp, lineHeight = 22.sp, color = MiuixTheme.colorScheme.onSurface)
                     )
-                    .padding(horizontal = 12.dp, vertical = 10.dp)
-            ) {
-                Text(
-                    text = parseMarkdown(msg.content, isDark),
-                    style = TextStyle(fontSize = 14.sp, lineHeight = 20.sp, color = textColor)
-                )
+                }
+            } else {
+                // 助手消息：平铺正文，不加卡片外壳，让回答保持视觉主角（Eta AgentMessageBlock）
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .combinedClickable(
+                            onLongClick = { showMessageMenu = true },
+                            onClick = {}
+                        )
+                ) {
+                    Text(
+                        text = parseMarkdown(msg.content, isDark = isSystemInDarkTheme()),
+                        style = TextStyle(
+                            fontSize = 14.5.sp,
+                            lineHeight = 22.sp,
+                            color = if (isWarning) StatusWarning else MiuixTheme.colorScheme.onSurface
+                        )
+                    )
+                }
+                // 操作行：复制 / 重新生成 / 删除（Eta 30dp 图标行）
+                if (!vm.isStreaming) {
+                    Row(
+                        modifier = Modifier.padding(top = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        MessageActionIconButton(
+                            icon = if (copied) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
+                            description = "复制",
+                            tint = if (copied) MiuixTheme.colorScheme.primary
+                            else MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.75f),
+                            onClick = { copyToClipboard() }
+                        )
+                        MessageActionIconButton(
+                            icon = Icons.Rounded.Refresh,
+                            description = "重新生成",
+                            onClick = { vm.regenerateLast() }
+                        )
+                        MessageActionIconButton(
+                            icon = Icons.Rounded.Delete,
+                            description = "删除",
+                            onClick = { vm.deleteMessage(msg.id) }
+                        )
+                    }
+                }
             }
 
             if (showMessageMenu) {
@@ -3893,9 +4227,8 @@ private fun ChatBubble(msg: ChatMessage, vm: AiTermuxViewModel) {
                     canRegenerate = !isUser,
                     onDismiss = { showMessageMenu = false },
                     onCopy = {
-                        val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText(ctx.getString(R.string.messages), msg.content))
-                        SnackbarHelper.show(ctx, ctx.getString(R.string.agent_copied), Snackbar.LENGTH_SHORT, null)
+                        copyToClipboard()
+                        SnackbarHelper.show(ctx, "已复制", Snackbar.LENGTH_SHORT, null)
                     },
                     onRegenerate = { vm.regenerateLast() },
                     onDelete = { vm.deleteMessage(msg.id) }
@@ -3905,28 +4238,25 @@ private fun ChatBubble(msg: ChatMessage, vm: AiTermuxViewModel) {
 
         msg.skillCard?.let { card ->
             Spacer(Modifier.height(6.dp))
-            SkillCard(msgId = msg.id, card = card, errorMsg = msg.errorMessage, isDark = isDark, vm = vm)
+            SkillCard(msgId = msg.id, card = card, errorMsg = msg.errorMessage, vm = vm)
         }
 
         msg.errorMessage?.takeIf { msg.skillCard == null }?.let { err ->
             Spacer(Modifier.height(4.dp))
             Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Color(0xFFFEE2E2).copy(alpha = if (isDark) 0.15f else 1f))
-                    .padding(10.dp),
+                modifier = Modifier.padding(vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_error),
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = Color(0xFFDC2626)
+                    modifier = Modifier.size(14.dp),
+                    tint = StatusError
                 )
                 Text(
                     text = err,
-                    style = TextStyle(fontSize = 12.sp, color = Color(0xFFDC2626))
+                    style = TextStyle(fontSize = 12.5.sp, color = StatusError)
                 )
             }
         }
@@ -3937,15 +4267,22 @@ private fun ChatBubble(msg: ChatMessage, vm: AiTermuxViewModel) {
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
-                    .background(Color(0xFFDBEAFE).copy(alpha = if (isDark) 0.15f else 1f))
+                    .background(MiuixTheme.colorScheme.surface)
+                    .border(0.5.dp, MiuixTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
                     .clickable { showRawResponse = true }
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                    .padding(horizontal = 9.dp, vertical = 5.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
                 Text(
-                    text = stringResource(R.string.view_raw_api),
-                    style = TextStyle(fontSize = 12.sp, color = Color(0xFF2563EB))
+                    text = "原始 API 响应",
+                    style = TextStyle(fontSize = 11.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+                )
+                Icon(
+                    imageVector = MiuixGlassIcons.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = MiuixTheme.colorScheme.onSurfaceVariantSummary
                 )
             }
         }
@@ -3953,7 +4290,6 @@ private fun ChatBubble(msg: ChatMessage, vm: AiTermuxViewModel) {
 
     // 原始 API 响应对话框
     if (showRawResponse && msg.rawResponse?.isNotBlank() == true) {
-        val ctx = LocalContext.current
         WindowDialog(
             show = showRawResponse,
             onDismissRequest = { showRawResponse = false },
@@ -3962,16 +4298,16 @@ private fun ChatBubble(msg: ChatMessage, vm: AiTermuxViewModel) {
                 val rawResponse = msg.rawResponse
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = stringResource(R.string.raw_api_hint),
-                        style = TextStyle(fontSize = 12.sp, color = Color.Gray)
+                        text = "这是从 API 收到的原始 SSE 数据，用于排查问题。",
+                        style = TextStyle(fontSize = 12.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                     )
                     Spacer(Modifier.height(8.dp))
                     Box(
                         modifier = Modifier
                             .height(300.dp)
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(if (isDark) Color(0xFF1A1A1A) else Color(0xFFF5F5F5))
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFF1E1E1E))
                             .padding(8.dp)
                     ) {
                         Text(
@@ -3979,7 +4315,7 @@ private fun ChatBubble(msg: ChatMessage, vm: AiTermuxViewModel) {
                             style = TextStyle(
                                 fontSize = 11.sp,
                                 fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                                color = if (isDark) Color(0xFFB0B0B0) else Color(0xFF333333)
+                                color = Color(0xFFD4D4D4)
                             )
                         )
                     }
@@ -4009,76 +4345,90 @@ private fun ChatBubble(msg: ChatMessage, vm: AiTermuxViewModel) {
     }
 }
 
+/** 消息操作行的小图标按钮（Eta 30dp IconButton 风格） */
+@Composable
+private fun MessageActionIconButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    description: String,
+    tint: Color = Color.Unspecified,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(30.dp)
+            .clip(CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = description,
+            modifier = Modifier.size(15.dp),
+            tint = if (tint == Color.Unspecified) {
+                MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.75f)
+            } else tint
+        )
+    }
+}
+
 /** -------------------- 本地模型准备中卡片 -------------------- */
 
 @Composable
-private fun PreparingBlock(status: String, details: List<String>, isDark: Boolean) {
+private fun PreparingBlock(status: String, details: List<String>) {
     var expanded by remember { mutableStateOf(false) }
-    val bg = if (isDark) Color(0xFF1A1A2E) else Color(0xFFF0F0F8)
-    val textColor = if (isDark) Color(0xFFB0B0C8) else Color(0xFF555570)
-    val headerColor = if (isDark) Color(0xFF8888AA) else Color(0xFF7777A0)
-    val accent = Color(0xFF6366F1)
-    // 3 个圆点循环跳动指示器
-    var tick by remember { mutableStateOf(0) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            kotlinx.coroutines.delay(350)
-            tick = (tick + 1) % 3
-        }
-    }
+    val textColor = MiuixTheme.colorScheme.onSurfaceVariantSummary
+    // Eta 呼吸点：alpha 0.3↔1 无限循环
+    val pulseAlpha by rememberInfiniteTransition(label = "preparing_pulse").animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "preparing_alpha"
+    )
     Column(
         modifier = Modifier
-            .padding(end = 40.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(bg)
-            .clickable { expanded = !expanded }
-            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(MiuixTheme.colorScheme.surface)
+            .border(0.5.dp, MiuixTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+            .padding(horizontal = 13.dp, vertical = 10.dp)
     ) {
         // ---------- 折叠态头部 ----------
         Row(
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                for (i in 0..2) {
-                    val alpha = if (i == tick) 1f else 0.25f
-                    val size = if (i == tick) 8.dp else 6.dp
-                    Box(
-                        modifier = Modifier
-                            .size(size)
-                            .clip(CircleShape)
-                            .background(accent.copy(alpha = alpha))
-                    )
-                }
-            }
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .graphicsLayer(alpha = pulseAlpha)
+                    .clip(CircleShape)
+                    .background(MiuixTheme.colorScheme.primary)
+            )
             Text(
                 text = stringResource(R.string.local_preparing),
                 style = TextStyle(
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = headerColor
+                    color = MiuixTheme.colorScheme.onSurface
                 )
             )
             Spacer(Modifier.weight(1f))
             if (expanded && details.isNotEmpty()) {
                 Text(
-                    text = stringResource(R.string.logs_count),
-                    style = TextStyle(fontSize = 11.sp, color = headerColor.copy(alpha = 0.75f))
+                    text = "${details.size} 条日志",
+                    style = TextStyle(fontSize = 11.sp, color = textColor.copy(alpha = 0.75f))
                 )
             } else if (!expanded) {
                 Text(
-                    text = stringResource(R.string.click_expand),
-                    style = TextStyle(fontSize = 11.sp, color = headerColor.copy(alpha = 0.6f))
+                    text = "点击展开",
+                    style = TextStyle(fontSize = 11.sp, color = textColor.copy(alpha = 0.6f))
                 )
             }
-            Icon(
-                imageVector = Icons.Default.ArrowDropDown,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp).then(
-                    if (expanded) Modifier.graphicsLayer { rotationZ = 180f } else Modifier
-                ),
-                tint = headerColor
-            )
+            RotatingExpandChevron(expanded = expanded, tint = textColor)
         }
         Spacer(Modifier.height(6.dp))
         Text(
@@ -4090,16 +4440,23 @@ private fun PreparingBlock(status: String, details: List<String>, isDark: Boolea
             )
         )
 
-        // ---------- 展开态：详细运行日志 ----------
-        if (expanded) {
-            Spacer(Modifier.height(10.dp))
-            // 浅色分隔线（用 Box 代替 HorizontalDivider，避免 API 差异）
+        // ---------- 展开态：详细运行日志（点击整卡切换） ----------
+        if (details.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(0.5.dp)
-                    .background(headerColor.copy(alpha = 0.2f))
-            )
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { expanded = !expanded }
+                    .padding(horizontal = 2.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    text = if (expanded) "收起运行日志" else "展开运行日志",
+                    style = TextStyle(fontSize = 11.sp, color = MiuixTheme.colorScheme.primary)
+                )
+            }
+        }
+        if (expanded) {
             Spacer(Modifier.height(8.dp))
             if (details.isEmpty()) {
                 Text(
@@ -4115,8 +4472,8 @@ private fun PreparingBlock(status: String, details: List<String>, isDark: Boolea
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 220.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(if (isDark) Color(0xFF111122) else Color(0xFFE8E8F4))
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFF1E1E1E))
                         .padding(horizontal = 10.dp, vertical = 8.dp)
                 ) {
                     Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -4127,7 +4484,7 @@ private fun PreparingBlock(status: String, details: List<String>, isDark: Boolea
                                     fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                                     fontSize = 10.5.sp,
                                     lineHeight = 15.sp,
-                                    color = textColor.copy(alpha = 0.9f)
+                                    color = Color(0xFFD4D4D4)
                                 ),
                                 softWrap = true
                             )
@@ -4140,7 +4497,7 @@ private fun PreparingBlock(status: String, details: List<String>, isDark: Boolea
                         text = stringResource(R.string.logs_scroll_hint),
                         style = TextStyle(
                             fontSize = 10.sp,
-                            color = headerColor.copy(alpha = 0.6f)
+                            color = textColor.copy(alpha = 0.6f)
                         )
                     )
                 }
@@ -4149,74 +4506,104 @@ private fun PreparingBlock(status: String, details: List<String>, isDark: Boolea
     }
 }
 
-/** -------------------- 深度思考内容（可折叠）-------------------- */
+/** 可旋转的展开箭头（Eta ExpandChevron：spring 旋转 180°） */
+@Composable
+private fun RotatingExpandChevron(expanded: Boolean, tint: Color) {
+    val rotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow),
+        label = "expand_chevron"
+    )
+    Icon(
+        imageVector = MiuixGlassIcons.ExpandMore,
+        contentDescription = null,
+        modifier = Modifier
+            .size(15.dp)
+            .graphicsLayer { rotationZ = rotation },
+        tint = tint
+    )
+}
+
+/** Eta 呼吸动画：进行中元素 alpha 0.58↔1（820ms 循环） */
+@Composable
+private fun rememberActivePulse(active: Boolean): Float {
+    if (!active) return 1f
+    val transition = rememberInfiniteTransition(label = "active_pulse")
+    val alpha by transition.animateFloat(
+        initialValue = 0.58f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(820, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "active_pulse_alpha"
+    )
+    return alpha
+}
+
+/** -------------------- 深度思考内容（可折叠，Eta ThinkingRow 风格）-------------------- */
 
 @Composable
-private fun ReasoningBlock(reasoning: String, isDone: Boolean, isDark: Boolean) {
+private fun ReasoningBlock(reasoning: String, isDone: Boolean) {
     var expanded by remember { mutableStateOf(false) }
-    val bg = if (isDark) Color(0xFF1A1A2E) else Color(0xFFF0F0F8)
-    val textColor = if (isDark) Color(0xFFB0B0C8) else Color(0xFF555570)
-    val headerColor = if (isDark) Color(0xFF8888AA) else Color(0xFF7777A0)
-    val accent = Color(0xFF6366F1)
+    val pulseAlpha = rememberActivePulse(active = !isDone)
 
     Column(
         modifier = Modifier
-            .then(Modifier.padding(end = 40.dp))
+            .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(bg)
-            .then(
-                Modifier.border(
-                    0.5.dp,
-                    if (isDark) Color(0xFF2C2C3E) else Color(0xFFE0E0EC),
-                    RoundedCornerShape(14.dp)
-                )
-            )
-            .clickable { expanded = !expanded }
-            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .background(MiuixTheme.colorScheme.surface)
+            .border(0.5.dp, MiuixTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
     ) {
         Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(horizontal = 13.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Icon(
-                painter = painterResource(R.drawable.ic_auto_awesome),
+                imageVector = Icons.Rounded.Lightbulb,
                 contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = accent
+                modifier = Modifier
+                    .size(15.dp)
+                    .graphicsLayer(alpha = pulseAlpha),
+                tint = if (!isDone) MiuixTheme.colorScheme.primary
+                else MiuixTheme.colorScheme.onSurfaceVariantSummary
             )
             Text(
-                text = stringResource(R.string.deep_thinking),
+                text = if (isDone) "深度思考 · 已完成" else "深度思考中…",
                 style = TextStyle(
                     fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = headerColor
-                )
-            )
-            Spacer(Modifier.weight(1f))
-            if (!expanded) {
-                Text(
-                    text = if (isDone) stringResource(R.string.agent_status_done) else stringResource(R.string.in_progress),
-                    style = TextStyle(fontSize = 11.sp, color = headerColor)
-                )
-            }
-            Icon(
-                imageVector = Icons.Default.ArrowDropDown,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp).then(
-                    if (expanded) Modifier.graphicsLayer { rotationZ = 180f } else Modifier
+                    fontWeight = FontWeight.Medium,
+                    color = if (!isDone) MiuixTheme.colorScheme.onSurface
+                    else MiuixTheme.colorScheme.onSurfaceVariantSummary
                 ),
-                tint = headerColor
+                modifier = Modifier.weight(1f)
+            )
+            RotatingExpandChevron(
+                expanded = expanded,
+                tint = MiuixTheme.colorScheme.onSurfaceVariantSummary
             )
         }
         if (expanded) {
-            Spacer(Modifier.height(6.dp))
+            // 头部与内容之间的细分隔线
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 13.dp)
+                    .height(0.5.dp)
+                    .background(MiuixTheme.colorScheme.outline.copy(alpha = 0.45f))
+            )
             Text(
                 text = reasoning.trim(),
                 style = TextStyle(
                     fontSize = 12.5.sp,
                     lineHeight = 19.sp,
-                    color = textColor
-                )
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                ),
+                modifier = Modifier.padding(horizontal = 13.dp, vertical = 10.dp)
             )
         }
     }
@@ -4225,34 +4612,40 @@ private fun ReasoningBlock(reasoning: String, isDone: Boolean, isDark: Boolean) 
 /** -------------------- 技能卡片 -------------------- */
 
 @Composable
-private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isDark: Boolean, vm: AiTermuxViewModel) {
+private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, vm: AiTermuxViewModel) {
     // Sub Agent / Search Agent 使用可折叠大卡片
     if (card.skillType == SkillType.SUB_AGENT || card.skillType == SkillType.SEARCH_AGENT) {
-        AgentSkillCard(msgId = msgId, card = card, errorMsg = errorMsg, isDark = isDark, vm = vm)
+        AgentSkillCard(msgId = msgId, card = card, errorMsg = errorMsg, vm = vm)
         return
     }
 
     val ctx = LocalContext.current
     // ASK_USER / CONFIRM_DANGEROUS 需要可交互，状态为 RUNNING 时显示交互组件
-    val isInteractive = (card.skillType == SkillType.ASK_USER || card.skillType == SkillType.CONFIRM_DANGEROUS)
+    val isInteractive = (card.skillType == SkillType.ASK_USER || card.skillType == SkillType.CONFIRM_DANGEROUS
+            || card.skillType == SkillType.CONFIRM_DUPLICATE)
             && card.status == SkillStatus.RUNNING
 
-    val (statusColor, statusBg, statusText) = when {
+    // Eta 语义状态色：进行中=primary、完成=StatusSuccess、失败/待确认=error、询问=warning
+    val (statusColor, statusText) = when {
         card.skillType == SkillType.CONFIRM_DANGEROUS && card.status == SkillStatus.RUNNING ->
-            Triple(Color(0xFFDC2626), Color(0xFFDC2626).copy(alpha = 0.12f), stringResource(R.string.agent_status_awaiting_confirm))
+            Pair(StatusError, "待确认")
+        card.skillType == SkillType.CONFIRM_DUPLICATE && card.status == SkillStatus.RUNNING ->
+            Pair(StatusWarning, "待确认")
         card.skillType == SkillType.ASK_USER && card.status == SkillStatus.RUNNING ->
-            Triple(Color(0xFF6366F1), Color(0xFF6366F1).copy(alpha = 0.12f), stringResource(R.string.agent_status_awaiting_answer))
-        card.status == SkillStatus.RUNNING -> Triple(Color(0xFF2563EB), Color(0xFF2563EB).copy(alpha = 0.12f), stringResource(R.string.agent_status_running))
-        card.status == SkillStatus.COMPLETED -> Triple(Color(0xFF16A34A), Color(0xFF16A34A).copy(alpha = 0.12f), stringResource(R.string.agent_status_done))
-        card.status == SkillStatus.FAILED -> Triple(Color(0xFFDC2626), Color(0xFFDC2626).copy(alpha = 0.12f), stringResource(R.string.agent_status_failed))
-        else -> Triple(Color(0xFF64748B), Color(0xFF64748B).copy(alpha = 0.12f), stringResource(R.string.agent_status_unknown))
+            Pair(StatusWarning, "待回答")
+        card.status == SkillStatus.RUNNING -> Pair(MiuixTheme.colorScheme.primary, "执行中")
+        card.status == SkillStatus.COMPLETED -> Pair(StatusSuccess, "已完成")
+        card.status == SkillStatus.FAILED -> Pair(StatusError, "失败")
+        else -> Pair(MiuixTheme.colorScheme.onSurfaceVariantSummary, "未知")
     }
+    val statusBg = statusColor.copy(alpha = 0.12f)
     val iconRes = when (card.skillType) {
         SkillType.NEW_SESSION, SkillType.CLOSE_SESSION,
         SkillType.CLOSE_ALL_SESSIONS, SkillType.EXIT_TERMUX,
         SkillType.GET_SESSION_INFO, SkillType.GET_CURRENT_SESSION,
         SkillType.RUN_COMMAND, SkillType.CAPTURE_OUTPUT,
         SkillType.CUSTOM_COMMAND, SkillType.COMPILE_CODE -> R.drawable.ic_terminal
+        SkillType.RUN_COMMAND_SANDBOX -> R.drawable.ic_warning
         SkillType.RUN_VM_QEMU, SkillType.CREATE_VM_QEMU,
         SkillType.VM_LIST -> R.drawable.ic_computer
         SkillType.CONNECT_VNC -> R.drawable.ic_vnc
@@ -4265,6 +4658,7 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
         SkillType.APP_UNINSTALL -> R.drawable.ic_delete
         SkillType.ASK_USER -> R.drawable.ic_help
         SkillType.CONFIRM_DANGEROUS -> R.drawable.ic_warning
+        SkillType.CONFIRM_DUPLICATE -> R.drawable.ic_warning
         SkillType.SCHEDULE_TASK -> R.drawable.ic_service_notification
         SkillType.GET_DEVICE_STATUS -> R.drawable.ic_info
         SkillType.CLIPBOARD_READ, SkillType.CLIPBOARD_WRITE -> R.drawable.ic_copy
@@ -4274,8 +4668,7 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
         SkillType.TASK_ADD, SkillType.TASK_UPDATE, SkillType.TASK_DELETE, SkillType.TASK_LIST -> R.drawable.ic_service_notification
     }
 
-    val cardBg = if (isDark) Color(0xFF1A1A1A) else Color(0xFFFAFAFA)
-    val borderColor = if (isDark) Color(0xFF2C2C2C) else Color(0xFFE8E8E8)
+    val borderColor = MiuixTheme.colorScheme.outline.copy(alpha = 0.5f)
 
     val clickable = card.skillType in setOf(
         SkillType.NEW_SESSION, SkillType.CLOSE_SESSION, SkillType.RUN_COMMAND,
@@ -4287,19 +4680,18 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
         SkillType.PACKAGE_UNINSTALL, SkillType.WEB_SEARCH
     )
 
-    Box(
+    Column(
         modifier = Modifier
-            .fillMaxWidth(0.92f)
+            .fillMaxWidth(0.94f)
             .clip(RoundedCornerShape(14.dp))
+            .background(MiuixTheme.colorScheme.surface)
+            .border(0.5.dp, borderColor, RoundedCornerShape(14.dp))
             .then(
                 if (clickable) Modifier.clickable { SkillExecutor.onSkillCardClick(ctx, card) }
                 else Modifier
             )
     ) {
-        Card(
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(cardBg)
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier
                         .padding(12.dp)
@@ -4307,20 +4699,18 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // 左侧图标（右下半露）
+                    // 左侧状态徽章（Eta 时间线节点配色）
                     Box(
                         modifier = Modifier
-                            .width(64.dp)
-                            .fillMaxHeight()
-                            .height(64.dp)
-                            .clip(RoundedCornerShape(32.dp))
+                            .size(40.dp)
+                            .clip(CircleShape)
                             .background(statusBg),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             painter = painterResource(iconRes),
                             contentDescription = null,
-                            modifier = Modifier.size(28.dp),
+                            modifier = Modifier.size(19.dp),
                             tint = statusColor
                         )
                     }
@@ -4384,7 +4774,7 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
                                 .fillMaxWidth()
                                 .padding(12.dp)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(if (isDark) Color(0xFF111) else Color(0xFF1E1E1E))
+                                .background(Color(0xFF1E1E1E))
                                 .padding(10.dp)
                         ) {
                             Text(
@@ -4410,7 +4800,7 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
                                 .padding(12.dp)
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(Color(0xFFFEE2E2).copy(alpha = if (isDark) 0.15f else 1f))
+                                .background(StatusError.copy(alpha = 0.1f))
                                 .padding(10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -4419,12 +4809,12 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
                                 painter = painterResource(R.drawable.ic_error),
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
-                                tint = Color(0xFFDC2626)
+                                tint = StatusError
                             )
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(stringResource(R.string.agent_exec_error), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
+                                Text("执行出错", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = StatusError)
                                 Spacer(Modifier.height(2.dp))
-                                Text(errText, fontSize = 12.sp, color = Color(0xFFB91C1C))
+                                Text(errText, fontSize = 12.sp, color = StatusError.copy(alpha = 0.8f))
                             }
                         }
                     }
@@ -4509,7 +4899,7 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
                                                         .clip(CircleShape)
                                                         .background(
                                                             if (selected) MiuixTheme.colorScheme.primary
-                                                            else if (isDark) Color(0xFF333333) else Color(0xFFDDDDDD)
+                                                            else MiuixTheme.colorScheme.surfaceContainerHigh
                                                         ),
                                                     contentAlignment = Alignment.Center
                                                 ) {
@@ -4518,7 +4908,7 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
                                                             modifier = Modifier
                                                                 .size(8.dp)
                                                                 .clip(CircleShape)
-                                                                .background(Color.White)
+                                                                .background(MiuixTheme.colorScheme.onPrimary)
                                                         )
                                                     }
                                                 }
@@ -4564,14 +4954,14 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
                                                         .clip(RoundedCornerShape(6.dp))
                                                         .background(
                                                             if (checked) MiuixTheme.colorScheme.primary
-                                                            else if (isDark) Color(0xFF333333) else Color(0xFFDDDDDD)
+                                                            else MiuixTheme.colorScheme.surfaceContainerHigh
                                                         ),
                                                     contentAlignment = Alignment.Center
                                                 ) {
                                                     if (checked) {
                                                         Text(
                                                             text = "✓",
-                                                            color = Color.White,
+                                                            color = MiuixTheme.colorScheme.onPrimary,
                                                             fontSize = 14.sp,
                                                             fontWeight = FontWeight.Bold
                                                         )
@@ -4622,7 +5012,7 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
                                             .height(44.dp)
                                             .clip(RoundedCornerShape(10.dp)),
                                         colors = ButtonDefaults.buttonColors(
-                                            color = if (isDark) Color(0xFF333333) else Color(0xFFEEEEEE)
+                                            color = MiuixTheme.colorScheme.surfaceContainerHigh
                                         )
                                     ) {
                                         Text(stringResource(R.string.cancel), color = MiuixTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
@@ -4633,16 +5023,54 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
                                             .weight(1f)
                                             .height(44.dp)
                                             .clip(RoundedCornerShape(10.dp)),
-                                        colors = ButtonDefaults.buttonColors(color = Color(0xFFDC2626))
+                                        colors = ButtonDefaults.buttonColors(color = StatusError)
                                     ) {
-                                        Text(stringResource(R.string.agent_confirm_exec), color = Color.White, fontWeight = FontWeight.Bold)
+                                        Text("确认执行", color = MiuixTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+
+                        SkillType.CONFIRM_DUPLICATE -> {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                if (card.description.isNotBlank()) {
+                                    Text(
+                                        text = card.description,
+                                        style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MiuixTheme.colorScheme.onSurface),
+                                        modifier = Modifier.padding(bottom = 10.dp)
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Button(
+                                        onClick = { vm.cancelDuplicate(msgId) },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(44.dp)
+                                            .clip(RoundedCornerShape(10.dp)),
+                                        colors = ButtonDefaults.buttonColors(
+                                            color = MiuixTheme.colorScheme.surfaceContainerHigh
+                                        )
+                                    ) {
+                                        Text("取消", color = MiuixTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                                    }
+                                    Button(
+                                        onClick = { vm.confirmDuplicate(msgId) },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(44.dp)
+                                            .clip(RoundedCornerShape(10.dp)),
+                                        colors = ButtonDefaults.buttonColors(color = MiuixTheme.colorScheme.primary)
+                                    ) {
+                                        Text("继续", color = Color.White, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
                         }
                     }
                 }
-            }
         }
     }
 }
@@ -4650,21 +5078,23 @@ private fun SkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isD
 /** -------------------- Agent 技能卡片（可折叠大卡片）-------------------- */
 
 @Composable
-private fun AgentSkillCard(msgId: String, card: SkillCardData, errorMsg: String?, isDark: Boolean, vm: AiTermuxViewModel) {
+private fun AgentSkillCard(msgId: String, card: SkillCardData, errorMsg: String?, vm: AiTermuxViewModel) {
     var expanded by remember { mutableStateOf(false) }
     val isSubAgent = card.skillType == SkillType.SUB_AGENT
     val agentLabel = if (isSubAgent) "Sub Agent" else "Search Agent"
     val agentIcon = if (isSubAgent) R.drawable.ic_code else R.drawable.ic_search
 
-    val (statusColor, statusBg, statusText) = when {
-        card.status == SkillStatus.RUNNING -> Triple(Color(0xFF2563EB), Color(0xFF2563EB).copy(alpha = 0.12f), stringResource(R.string.agent_status_running))
-        card.status == SkillStatus.COMPLETED -> Triple(Color(0xFF16A34A), Color(0xFF16A34A).copy(alpha = 0.12f), stringResource(R.string.agent_status_done))
-        card.status == SkillStatus.FAILED -> Triple(Color(0xFFDC2626), Color(0xFFDC2626).copy(alpha = 0.12f), stringResource(R.string.agent_status_failed))
-        else -> Triple(Color(0xFF64748B), Color(0xFF64748B).copy(alpha = 0.12f), stringResource(R.string.agent_status_unknown))
+    // Eta 语义状态色
+    val (statusColor, statusText) = when {
+        card.status == SkillStatus.RUNNING -> Pair(MiuixTheme.colorScheme.primary, "执行中")
+        card.status == SkillStatus.COMPLETED -> Pair(StatusSuccess, "已完成")
+        card.status == SkillStatus.FAILED -> Pair(StatusError, "失败")
+        else -> Pair(MiuixTheme.colorScheme.onSurfaceVariantSummary, "未知")
     }
-
-    val cardBg = if (isDark) Color(0xFF1A1A1A) else Color(0xFFFAFAFA)
-    val borderColor = if (isDark) Color(0xFF2C2C2C) else Color(0xFFE8E8E8)
+    val statusBg = statusColor.copy(alpha = 0.12f)
+    val borderColor = MiuixTheme.colorScheme.outline.copy(alpha = 0.5f)
+    val isRunning = card.status == SkillStatus.RUNNING
+    val pulseAlpha = rememberActivePulse(active = isRunning)
 
     val outputLines = card.output?.lines() ?: emptyList()
     val lastTwoLines = if (outputLines.size >= 2) {
@@ -4673,212 +5103,188 @@ private fun AgentSkillCard(msgId: String, card: SkillCardData, errorMsg: String?
         outputLines.joinToString("\n")
     }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(14.dp))
+            .background(MiuixTheme.colorScheme.surface)
+            .border(0.5.dp, borderColor, RoundedCornerShape(14.dp))
     ) {
-        Card(
+        // Header row
+        Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(cardBg)
+                .padding(12.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                // Header row
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(statusBg),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(agentIcon),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = statusColor
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
                 Row(
-                    modifier = Modifier
-                        .padding(14.dp)
-                        .fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    Text(
+                        text = card.title,
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MiuixTheme.colorScheme.onSurface
+                        )
+                    )
                     Box(
                         modifier = Modifier
-                            .width(56.dp)
-                            .height(56.dp)
-                            .clip(RoundedCornerShape(28.dp))
-                            .background(statusBg),
-                        contentAlignment = Alignment.Center
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(statusBg)
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
-                        Icon(
-                            painter = painterResource(agentIcon),
-                            contentDescription = null,
-                            modifier = Modifier.size(26.dp),
-                            tint = statusColor
+                        Text(
+                            text = statusText,
+                            fontSize = 10.sp,
+                            color = statusColor,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Text(
-                                text = card.title,
-                                style = TextStyle(
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MiuixTheme.colorScheme.onSurface
-                                )
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(999.dp))
-                                    .background(statusBg)
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = statusText,
-                                    fontSize = 10.sp,
-                                    color = statusColor,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
-                        Spacer(Modifier.height(3.dp))
+                }
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = "$agentLabel · ${card.description}",
+                    style = TextStyle(
+                        fontSize = 12.sp,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                    )
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable { expanded = !expanded }
+                    .padding(6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                RotatingExpandChevron(
+                    expanded = expanded,
+                    tint = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                )
+            }
+        }
+
+        // Content section
+        if (expanded) {
+            HorizontalDivider(color = borderColor)
+            Column(modifier = Modifier.padding(14.dp)) {
+                if (!card.output.isNullOrBlank()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         Text(
-                            text = "$agentLabel · ${card.description}",
+                            text = "执行过程",
+                            style = TextStyle(
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MiuixTheme.colorScheme.onSurface
+                            )
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFF1E1E1E))
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            text = card.output.orEmpty(),
                             style = TextStyle(
                                 fontSize = 12.sp,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary
-                            )
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(if (isDark) Color(0xFF2A2A2A) else Color(0xFFF0F0F0))
-                            .clickable { expanded = !expanded }
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = if (expanded) stringResource(R.string.collapse) else stringResource(R.string.expand),
-                            style = TextStyle(
-                                fontSize = 11.sp,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                                color = Color(0xFFD4D4D4),
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                lineHeight = 18.sp
                             )
                         )
                     }
                 }
 
-                // Content section
-                if (expanded) {
-                    HorizontalDivider(color = borderColor)
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        if (!card.output.isNullOrBlank()) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(text = "💭", fontSize = 13.sp)
-                                Text(
-                                    text = stringResource(R.string.execution_process),
-                                    style = TextStyle(
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MiuixTheme.colorScheme.onSurface
-                                    )
-                                )
-                            }
-                            Spacer(Modifier.height(8.dp))
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isDark) Color(0xFF111) else Color(0xFF1E1E1E))
-                                    .padding(12.dp)
-                            ) {
-                                Text(
-                                    text = card.output.orEmpty(),
-                                    style = TextStyle(
-                                        fontSize = 12.sp,
-                                        color = Color(0xFFD4D4D4),
-                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                                        lineHeight = 18.sp
-                                    )
-                                )
-                            }
-                        }
-
-                        if (!errorMsg.isNullOrBlank() || card.status == SkillStatus.FAILED) {
-                            val errText = errorMsg ?: card.description
-                            if (errText.isNotBlank()) {
-                                Spacer(Modifier.height(10.dp))
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(Color(0xFFFEE2E2).copy(alpha = if (isDark) 0.15f else 1f))
-                                        .padding(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_error),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp),
-                                        tint = Color(0xFFDC2626)
-                                    )
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(stringResource(R.string.agent_exec_error), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
-                                        Spacer(Modifier.height(2.dp))
-                                        Text(errText, fontSize = 12.sp, color = Color(0xFFB91C1C))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    // Collapsed: show status and last 2 lines
-                    HorizontalDivider(color = borderColor)
-                    Column(modifier = Modifier.padding(14.dp)) {
+                if (!errorMsg.isNullOrBlank() || card.status == SkillStatus.FAILED) {
+                    val errText = errorMsg ?: card.description
+                    if (errText.isNotBlank()) {
+                        Spacer(Modifier.height(10.dp))
                         Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(StatusError.copy(alpha = 0.1f))
+                                .padding(10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            if (card.status == SkillStatus.RUNNING) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(statusColor)
-                                )
-                                Text(
-                                    text = stringResource(R.string.agent_agent_running, agentLabel),
-                                    style = TextStyle(fontSize = 12.sp, color = statusColor)
-                                )
-                            } else {
-                                Icon(
-                                    painter = painterResource(
-                                        if (card.status == SkillStatus.COMPLETED) R.drawable.ic_info
-                                        else R.drawable.ic_error
-                                    ),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp),
-                                    tint = statusColor
-                                )
-                                Text(
-                                    text = "$agentLabel ${if (card.status == SkillStatus.COMPLETED) stringResource(R.string.executed_done) else stringResource(R.string.executed_fail)}",
-                                    style = TextStyle(fontSize = 12.sp, color = statusColor)
-                                )
+                            Icon(
+                                painter = painterResource(R.drawable.ic_error),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = StatusError
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("执行出错", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = StatusError)
+                                Spacer(Modifier.height(2.dp))
+                                Text(errText, fontSize = 12.sp, color = StatusError.copy(alpha = 0.8f))
                             }
                         }
-                        if (lastTwoLines.isNotBlank()) {
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                text = lastTwoLines,
-                                style = TextStyle(
-                                    fontSize = 12.sp,
-                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                                    lineHeight = 18.sp
-                                ),
-                                maxLines = 2,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                            )
-                        }
                     }
+                }
+            }
+        } else {
+            // Collapsed: show status and last 2 lines
+            HorizontalDivider(color = borderColor)
+            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .graphicsLayer(alpha = pulseAlpha)
+                            .clip(CircleShape)
+                            .background(statusColor)
+                    )
+                    Text(
+                        text = when {
+                            isRunning -> "$agentLabel 正在执行…"
+                            card.status == SkillStatus.COMPLETED -> "$agentLabel 执行完成"
+                            else -> "$agentLabel 执行失败"
+                        },
+                        style = TextStyle(fontSize = 12.sp, color = statusColor)
+                    )
+                }
+                if (lastTwoLines.isNotBlank()) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = lastTwoLines,
+                        style = TextStyle(
+                            fontSize = 12.sp,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            lineHeight = 18.sp
+                        ),
+                        maxLines = 2,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
                 }
             }
         }

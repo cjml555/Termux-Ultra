@@ -468,6 +468,65 @@
             android:label="训练本地模型"
             android:windowSoftInputMode="adjustResize" />
 
+        <activity
+            android:name=".app.activities.AgentPawSettingsActivity"
+            android:exported="false"
+            android:label="@string/agentpaw_settings_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".app.activities.AiTermuxModelGenActivity"
+            android:exported="false"
+            android:label="@string/model_gen_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".app.activities.AiTermuxMemoryHistoryActivity"
+            android:exported="false"
+            android:label="@string/memory_history_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".app.activities.AiTermuxDeveloperActivity"
+            android:exported="false"
+            android:label="@string/developer_settings_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".app.activities.IntegratedToolsConfigActivity"
+            android:exported="false"
+            android:label="@string/integrated_tools_config_entry" />
+
+        <activity
+            android:name=".app.activities.ConsoleSettingsActivity"
+            android:exported="false"
+            android:label="@string/console_settings"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".app.activities.KeySettingsActivity"
+            android:exported="false"
+            android:label="@string/key_settings"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".app.activities.SoftwareSourceActivity"
+            android:exported="false"
+            android:label="@string/pkg_sources_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".app.activities.ConsoleLogActivity"
+            android:exported="false"
+            android:label="@string/console_log"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".app.activities.ConsolePersonalizationActivity"
+            android:exported="false"
+            android:label="@string/console_personalization"
+            android:windowSoftInputMode="adjustResize" />
+
         <service
             android:name="com.termux.app.NewTerminalTileService"
             android:exported="true"

@@ -50,13 +50,15 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Back
+import top.yukonga.miuix.kmp.icon.glass.ChevronBackward
+import top.yukonga.miuix.kmp.icon.glass.MiuixGlassIcons
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.termux.R
 import com.termux.app.utils.UpdateChecker
 import com.termux.app.utils.UpdateResult
@@ -223,7 +225,7 @@ fun AboutScreen(onBack: () -> Unit) {
                     navigationIcon = {
                         GlassIconButton(onClick = onBack) {
                             Icon(
-                                imageVector = MiuixIcons.Back,
+                                imageVector = MiuixGlassIcons.ChevronBackward,
                                 contentDescription = stringResource(R.string.back),
                                 tint = MiuixTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(24.dp)
@@ -638,14 +640,18 @@ fun AboutScreen(onBack: () -> Unit) {
     if (showUpdateDialog && updateResult != null) {
         if (pendingInstallVersion != null && ApkDownloader.hasInstallPermission(context)) {
             val apkFile = ApkDownloader.getDownloadedApkFile(context, pendingInstallVersion!!)
-            if (apkFile.exists()) {
-                LaunchedEffect(Unit) {
-                    ApkDownloader.installApk(context, apkFile)
-                    pendingInstallVersion = null
-                    showUpdateDialog = false
+            LaunchedEffect(pendingInstallVersion) {
+                // 授权往返期间产物可能被替换，安装前在后台重新校验一次
+                val verified = withContext(Dispatchers.IO) {
+                    ApkDownloader.verifyApkFile(context, apkFile).isSuccess
                 }
-            } else {
+                if (verified) {
+                    runCatching { ApkDownloader.installApk(context, apkFile) }
+                } else {
+                    withContext(Dispatchers.IO) { apkFile.delete() }
+                }
                 pendingInstallVersion = null
+                showUpdateDialog = false
             }
         }
 

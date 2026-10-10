@@ -46,6 +46,14 @@ import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.icon.glass.AddFolder
+import top.yukonga.miuix.kmp.icon.glass.Close
+import top.yukonga.miuix.kmp.icon.glass.Copy
+import top.yukonga.miuix.kmp.icon.glass.Cut
+import top.yukonga.miuix.kmp.icon.glass.Delete
+import top.yukonga.miuix.kmp.icon.glass.MiuixGlassIcons
+import top.yukonga.miuix.kmp.icon.glass.Paste
+import top.yukonga.miuix.kmp.icon.glass.Rename
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
@@ -137,7 +145,7 @@ fun FileManagerScreen(
             showWarningCard = true
         }
         sftpUsername = prefs.getString("sftp_username", "termux") ?: "termux"
-        sftpPassword = prefs.getString("sftp_password", "termux123") ?: "termux123"
+        sftpPassword = com.termux.app.ftp.FtpCredentialStore.getPassword(context)
         sftpPort = prefs.getInt("sftp_port", 8021)
 
         val appPrefs = context.getSharedPreferences("app_settings", android.content.Context.MODE_PRIVATE)
@@ -194,29 +202,9 @@ fun FileManagerScreen(
         notificationManager.createNotificationChannel(channel)
     }
 
-    fun getLocalIpAddress(): String {
-        try {
-            val interfaces = java.net.NetworkInterface.getNetworkInterfaces()
-            while (interfaces.hasMoreElements()) {
-                val networkInterface = interfaces.nextElement()
-                val addresses = networkInterface.inetAddresses
-                while (addresses.hasMoreElements()) {
-                    val address = addresses.nextElement()
-                    val host = address.hostAddress
-                    if (!address.isLoopbackAddress && address is java.net.Inet4Address && !host.isNullOrEmpty()) {
-                        return host
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        return "127.0.0.1"
-    }
-
     fun showSftpNotification() {
         createNotificationChannel()
-        val ipAddress = getLocalIpAddress()
+        val bindAddress = com.termux.app.ftp.FtpServiceManager.getBindAddress()
 
         val intent = android.content.Intent(context, com.termux.app.ftp.FtpInfoActivity::class.java)
         intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -228,8 +216,8 @@ fun FileManagerScreen(
         )
 
         val notification = NotificationCompat.Builder(context, sftpChannelId)
-            .setContentTitle(context.getString(R.string.ftp_in_use))
-            .setContentText("地址: ftp://$ipAddress:$sftpPort\n点击通知显示 FTP 详情")
+            .setContentTitle("正在使用 FTP 服务")
+            .setContentText("地址: ftp://$bindAddress:$sftpPort\n点击通知显示 FTP 详情")
             .setSmallIcon(R.drawable.ic_web)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
@@ -249,8 +237,8 @@ fun FileManagerScreen(
         val prefs = context.getSharedPreferences("termux_prefs", android.content.Context.MODE_PRIVATE)
         prefs.edit()
             .putString("sftp_username", sftpUsername)
-            .putString("sftp_password", sftpPassword)
             .apply()
+        com.termux.app.ftp.FtpCredentialStore.setPassword(context, sftpPassword)
         if (com.termux.app.ftp.FtpServiceManager.isRunning()) {
             com.termux.app.ftp.FtpServiceManager.restartWithNewConfig(context)
         }
@@ -275,6 +263,16 @@ fun FileManagerScreen(
             isSftpEnabled = started
             if (started) {
                 showSftpNotification()
+            } else {
+                val weak = !com.termux.app.ftp.FtpServiceManager.isPasswordStrong(
+                    com.termux.app.ftp.FtpCredentialStore.getPassword(context)
+                )
+                val msg = if (weak) {
+                    "请先在「FTP 信息」页设置强密码后再启用服务"
+                } else {
+                    "FTP 服务启动失败，请检查端口是否被占用"
+                }
+                android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
             }
         } else {
             com.termux.app.ftp.FtpServiceManager.stop(context)
@@ -305,7 +303,7 @@ fun FileManagerScreen(
                                 isInSelectionMode = false
                             }) {
                                 Icon(
-                                    painter = painterResource(R.drawable.ic_close),
+                                    imageVector = MiuixGlassIcons.Close,
                                     contentDescription = null,
                                     modifier = Modifier.size(24.dp),
                                     tint = MiuixTheme.colorScheme.onSurface
@@ -323,7 +321,7 @@ fun FileManagerScreen(
                                 Icon(
                                     painter = painterResource(R.drawable.ic_arrow_up),
                                     contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
+                                    modifier = Modifier.size(40.dp),
                                     tint = if (canGoUp) MiuixTheme.colorScheme.onSurface else MiuixTheme.colorScheme.onSurfaceVariantSummary
                                 )
                             }
@@ -337,7 +335,7 @@ fun FileManagerScreen(
                                 Icon(
                                     painter = painterResource(R.drawable.ic_arrow_down),
                                     contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
+                                    modifier = Modifier.size(40.dp),
                                     tint = if (forwardHistory.isNotEmpty()) MiuixTheme.colorScheme.onSurface else MiuixTheme.colorScheme.onSurfaceVariantSummary
                                 )
                             }
@@ -354,8 +352,8 @@ fun FileManagerScreen(
                             isInSelectionMode = false
                         }) {
                             Icon(
-                                painter = painterResource(R.drawable.ic_copy),
-                                contentDescription = stringResource(R.string.copy_text),
+                                imageVector = MiuixGlassIcons.Copy,
+                                contentDescription = "复制",
                                 modifier = Modifier.size(24.dp),
                                 tint = MiuixTheme.colorScheme.onSurface
                             )
@@ -367,8 +365,8 @@ fun FileManagerScreen(
                             isInSelectionMode = false
                         }) {
                             Icon(
-                                painter = painterResource(R.drawable.ic_cut),
-                                contentDescription = stringResource(R.string.cut_text),
+                                imageVector = MiuixGlassIcons.Cut,
+                                contentDescription = "剪切",
                                 modifier = Modifier.size(24.dp),
                                 tint = MiuixTheme.colorScheme.onSurface
                             )
@@ -379,8 +377,8 @@ fun FileManagerScreen(
                                 showRenameDialog = true
                             }) {
                                 Icon(
-                                    painter = painterResource(R.drawable.ic_edit),
-                                    contentDescription = stringResource(R.string.rename),
+                                    imageVector = MiuixGlassIcons.Rename,
+                                    contentDescription = "重命名",
                                     modifier = Modifier.size(24.dp),
                                     tint = MiuixTheme.colorScheme.onSurface
                                 )
@@ -390,8 +388,8 @@ fun FileManagerScreen(
                             showDeleteDialog = true
                         }) {
                             Icon(
-                                painter = painterResource(R.drawable.ic_delete),
-                                contentDescription = stringResource(R.string.delete),
+                                imageVector = MiuixGlassIcons.Delete,
+                                contentDescription = "删除",
                                 modifier = Modifier.size(24.dp),
                                 tint = MiuixTheme.colorScheme.onSurface
                             )
@@ -426,8 +424,8 @@ fun FileManagerScreen(
                             }
                         }) {
                             Icon(
-                                painter = painterResource(R.drawable.ic_paste),
-                                contentDescription = stringResource(R.string.paste_text),
+                                imageVector = MiuixGlassIcons.Paste,
+                                contentDescription = "粘贴",
                                 modifier = Modifier.size(24.dp),
                                 tint = MiuixTheme.colorScheme.onSurface
                             )
@@ -443,8 +441,8 @@ fun FileManagerScreen(
                             }) {
                                 Icon(
                                     painter = painterResource(R.drawable.ic_web),
-                                    contentDescription = stringResource(R.string.filemanager_ftp_info),
-                                    modifier = Modifier.size(20.dp),
+                                    contentDescription = "FTP 信息",
+                                    modifier = Modifier.size(24.dp),
                                     tint = MiuixTheme.colorScheme.onSurface
                                 )
                             }
@@ -458,8 +456,8 @@ fun FileManagerScreen(
                                 showNewTypeDialog = true
                             }) {
                                 Icon(
-                                    painter = painterResource(R.drawable.ic_add),
-                                    contentDescription = stringResource(R.string.folder),
+                                    imageVector = MiuixGlassIcons.AddFolder,
+                                    contentDescription = "文件夹",
                                     modifier = Modifier.size(24.dp),
                                     tint = MiuixTheme.colorScheme.onSurface
                                 )

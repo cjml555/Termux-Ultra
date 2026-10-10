@@ -14,6 +14,11 @@ on:
         required: false
         type: boolean
         default: false
+  # repository_dispatch：由 release_tag.yml 在创建 Release 后显式触发（替代 workflow_dispatch + PAT）。
+  # 使用 event_type=trigger-release-apk，tag/build_universal 通过 client_payload 传入。
+  # 该 API 支持 GITHUB_TOKEN，不再依赖 secrets.PAT。
+  repository_dispatch:
+    types: [trigger-release-apk]
 
 # 同一 tag 的发布构建串行化：不取消进行中的运行，避免构建到一半被打断、
 # 结果 Release 上只挂了一半架构的包。
@@ -24,6 +29,19 @@ concurrency:
 permissions:
   contents: write
 
+# 【安全】签名材料全部从 Secrets 注入，本文件不得出现任何明文。
+# 放在作业级而不是 workflow 级 env，是为了把可见范围限制在真正需要签名的
+# 两个构建作业上 —— preflight / 上传 Release 资产等作业拿不到签名材料。
+#
+# 需要的仓库 Secrets：
+#   JKS_BASE64                    release 私钥库的 base64（必填）
+#   KI_TERMINAL_STORE_PASSWORD    keystore 口令（必填）
+#   KI_TERMINAL_KEY_PASSWORD      私钥口令（必填）
+#   KI_TERMINAL_KEY_ALIAS         alias，缺省回落到 ki-terminal（可选）
+# 口令取值与环境变量的对应关系见 app/build.gradle 的 signingConfigs.release。
+env:
+  # AgentPaw 依赖走 GitHub Packages（公开包也要 token），gradle 仓库源读取该变量
+  GITHUB_PACKAGES_TOKEN: ${{ github.token }}
 
 jobs:
   # ── 1. 预检：Release 里是否已经有 APK ───────────────────────────────
@@ -33,32 +51,36 @@ jobs:
     outputs:
       tag: ${{ steps.check.outputs.tag }}
       skip: ${{ steps.check.outputs.skip }}
+      build_universal: ${{ steps.check.outputs.build_universal }}
     steps:
       - name: 检查 Release 是否已附带 APK
         id: check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # release 事件 → 触发 tag；workflow_dispatch → 手动输入的 tag
-          tag="${{ github.event.release.tag_name || inputs.tag }}"
+          # 三种触发源的 tag 取值优先级：
+          #   1. repository_dispatch → client_payload.tag
+          #   2. release             → github.event.release.tag_name
+          #   3. workflow_dispatch   → inputs.tag
+          tag="${{ github.event.client_payload.tag || github.event.release.tag_name || inputs.tag }}"
+          # build_universal：release 事件始终构建；dispatch 事件由传入决定；手动默认 false
+          if [ "${{ github.event_name }}" = "release" ]; then
+            build_universal=true
+          elif [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            build_universal="${{ github.event.client_payload.build_universal || true }}"
+          else
+            build_universal="${{ inputs.build_universal || false }}"
+          fi
           if [ -z "$tag" ]; then
-            echo "::error::无法确定 tag：release 事件的 tag_name 和 workflow_dispatch 的 inputs.tag 都为空"
+            echo "::error::无法确定 tag：release 事件的 tag_name、workflow_dispatch 的 inputs.tag、repository_dispatch 的 client_payload.tag 都为空"
             exit 1
           fi
-          echo "目标 tag: $tag"
+          echo "目标 tag: $tag  build_universal: $build_universal  触发源: ${{ github.event_name }}"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          # releases/tags/<tag> da 404 para borradores, asi que se consulta el
-          # listado, que si los incluye. Con el 404, jq no encontraba assets y
-          # el preflight daba por bueno un release al que luego no se puede
-          # subir nada.
-          release_json=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
-            | jq -c --arg tag "$tag" '.[] | select(.tag_name == $tag)' || true)
-          if [ -z "$release_json" ]; then
-            echo "::error::No existe un release con el tag $tag"
-            exit 1
-          fi
-          assets=$(echo "$release_json" | jq -r '.assets[]?.name' 2>/dev/null | grep -i '\.apk$' || true)
+          echo "build_universal=$build_universal" >> "$GITHUB_OUTPUT"
+          api_url="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${tag}"
+          assets=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$api_url" \
+            | jq -r '.assets[]?.name' 2>/dev/null | grep -i '\.apk$' || true)
           if [ -n "$assets" ]; then
             echo "存在 APK assets:"
             echo "$assets"
@@ -72,11 +94,20 @@ jobs:
   # 每个 ABI 一个独立作业：CMake 只为该 ABI 配置与编译，四项原生构建互不干扰，
   # 单作业的内存峰值约 1/4、墙钟时间也降到 1/4 左右；4 个 APK 同时产出。
   # -Ptermux.abi=<abi> 只影响本作业，产物保持 AGP 默认命名 app-<abi>-release.apk。
+  #
+  # 编译逻辑（缓存 + 增量优先 + 全量降级重试 + 失败判定）收敛到
+  # ./.github/actions/gradle-build，与 ci.yml 共用同一份实现。
   build:
     needs: preflight
     if: needs.preflight.outputs.skip == 'false'
     runs-on: ubuntu-26.04
     timeout-minutes: 60
+    env:
+      # 仅本作业可见（见文件头的说明）：preflight / upload 作业拿不到签名材料。
+      JKS_BASE64: ${{ secrets.JKS_BASE64 }}
+      KI_TERMINAL_STORE_PASSWORD: ${{ secrets.KI_TERMINAL_STORE_PASSWORD }}
+      KI_TERMINAL_KEY_PASSWORD: ${{ secrets.KI_TERMINAL_KEY_PASSWORD }}
+      KI_TERMINAL_KEY_ALIAS: ${{ secrets.KI_TERMINAL_KEY_ALIAS }}
     strategy:
       # 某一架构编译失败时不取消其它架构：能一眼区分「某架构特有问题」
       # 还是「全架构共性问题」。
@@ -98,7 +129,9 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: gradle
+          # 刻意不启用 cache: gradle —— 它内部走 actions/cache，PR 上会无条件
+          # 回写并挤占主线缓存配额；且 ~/.gradle 已由 gradle-build action 完整
+          # 覆盖，留着属重复覆盖。详见 .github/actions/gradle-build/action.yml
 
       - name: 解码 JKS 到 app 目录
         env:
@@ -113,21 +146,17 @@ jobs:
           test -s app/ki-terminal-release.jks
           echo "JKS 写入完成：$(stat -c%s app/ki-terminal-release.jks) 字节"
 
-      - name: 编译 ${{ matrix.abi }} Release APK
-        env:
-          # 关键：TERMUX_WORKFLOW_CLI=false，否则会打 CLI 版本！
-          TERMUX_WORKFLOW_CLI: "false"
-          # file() dentro del módulo :app ya resuelve desde app/, así que la
-          # ruta NO lleva el prefijo app/: con él Gradle buscaría en
-          # app/app/ki-terminal-release.jks, no lo encontraría, y
-          # packageRelease fallaría con 'missing required property storeFile'.
-          # build.gradle 现在从环境读签名信息，不再硬编码
-          TERMUX_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
-          TERMUX_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-          TERMUX_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          TERMUX_KEYSTORE_PATH: "ki-terminal-release.jks"
-        run: |
-          ./gradlew :app:assembleRelease -Ptermux.abi=${{ matrix.abi }} --console=plain
+      # 签名配置（signingConfigs.release / buildTypes.release.signingConfig）
+      # 仍由 app/build.gradle 读取上面解码出的 JKS，此处逻辑未做任何改动。
+      # 关键：TERMUX_WORKFLOW_CLI=false，否则会打 CLI 版本！
+      - name: 编译 ${{ matrix.abi }} Release APK（增量优先，失败自动全量重试一次）
+        uses: ./.github/actions/gradle-build
+        with:
+          gradle-task: ':app:assembleRelease'
+          variant: release
+          abi: ${{ matrix.abi }}
+          termux-workflow-cli: 'false'
+          artifact-glob: 'app/build/outputs/apk/release/*.apk'
 
       # 体积优化流程已取消（收益有限且拖慢构建）：直接采用 Gradle 已签名产物上传。
 
@@ -147,9 +176,16 @@ jobs:
   # 手动触发时由 inputs.build_universal 决定（默认 false，只想要分架构包时可省掉这趟）。
   build_universal:
     needs: preflight
-    if: needs.preflight.outputs.skip == 'false' && (github.event_name == 'release' || inputs.build_universal == true)
+    # 优先以 preflight 计算出的 build_universal 标志为准，兼容三种触发源。
+    if: needs.preflight.outputs.skip == 'false' && needs.preflight.outputs.build_universal == 'true'
     runs-on: ubuntu-26.04
     timeout-minutes: 120
+    env:
+      # 同上：签名材料只注入真正需要它的构建作业。
+      JKS_BASE64: ${{ secrets.JKS_BASE64 }}
+      KI_TERMINAL_STORE_PASSWORD: ${{ secrets.KI_TERMINAL_STORE_PASSWORD }}
+      KI_TERMINAL_KEY_PASSWORD: ${{ secrets.KI_TERMINAL_KEY_PASSWORD }}
+      KI_TERMINAL_KEY_ALIAS: ${{ secrets.KI_TERMINAL_KEY_ALIAS }}
     steps:
       - name: 检出 main 主线
         uses: actions/checkout@v7
@@ -161,7 +197,9 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: gradle
+          # 刻意不启用 cache: gradle —— 它内部走 actions/cache，PR 上会无条件
+          # 回写并挤占主线缓存配额；且 ~/.gradle 已由 gradle-build action 完整
+          # 覆盖，留着属重复覆盖。详见 .github/actions/gradle-build/action.yml
 
       - name: 解码 JKS 到 app 目录
         env:
@@ -175,16 +213,16 @@ jobs:
           test -s app/ki-terminal-release.jks
           echo "JKS 写入完成：$(stat -c%s app/ki-terminal-release.jks) 字节"
 
-      - name: 编译 universal Release APK
-        env:
-          TERMUX_WORKFLOW_CLI: "false"
-          TERMUX_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
-          TERMUX_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-          TERMUX_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          TERMUX_KEYSTORE_PATH: "ki-terminal-release.jks"
-        run: |
-          # -Ptermux.abi=universal → 关闭 ABI 拆分，四个架构一起打进一个包
-          ./gradlew :app:assembleRelease -Ptermux.abi=universal --console=plain
+      - name: 编译 universal Release APK（增量优先，失败自动全量重试一次）
+        uses: ./.github/actions/gradle-build
+        with:
+          gradle-task: ':app:assembleRelease'
+          variant: release
+          # -Ptermux.abi=universal → 关闭 ABI 拆分，四个架构一起打进一个包。
+          # 独立缓存段：与四个单架构作业互不覆盖，各自复用各自的历史产物。
+          abi: universal
+          termux-workflow-cli: 'false'
+          artifact-glob: 'app/build/outputs/apk/release/*.apk'
 
       # 体积优化流程已取消（收益有限且拖慢构建）：直接采用 Gradle 已签名产物上传。
 

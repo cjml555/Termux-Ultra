@@ -2,6 +2,7 @@ package com.termux.app.compose
 
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -34,6 +35,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.glass.GlassIconButton
 import top.yukonga.miuix.kmp.glass.GlassTopAppBar
+import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
+import top.yukonga.miuix.kmp.icon.glass.Add
+import top.yukonga.miuix.kmp.icon.glass.Lock
+import top.yukonga.miuix.kmp.icon.glass.MiuixGlassIcons
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
@@ -52,7 +57,11 @@ import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
+import androidx.compose.material3.CircularProgressIndicator
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Warning
+import com.termux.app.vortex.VorteXSandbox
 
 /**
  * 终端会话列表页。
@@ -73,6 +82,9 @@ fun ComposeTerminalListScreen(
     val currentSessionId by sessionManager.currentSessionId.collectAsState()
 
     val coroutineScope = rememberCoroutineScope()
+    // 沙箱「准备中」状态：首次进入需后台复制约 95MB 的 $PREFIX 影子层
+    var sandboxPreparing by remember { mutableStateOf(false) }
+    val scope = coroutineScope
     var showRenameDialog by remember { mutableStateOf(false) }
     var renameTargetId by remember { mutableStateOf(-1) }
     var newName by remember { mutableStateOf("") }
@@ -95,14 +107,21 @@ fun ComposeTerminalListScreen(
                     title = stringResource(R.string.terminal),
                     backdrop = LocalGlassTopAppBarBackdrop.current,
                     scrollBehavior = scrollBehavior,
-                    actions = {
+                    navigationIcon = {
+                        // 对齐目标是「右侧的 + 图标」，不是「+ 的玻璃底板」：
+                        // 右侧 GlassIconButton 的图标中心距右缘 =
+                        //   actionIconPadding(12) + ButtonPadding(6) + ButtonSize/2(22) = 40dp，
+                        // 因为收缩态下 + 嵌在 44dp 底板里、图标只居中而不贴边。
+                        // 左侧 navigationIcon 槽只有 Box(buttonPadding 6) 且没底板，offset=0 时锁图标
+                        // 中心仅距左缘 12+6+12=30dp，故向内(+x)推 10dp 让两者中心对称。右侧不要动。
                         Row(
+                            modifier = Modifier.offset(x = 10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.ic_lock),
+                                imageVector = MiuixGlassIcons.Lock,
                                 contentDescription = null,
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(24.dp),
                                 tint = MiuixTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.width(4.dp))
@@ -110,31 +129,104 @@ fun ComposeTerminalListScreen(
                                 checked = isWakeLockEnabled,
                                 onCheckedChange = { onToggleWakeLock() }
                             )
-                            GlassIconButton(onClick = {
-                                // 直接用 ComposeSessionManager 创建会话，不依赖 Java 版 onNewTerminal。
-                                // 效仿 Java 版策略：只创建未初始化的终端条目（不拉起进程、不跳转），
-                                // 待用户手动点击该终端卡片进入终端控制台时再初始化。
-                                val createdSession = sessionManager.createDefaultSession(startImmediately = false)
-                                val count = sessionManager.sessions.value.indexOfFirst { it.session.id == createdSession.id }
-                                createdSession.sessionName.value = if (com.termux.app.LocaleHelper.isChinese(context)) {
-                                    context.getString(R.string.session_count_plus, count + 1)
-                                } else {
-                                    context.getString(R.string.session_count_plus, count + 1)
+                        }
+                    },
+                    actions = {
+                        // VorteX 沙箱入口：位于「+」按钮左侧。
+                        // 总开关关闭时图标置灰，点击给出提示（不静默无响应）。
+                        val vortexSandboxEnabled = VorteXSandbox.isEnabled(context)
+                        GlassIconButton(
+                            onClick = {
+                                if (!vortexSandboxEnabled) {
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.vortex_sandbox_disabled_toast),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    return@GlassIconButton
                                 }
-                            }) {
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_add),
-                                    contentDescription = stringResource(R.string.new_terminal),
-                                    modifier = Modifier.size(24.dp),
-                                    tint = MiuixTheme.colorScheme.onSurface
-                                )
+                                // 限制同时仅一个手动沙箱会话：已存在则切换过去
+                                val title = context.getString(R.string.vortex_sandbox_session_title)
+                                val existing = sessionManager.sessions.value.firstOrNull { it.name == title }
+                                if (existing != null) {
+                                    sessionManager.switchTo(existing.session.id)
+                                    return@GlassIconButton
+                                }
+                                // 首次进入需复制约 95MB 的 $PREFIX 到影子层，
+                                // 属磁盘 IO，必须放后台并给出「准备中」提示，不能卡住 UI。
+                                sandboxPreparing = true
+                                VorteXSandbox.prepareAsync(context) {
+                                    // 回调在后台线程，需切回主线程操作会话与状态
+                                    scope.launch {
+                                        sandboxPreparing = false
+                                        runCatching {
+                                            val created = sessionManager.createSandboxSession(startImmediately = true)
+                                            sessionManager.switchTo(created.id)
+                                            VorteXSandbox.setActiveManualSessionId(created.id)
+                                        }
+                                    }
+                                }
                             }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Warning,
+                                contentDescription = stringResource(R.string.vortex_sandbox_title),
+                                modifier = Modifier.size(24.dp),
+                                tint = if (vortexSandboxEnabled) MiuixTheme.colorScheme.onSurface
+                                else MiuixTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                            )
+                        }
+                        GlassIconButton(onClick = {
+                            // 直接用 ComposeSessionManager 创建会话，不依赖 Java 版 onNewTerminal。
+                            // 效仿 Java 版策略：只创建未初始化的终端条目（不拉起进程、不跳转），
+                            // 待用户手动点击该终端卡片进入终端控制台时再初始化。
+                            val createdSession = sessionManager.createDefaultSession(startImmediately = false)
+                            val count = sessionManager.sessions.value.indexOfFirst { it.session.id == createdSession.id }
+                            createdSession.sessionName.value = if (com.termux.app.LocaleHelper.isChinese(context)) {
+                                context.getString(R.string.session_count_plus, count + 1)
+                            } else {
+                                context.getString(R.string.session_count_plus, count + 1)
+                            }
+                        }) {
+                            Icon(
+                                imageVector = MiuixGlassIcons.Add,
+                                contentDescription = stringResource(R.string.new_terminal),
+                                modifier = Modifier.size(24.dp),
+                                tint = MiuixTheme.colorScheme.onSurface
+                            )
                         }
                     }
                 )
             }
         }
     }
+
+    // ---------- 沙箱准备中 ----------
+    // 无标题（title 传空串）的 WindowDialog，只有 Loading 提示。
+    // 准备期间禁止关闭：影子层拷贝必须跑完，否则半成品目录会被当成已就绪。
+    OverlayDialog(
+        show = sandboxPreparing,
+        title = "",
+        summary = "",
+        onDismissRequest = { /* 准备中不可取消 */ },
+        content = {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    strokeWidth = 2.dp,
+                    color = MiuixTheme.colorScheme.primary
+                )
+                Text(
+                    text = stringResource(R.string.vortex_sandbox_preparing),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    )
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -344,6 +436,11 @@ fun ComposeTerminalListScreen(
                                         sessionManager.killSession(info.session.id)
                                     },
                                     onRename = {
+                                        // 沙箱会话禁止重命名：清理逻辑以标题
+                                        // 「沙箱会话」为锚点，改名会导致会话结束时
+                                        // 影子空间（~95MB）无法被回收。
+                                        val sandboxTitle = context.getString(R.string.vortex_sandbox_session_title)
+                                        if (sessionName == sandboxTitle) return@ComposeTerminalCard
                                         renameTargetId = info.session.id
                                         newName = sessionName.ifEmpty { info.name }
                                         showRenameDialog = true

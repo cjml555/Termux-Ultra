@@ -1,0 +1,260 @@
+name: 发布 Release Tag
+
+# 专职「打 Release 标签 + 生成 Release 详情页」，与 release_apk.yml（负责上传 APK）完全独立：
+#   - 本工作流仅手动（workflow_dispatch）触发，提交版本号改动并发布「无产物」Release；
+#   - 发布完成后，本工作流显式（用 PAT）dispatch release_apk.yml，由其构建并上传 APK 到本 Release。
+# 注：release_apk.yml 虽同时监听 release: published 事件，但本工作流用 GITHUB_TOKEN 创建的
+#     Release 不会触发该事件（GitHub 禁止 GITHUB_TOKEN 引发的事件链式拉起新 workflow run），
+#     因此必须显式 dispatch。两条流程互不改写对方、互不阻塞。
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "新版本 tag，须严格符合 x.y.z.Rn 格式（如 3.1.0.R7）。Rn 为构建序号，比对角忽略。"
+        required: true
+        type: string
+
+# 串行化：同一时间只允许一个手动发布在跑，避免并发提交互相覆盖 main。
+concurrency:
+  group: release-tag
+  cancel-in-progress: false
+
+# 仅 contents: write 即可完成「提交版本改动」与「创建 Release」两件事。
+permissions:
+  contents: write
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  release:
+    runs-on: ubuntu-26.04
+    steps:
+      # ── 0. 格式校验（最优先、最快失败）──────────────────────────────
+      # 约束：tag 必须严格符合 x.y.z.Rn；格式不合规 → 立即报错并终止。
+      - name: 校验 tag 格式
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          if ! printf '%s' "$TAG" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.R[0-9]+$'; then
+            echo "::error::tag 格式不合规：$TAG —— 必须严格符合 x.y.z.Rn（如 3.1.0.R7）"
+            exit 1
+          fi
+          echo "✅ tag 格式合规: $TAG"
+
+      # ── 1. 权限校验：仅 admin / maintain / write 可触发 ──────────────
+      - name: 校验触发者权限
+        run: |
+          set -euo pipefail
+          ACTOR="${{ github.actor }}"
+          PERM=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/collaborators/$ACTOR/permission" \
+            | jq -r '.permission // empty')
+          echo "触发者 $ACTOR 仓库权限: $PERM"
+          case "$PERM" in
+            admin|write|maintain) echo "✅ 权限校验通过" ;;
+            *) echo "::error::权限不足：仅 admin / maintain / write 可触发本工作流（当前为 ${PERM:-无}）"; exit 1 ;;
+          esac
+
+      - name: 检出 main 主线
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      # ── 2. 分段比对（忽略 Rn）+ 优先级短路 + 改写 + 提交 ─────────────
+      # 优先级短路规则（按顺序，前条件成立即跳过后续）：
+      #   x 段变化            → VersionCode += 100，结束
+      #   否则 y 段变化       → VersionCode += 10，结束
+      #   否则 z 段变化       → VersionCode += 1，结束
+      #   否则（x/y/z 完全一致）→ 进一步比对 Rx：
+      #        Rx 更高       → VersionCode += 1，并按原逻辑替换 VersionName，提交
+      #        Rx 相同       → 跳过 build.gradle 全部修改与提交，直接进入发布
+      #        Rx 更低       → 报错退出（禁止降级）
+      - name: 比对版本号并改写 app/build.gradle
+        id: bump
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+
+          OLD_VERSION_CODE=$(grep -oE 'versionCode [0-9]+' app/build.gradle | head -1 | sed -E 's/versionCode ([0-9]+)/\1/')
+          OLD_VERSION_NAME=$(grep -oE 'versionName "[^"]*"' app/build.gradle | head -1 | sed -E 's/versionName "([^"]*)"/\1/')
+          echo "当前 VersionCode=$OLD_VERSION_CODE  VersionName=$OLD_VERSION_NAME"
+
+          # 去掉 Rn 后缀，仅取 x.y.z
+          OLD_BASE="${OLD_VERSION_NAME%.R*}"
+          NEW_BASE="${TAG%.R*}"
+          OLD_X="${OLD_BASE%%.*}"; OLD_YZ="${OLD_BASE#*.}"; OLD_Y="${OLD_YZ%%.*}"; OLD_Z="${OLD_YZ#*.}"
+          NEW_X="${NEW_BASE%%.*}"; NEW_YZ="${NEW_BASE#*.}"; NEW_Y="${NEW_YZ%%.*}"; NEW_Z="${NEW_YZ#*.}"
+          # 取 Rn 中的数字 n（无 R 后缀时默认为 0）
+          OLD_R=$(printf '%s' "$OLD_VERSION_NAME" | sed -nE 's/.*\.R([0-9]+).*/\1/p'); if [ -z "$OLD_R" ]; then OLD_R=0; fi
+          NEW_R=$(printf '%s' "$TAG"             | sed -nE 's/.*\.R([0-9]+).*/\1/p'); if [ -z "$NEW_R" ]; then NEW_R=0; fi
+          echo "分段：当前 ${OLD_X}.${OLD_Y}.${OLD_Z}.R${OLD_R}  vs  新 ${NEW_X}.${NEW_Y}.${NEW_Z}.R${NEW_R}"
+
+          # 优先级短路：x 成立即跳过 y/z；否则 y 成立即跳过 z；否则在 x/y/z 一致时比对 Rx
+          DELTA=0
+          CHANGED="none"
+          SKIP=false
+          if [ "$NEW_X" -ne "$OLD_X" ]; then
+            DELTA=100; CHANGED="x"
+          elif [ "$NEW_Y" -ne "$OLD_Y" ]; then
+            DELTA=10;  CHANGED="y"
+          elif [ "$NEW_Z" -ne "$OLD_Z" ]; then
+            DELTA=1;   CHANGED="z"
+          else
+            # —— x/y/z 完全一致：进一步比对 Rx ——
+            if [ "$NEW_R" -gt "$OLD_R" ]; then
+              DELTA=1; CHANGED="Rx"
+            elif [ "$NEW_R" -eq "$OLD_R" ]; then
+              SKIP=true; CHANGED="skip"
+            else
+              echo "::error::提交的 Rx($NEW_R) 低于当前 Rx($OLD_R)，禁止降级发布"
+              exit 1
+            fi
+          fi
+          echo "变更段=${CHANGED}  VersionCode delta=+${DELTA}  skip=${SKIP}"
+
+          # Rx 相同分支：跳过对 build.gradle 的全部修改与提交，直接发布当前 main
+          if [ "$SKIP" = "true" ]; then
+            echo "ℹ️ x/y/z/Rx 均与当前完全一致 → 跳过 build.gradle 全部修改与提交，直接进入 Release 发布"
+            CURRENT_SHA=$(git rev-parse HEAD)
+            echo "sha=$CURRENT_SHA" >> "$GITHUB_OUTPUT"
+            echo "skipped=true"     >> "$GITHUB_OUTPUT"
+            echo "✅ 无改动，将以当前 main HEAD($CURRENT_SHA) 作为 Release target"
+            exit 0
+          fi
+
+          NEW_VERSION_CODE=$((OLD_VERSION_CODE + DELTA))
+
+          # 2a. VersionCode：仅替换数字
+          sed -i -E "s/(versionCode )[0-9]+/\1${NEW_VERSION_CODE}/" app/build.gradle
+          # 2b. VersionName：仅替换双引号内的内容（保留引号）
+          sed -i -E "s/(versionName \")[^\"]*(\")/\1${TAG}\2/" app/build.gradle
+
+          echo "修改后："
+          grep -E '^\s*versionCode |^\s*versionName "' app/build.gradle | head -2
+
+          # 3. 在 main 直接 commit
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/build.gradle
+          git commit -m "chore(release): bump to ${TAG} (VersionCode ${OLD_VERSION_CODE} → ${NEW_VERSION_CODE})"
+          SHA=$(git rev-parse HEAD)
+          git push origin main
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "skipped=false" >> "$GITHUB_OUTPUT"
+          echo "✅ 已提交并推送 ${SHA}（VersionCode ${OLD_VERSION_CODE} → ${NEW_VERSION_CODE}, VersionName → ${TAG}）"
+
+      # ── 3. 发布 Release（无产物，详情基于 OLD_TAG..NEW_SHA 区间）──────
+      - name: 发布 Release（无产物）
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          SHA="${{ steps.bump.outputs.sha }}"
+
+          # 防重：tag 已存在则中止
+          if git rev-parse --verify "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "::error::Tag $TAG 已存在，中止发布"
+            exit 1
+          fi
+
+          # ── 找到仓库当前 tag 作为 diff 起点 ──
+          # 规则：取 main HEAD 上已有的 tag（git describe），而非上一个"已发布"的 release tag。
+          # 这样用户输入 3.3.11.R7 时，changlog 就是 3.3.10.R7..HEAD，符合预期。
+          # 两种异常回退：
+          #   a) HEAD 没有 tag（首次发布或 tag 未 push） → 回退为 gh release list 最新 release
+          #   b) 连 release 也没有（真·首次） → git log --all 截取
+          OLD_TAG=$(git describe --tags --abbrev=0 HEAD 2>/dev/null || true)
+          if [ -z "$OLD_TAG" ]; then
+            OLD_TAG=$(gh release list --limit 1 --json tagName -r .[].tagName 2>/dev/null || true)
+            if [ -n "$OLD_TAG" ]; then
+              echo "⚠️  HEAD 没有本地 tag，回退用最新 release tag: $OLD_TAG"
+            fi
+          fi
+          if [ -n "$OLD_TAG" ]; then
+            # 禁止把自己当起点（HEAD 已经是 NEW_TAG 的情况不该出现，防重已拦截）
+            if [ "$OLD_TAG" = "$TAG" ]; then
+              echo "::error::仓库当前 tag ($OLD_TAG) 与目标 tag 相同，请输入更高版本号"
+              exit 1
+            fi
+            echo "✅ 仓库当前 tag: $OLD_TAG  →  新 tag: $TAG"
+            RANGE="$OLD_TAG"
+          else
+            echo "⚠️  仓库尚无任何 tag / release，使用 git log --all 作为 changelog 来源"
+            RANGE=""
+          fi
+
+          # ── 生成 What's Changed 段落 ──
+          # 格式：每行 "- <subject> (@<author_login>) <short_sha>"
+          #   * --no-merges 排除合并提交（噪声）
+          #   * --reverse 按时间正序（新的在下，和 GitHub 原生 release 一致）
+          #   * date 作为副标题
+          {
+            echo "## What's Changed"
+            echo ""
+            if [ -n "$RANGE" ]; then
+              COUNT=$(git log "$RANGE".."$SHA" --no-merges --pretty=format:%H | wc -l | tr -d ' ')
+              echo "*从 $OLD_TAG 到 $TAG 共 $COUNT 个提交*"
+              echo ""
+              git log "$RANGE".."$SHA" --no-merges --reverse \
+                --pretty=format:'- %s (@%an) %h' || true
+            else
+              COUNT=$(git log --all --no-merges --pretty=format:%H | wc -l | tr -d ' ')
+              echo "*首次发布，从仓库初始状态到 $TAG 共 $COUNT 个提交*"
+              echo ""
+              git log --all --no-merges --reverse \
+                --pretty=format:'- %s (@%an) %h' | head -200 || true
+            fi
+            echo ""
+            echo ""
+            echo "_由 release_tag.yml 自动生成于 $(date -u '+%Y-%m-%dT%H:%M:%SZ')_"
+          } > "$RUNNER_TEMP/notes.md"
+
+          echo "📝 changelog 已写入 $(wc -l < "$RUNNER_TEMP/notes.md") 行"
+
+          # 发布：不附带任何产物；随后由本工作流显式 dispatch release_apk.yml 接管 APK 上传
+          gh release create "$TAG" \
+            --target "$SHA" \
+            --title "$TAG" \
+            --notes-file "$RUNNER_TEMP/notes.md"
+          echo "✅ 已发布 Release: $TAG（无产物，随后将显式拉起 release_apk.yml）"
+
+      # ── 4. 链式触发 release_apk.yml：构建并上传 APK 到本 Release ──────
+      # 关键：本工作流用 GITHUB_TOKEN 创建的 Release 不会触发 release_apk.yml 监听的
+      # release: published 事件（GitHub 禁止 GITHUB_TOKEN 引发的事件链式拉起新 workflow run），
+      # 因此必须显式 dispatch。
+      # 原实现使用 PAT + workflow_dispatch API，但仓库未配置 secrets.PAT 会导致 401。
+      # 改用 repository_dispatch API 触发——它支持 GITHUB_TOKEN 且只需要 contents: write 权限，
+      # release_apk.yml 已同步添加 repository_dispatch: [trigger-release-apk] 触发源。
+      # 该步骤与前面「版本比对是否 skip」无关——无论是否修改 build.gradle，Release 都已发布，
+      # 故始终拉起 APK 构建；传 build_universal=true 以复刻 release 事件的完整产物集（4 架构 + universal）。
+      - name: 触发 APK 构建与发布 (release_apk.yml)
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          echo "通过 repository_dispatch 触发 release_apk.yml (tag=$TAG, build_universal=true)..."
+
+          # 等待刚创建的 Release 在 API 侧可见，避免 release_apk.yml 预检竞态
+          sleep 5
+
+          resp=$(curl -s -w "\nHTTP:%{http_code}" -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/dispatches" \
+            -d "{
+              \"event_type\": \"trigger-release-apk\",
+              \"client_payload\": {
+                \"tag\": \"$TAG\",
+                \"build_universal\": true
+              }
+            }")
+
+          code=$(echo "$resp" | tail -1 | sed 's/HTTP://')
+          if [ "$code" = "204" ]; then
+            echo "✅ 已拉起 release_apk.yml，APK 构建与上传由其自动接管"
+          else
+            echo "::error::触发 release_apk.yml 失败 HTTP $code"
+            echo "$resp" | sed '$d'
+            exit 1
+          fi

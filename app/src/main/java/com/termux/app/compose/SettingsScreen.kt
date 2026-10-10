@@ -1,6 +1,5 @@
 package com.termux.app.compose
 
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Handler
@@ -61,11 +60,15 @@ import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.WindowSpinnerPreference
 import top.yukonga.miuix.kmp.basic.DropdownItem
+import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import com.termux.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Launch
 import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.CircularProgressIndicator
+import com.termux.app.RuntimeEnvironmentResetter
+import com.termux.app.vortex.VorteXSandbox
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.graphics.painter.Painter
@@ -75,8 +78,6 @@ import com.termux.app.compose.LocalTopBarClearance
 import com.termux.app.compose.AiLocalModel
 import com.termux.app.compose.SkillType
 import com.termux.app.utils.SnackbarHelper
-import com.termux.shared.termux.settings.preferences.TermuxAppSharedPreferences
-import com.termux.shared.logger.Logger
 import com.google.android.material.snackbar.Snackbar
 import java.io.File
 
@@ -134,6 +135,14 @@ fun SettingsScreen(
     var showResetConfigWarning by remember { mutableStateOf(false) }
     var showWhitelistDialog by remember { mutableStateOf(false) }
     var tempWhitelistSkills by remember { mutableStateOf<Set<SkillType>>(emptySet()) }
+
+    // ---------- Reset Runtime Env state ----------
+    var showResetEnvConfirm by remember { mutableStateOf(false) }
+    var showResetEnvProgress by remember { mutableStateOf(false) }
+    var resetEnvStep by remember { mutableStateOf(RuntimeEnvironmentResetter.Step.DOWNLOADING) }
+    var resetEnvMessage by remember { mutableStateOf("") }
+    var resetEnvFailMode by remember { mutableStateOf<Int?>(null) }
+    var resetEnvErrorMsg by remember { mutableStateOf("") }
 
     // Whitelistable skills definition：与 SkillType.requiresClick() 中可白名单化的类型保持一致
     val whitelistSkillLabels = remember {
@@ -220,22 +229,8 @@ fun SettingsScreen(
 
 
 
-    // Terminal settings（通用项：日志级别等还被 Logger 消费）
-    val terminalPrefs = remember { TermuxAppSharedPreferences.build(context) }
-    var logLevel by remember { mutableStateOf(terminalPrefs?.logLevel ?: Logger.DEFAULT_LOG_LEVEL) }
-
-    // Terminal settings - Kotlin+Compose mode（订阅 ComposeTerminalSettings StateFlow，
-    // 单一事实来源：写入经 setter 持久化到 SP，显示实时同步，重进设置页不回退）
-    com.termux.app.terminal.shell.ComposeTerminalSettings.init(context)
-    val composeFontSize by com.termux.app.terminal.shell.ComposeTerminalSettings.fontSize.collectAsState()
-    val composeCursorBlink by com.termux.app.terminal.shell.ComposeTerminalSettings.cursorBlink.collectAsState()
-    val composeScrollbackLines by com.termux.app.terminal.shell.ComposeTerminalSettings.scrollbackLines.collectAsState()
-val composeCursorStyleName by com.termux.app.terminal.shell.ComposeTerminalSettings.cursorStyleName.collectAsState()
-val composeTextBlinking by com.termux.app.terminal.shell.ComposeTerminalSettings.textBlinking.collectAsState()
-val composeSoftKeyboard by com.termux.app.terminal.shell.ComposeTerminalSettings.softKeyboard.collectAsState()
-val composeSoftKeyboardOnlyIfNoHardware by com.termux.app.terminal.shell.ComposeTerminalSettings.softKeyboardOnlyIfNoHardware.collectAsState()
-val composeKeyLogging by com.termux.app.terminal.shell.ComposeTerminalSettings.keyLogging.collectAsState()
-val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTerminalSettings.useCustomKeyboardLayout.collectAsState()
+    // 终端相关设置已拆分到独立子页面（控制台设置 / 按键设置 / 控制台日志 / 控制台个性化），
+    // 各自在对应 Activity 中完成 ComposeTerminalSettings 等初始化，设置主页不再内联这些项。
 
     // Material You 动态取色：与上面终端设置同一套路（偏好即 StateFlow）
     AppThemePrefs.init(context)
@@ -259,10 +254,6 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
     val widgetStandaloneInstalled = IntegratedTools.isStandaloneInstalled(context, IntegratedTools.Tool.TERMUX_WIDGET)
 
     val replacedSummary = context.getString(R.string.standalone_plugin_installed_summary)
-
-    // Tool configuration / help dialog visibility
-    var showApiHelpDialog by remember { mutableStateOf(false) }
-    var showBootHelpDialog by remember { mutableStateOf(false) }
 
     val languageOptions = listOf(
         context.getString(R.string.chinese),
@@ -537,70 +528,11 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
         }
     }
 
-    // Tool configuration entries — only shown for tools that are enabled. Tools with a dedicated
-    // settings UI open their Activity; tools without one (API/Boot) show a usage guide dialog.
-    val toolConfigItems = remember(
-        termuxApiEnabled, termuxBootEnabled, termuxStylingEnabled,
-        termuxTaskerEnabled, termuxWidgetEnabled
-    ) {
-        buildList {
-            if (termuxApiEnabled) {
-                add(SettingItem(
-                    title = context.getString(R.string.termux_api_help),
-                    description = context.getString(R.string.termux_api_help_summary),
-                    icon = Icons.Rounded.Terminal,
-                    action = { showApiHelpDialog = true }
-                ))
-            }
-            if (termuxBootEnabled) {
-                add(SettingItem(
-                    title = context.getString(R.string.termux_boot_help),
-                    description = context.getString(R.string.termux_boot_help_summary),
-                    icon = Icons.AutoMirrored.Rounded.Launch,
-                    action = { showBootHelpDialog = true }
-                ))
-            }
-            if (termuxStylingEnabled) {
-                add(SettingItem(
-                    title = context.getString(R.string.termux_styling_config),
-                    description = context.getString(R.string.termux_styling_config_summary),
-                    icon = Icons.Rounded.Palette,
-                    action = {
-                        val intent = Intent().apply {
-                            component = ComponentName(context.packageName, "com.termux.app.activities.TermuxStylingActivity")
-                        }
-                        runCatching { context.startActivity(intent) }
-                    }
-                ))
-            }
-            if (termuxTaskerEnabled) {
-                add(SettingItem(
-                    title = context.getString(R.string.termux_tasker_config),
-                    description = context.getString(R.string.termux_tasker_config_summary),
-                    icon = Icons.Rounded.Tune,
-                    action = {
-                        val intent = Intent().apply {
-                            component = ComponentName(context.packageName, "com.termux.app.activities.TermuxTaskerActivity")
-                        }
-                        runCatching { context.startActivity(intent) }
-                    }
-                ))
-            }
-            if (termuxWidgetEnabled) {
-                add(SettingItem(
-                    title = context.getString(R.string.termux_widget_config),
-                    description = context.getString(R.string.termux_widget_config_summary),
-                    icon = Icons.Rounded.Star,
-                    action = {
-                        val intent = Intent().apply {
-                            component = ComponentName(context.packageName, "com.termux.app.activities.TermuxWidgetActivity")
-                        }
-                        runCatching { context.startActivity(intent) }
-                    }
-                ))
-            }
-        }
-    }
+    // 「配置集成工具」入口可见性：五个开关任一为开即显示，全关即隐藏。
+    // 判断放在渲染处而不是缓存成 val，开关 onCheckedChange 改的是 termuxXxxEnabled，
+    // 重组时重新求值才能做到即时显隐。
+    val anyIntegratedToolEnabled = termuxApiEnabled || termuxBootEnabled || termuxStylingEnabled ||
+        termuxTaskerEnabled || termuxWidgetEnabled
     // 与「统一顶栏之前」一致：本页自持吸顶状态
     val scrollBehavior = MiuixScrollBehavior()
     // 统一全局顶栏：仅当前激活页把本页的 TopAppBar 内容写入 onTopBarContent 槽
@@ -618,11 +550,11 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
 
     // ===== 搜索索引：所有可搜索设置项（独立 Card 展示 + 保留交互）=====
     val sec_appearance = context.getString(R.string.appearance)
+    val sec_pkg_mgmt = context.getString(R.string.pkg_mgmt_category)
     val sec_remote = context.getString(R.string.remote)
     val sec_terminal = context.getString(R.string.terminal)
     val sec_tools = context.getString(R.string.integrated_tools_category)
     val sec_ai = "Termux Agent"
-    val sec_tool_config = context.getString(R.string.tool_config_category)
     val sec_security = context.getString(R.string.security_settings)
     val sec_system = context.getString(R.string.system_category)
     val sec_backup = context.getString(R.string.backup_category)
@@ -738,8 +670,8 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                     startAction = { SettingIcon(Icons.Rounded.SwapHoriz, contentDescription = context.getString(R.string.horizontal_tip_layout)) }
                 )
             }),
-        SearchableSetting(sec_appearance, context.getString(R.string.pkg_view_mode), context.getString(R.string.pkg_view_mode_desc),
-            keywords = listOf("paquete", "gestor de paquetes", "package", "categorias", "lista", "view mode"),
+        SearchableSetting(sec_pkg_mgmt, context.getString(R.string.pkg_view_mode), context.getString(R.string.pkg_view_mode_desc),
+            keywords = listOf("软件包", "包管理", "package", "分类", "列表", "view mode"),
             render = {
                 OverlayDropdownPreference(
                     title = context.getString(R.string.pkg_view_mode),
@@ -748,6 +680,16 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                     selectedIndex = pkgViewModeIndex,
                     onSelectedIndexChange = { idx -> pkgViewModeIndex = idx; prefs.edit().putInt("KEY_PKG_VIEW_MODE", idx).apply() },
                     startAction = { SettingIcon(Icons.Rounded.Folder, contentDescription = context.getString(R.string.pkg_view_mode)) }
+                )
+            }),
+        SearchableSetting(sec_pkg_mgmt, context.getString(R.string.pkg_edit_sources), context.getString(R.string.pkg_edit_sources_desc),
+            keywords = listOf("软件源", "源", "source", "mirror", "apt", "repository"),
+            render = {
+                ArrowPreference(
+                    title = context.getString(R.string.pkg_edit_sources),
+                    summary = context.getString(R.string.pkg_edit_sources_desc),
+                    onClick = { openSoftwareSourceSettings(context) },
+                    startAction = { SettingIcon(Icons.Rounded.Dns, contentDescription = context.getString(R.string.pkg_edit_sources)) }
                 )
             }),
 
@@ -771,127 +713,44 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
             }),
 
         // ===== Terminal =====
-
-        SearchableSetting(sec_terminal, context.getString(R.string.pref_auto_start_console_title),
-            context.getString(R.string.pref_auto_start_console_summary),
-            keywords = listOf("automatico", "arranque", "consola", "console", "auto", "launch", "startup", "session"),
+        SearchableSetting(sec_terminal, context.getString(R.string.console_settings), context.getString(R.string.console_settings_desc),
+            keywords = listOf("控制台", "字体", "光标", "闪烁", "滚动", "缓冲区", "console", "font", "cursor", "blink", "scrollback"),
             render = {
-                SwitchPreference(
-                    title = context.getString(R.string.pref_auto_start_console_title),
-                    summary = context.getString(R.string.pref_auto_start_console_summary),
-                    checked = autoStartConsoleEnabled,
-                    onCheckedChange = { LaunchPrefs.setAutoStartConsole(context, it) },
-                    startAction = { SettingIcon(Icons.Rounded.PlayArrow, contentDescription = context.getString(R.string.pref_auto_start_console_title)) }
+                ArrowPreference(
+                    title = context.getString(R.string.console_settings),
+                    summary = context.getString(R.string.console_settings_desc),
+                    onClick = { openConsoleSettings(context) },
+                    startAction = { SettingIcon(Icons.Rounded.Tune) }
                 )
             }),
-        SearchableSetting(sec_terminal, context.getString(R.string.log_level), context.getString(R.string.log_level_desc),
-            keywords = listOf("registro", "log", "depuracion", "debug", "verbose"),
+        SearchableSetting(sec_terminal, context.getString(R.string.key_settings), context.getString(R.string.key_settings_desc),
+            keywords = listOf("按键", "键盘", "软键盘", "物理键盘", "自定义布局", "key", "keyboard", "layout"),
             render = {
-                OverlayDropdownPreference(
-                    title = context.getString(R.string.log_level),
-                    summary = context.getString(R.string.log_level_desc),
-                    items = listOf(context.getString(R.string.off), context.getString(R.string.normal), context.getString(R.string.debug), context.getString(R.string.verbose)),
-                    selectedIndex = logLevel.coerceIn(0, 3),
-                    onSelectedIndexChange = { idx -> logLevel = idx; terminalPrefs?.setLogLevel(context, idx) },
+                ArrowPreference(
+                    title = context.getString(R.string.key_settings),
+                    summary = context.getString(R.string.key_settings_desc),
+                    onClick = { openKeySettings(context) },
+                    startAction = { SettingIcon(Icons.Rounded.Keyboard) }
+                )
+            }),
+        SearchableSetting(sec_terminal, context.getString(R.string.console_log), context.getString(R.string.console_log_desc),
+            keywords = listOf("日志", "按键日志", "日志级别", "log", "debug", "verbose", "key logging"),
+            render = {
+                ArrowPreference(
+                    title = context.getString(R.string.console_log),
+                    summary = context.getString(R.string.console_log_desc),
+                    onClick = { openConsoleLog(context) },
                     startAction = { SettingIcon(Icons.Rounded.BugReport) }
                 )
             }),
-        SearchableSetting(sec_terminal, context.getString(R.string.font_size), context.getString(R.string.font_size_desc),
-            keywords = listOf("fuente", "font", "tamano", "dimension"),
+        SearchableSetting(sec_terminal, context.getString(R.string.console_personalization), context.getString(R.string.console_personalization_desc),
+            keywords = listOf("个性化", "自动启动", "编辑器", "欢迎文本", "motd", "personalization", "auto-start", "editor", "welcome"),
             render = {
-                OverlayDropdownPreference(
-                    title = context.getString(R.string.font_size),
-                    summary = context.getString(R.string.font_size_desc),
-                    items = listOf("10sp", "12sp", "14sp", "16sp", "18sp", "20sp", "24sp"),
-                    selectedIndex = listOf(10, 12, 14, 16, 18, 20, 24).indexOf(composeFontSize).coerceAtLeast(0),
-                    onSelectedIndexChange = { idx ->
-                        com.termux.app.terminal.shell.ComposeTerminalSettings.setFontSize(listOf(10, 12, 14, 16, 18, 20, 24)[idx])
-                    },
-                    startAction = { SettingIcon(Icons.Rounded.FormatSize) }
-                )
-            }),
-        SearchableSetting(sec_terminal, context.getString(R.string.cursor_style), context.getString(R.string.cursor_style_desc),
-            keywords = listOf("cursor", "cursor", "parpadeo", "blink"),
-            render = {
-                OverlayDropdownPreference(
-                    title = context.getString(R.string.cursor_style),
-                    summary = context.getString(R.string.cursor_style_desc),
-                    items = listOf("Bar I", "Underline ▁", "Block ■"),
-                    selectedIndex = listOf("BAR", "UNDERLINE", "BLOCK").indexOf(composeCursorStyleName).coerceAtLeast(0),
-                    onSelectedIndexChange = { idx ->
-                        com.termux.app.terminal.shell.ComposeTerminalSettings.setCursorStyle(
-                            com.awkoo.libterminal.engine.TerminalCursorStyle.valueOf(listOf("BAR", "UNDERLINE", "BLOCK")[idx])
-                        )
-                    },
-                    startAction = { SettingIcon(Icons.Rounded.Terminal) }
-                )
-            }),
-        SearchableSetting(sec_terminal, stringResource(R.string.editor_tools), "",
-            keywords = listOf("editor", "editor", "vim", "edicion de texto"),
-            render = {
-                var editorToolIndex by remember { mutableStateOf(prefs.getString("editor_tool", "internal")?.let { if (it == "vim") 1 else 0 } ?: 0) }
-                OverlayDropdownPreference(
-                    title = stringResource(R.string.editor_tools),
-                    summary = if (editorToolIndex == 0) stringResource(R.string.editor_tool_builtin) else stringResource(R.string.editor_tool_vim_in_terminal),
-                    items = listOf(stringResource(R.string.editor_tool_builtin_short), "Vim"),
-                    selectedIndex = editorToolIndex,
-                    onSelectedIndexChange = { idx ->
-                        editorToolIndex = idx
-                        prefs.edit().putString("editor_tool", if (idx == 0) "internal" else "vim").apply()
-                    },
-                    startAction = { SettingIcon(Icons.Rounded.Edit) }
-                )
-            }),
-        SearchableSetting(sec_terminal, context.getString(R.string.enable_softkeyboard), "",
-            keywords = listOf("teclado en pantalla", "teclado", "keyboard", "metodo de entrada"),
-            render = {
-                SwitchPreference(
-                    title = context.getString(R.string.enable_softkeyboard),
-                    summary = if (composeSoftKeyboard) context.getString(R.string.enabled) else context.getString(R.string.disabled),
-                    checked = composeSoftKeyboard,
-                    onCheckedChange = {
-                        com.termux.app.terminal.shell.ComposeTerminalSettings.setSoftKeyboard(it)
-                    },
-                    startAction = { SettingIcon(Icons.Rounded.Keyboard) }
-                )
-            }),
-        SearchableSetting(sec_terminal, context.getString(R.string.enable_soft_keyboard_no_hw), context.getString(R.string.soft_keyboard_only_if_no_hardware_desc),
-            keywords = listOf("teclado fisico", "teclado fisico", "hardware keyboard"),
-            render = {
-                SwitchPreference(
-                    title = context.getString(R.string.enable_soft_keyboard_no_hw),
-                    summary = context.getString(R.string.soft_keyboard_only_if_no_hardware_desc),
-                    checked = composeSoftKeyboardOnlyIfNoHardware,
-                    onCheckedChange = {
-                        com.termux.app.terminal.shell.ComposeTerminalSettings.setSoftKeyboardOnlyIfNoHardware(it)
-                    },
-                    startAction = { SettingIcon(painterResource(R.drawable.ic_keyboard_disabled)) }
-                )
-            }),
-        SearchableSetting(sec_terminal, context.getString(R.string.terminal_key_logging), context.getString(R.string.terminal_key_logging_desc),
-            keywords = listOf("teclas", "registro", "key logging", "debug"),
-            render = {
-                SwitchPreference(
-                    title = context.getString(R.string.terminal_key_logging),
-                    summary = context.getString(R.string.terminal_key_logging_desc),
-                    checked = composeKeyLogging,
-                    onCheckedChange = {
-                        com.termux.app.terminal.shell.ComposeTerminalSettings.setKeyLogging(it)
-                    },
-                    startAction = { SettingIcon(Icons.Rounded.DeveloperMode) }
-                )
-            }),
-        SearchableSetting(sec_terminal, context.getString(R.string.use_custom_keyboard_layout), context.getString(R.string.use_custom_keyboard_layout_desc),
-            keywords = listOf("teclado", "diseno", "personalizado", "keyboard layout", "custom"),
-            render = {
-                SwitchPreference(
-                    title = context.getString(R.string.use_custom_keyboard_layout),
-                    summary = context.getString(R.string.use_custom_keyboard_layout_desc),
-                    checked = composeUseCustomKeyboardLayout,
-                    onCheckedChange = {
-                        com.termux.app.terminal.shell.ComposeTerminalSettings.setUseCustomKeyboardLayout(it)
-                    },
-                    startAction = { SettingIcon(Icons.Rounded.Keyboard) }
+                ArrowPreference(
+                    title = context.getString(R.string.console_personalization),
+                    summary = context.getString(R.string.console_personalization_desc),
+                    onClick = { openConsolePersonalization(context) },
+                    startAction = { SettingIcon(Icons.Rounded.Palette) }
                 )
             }),
 
@@ -1007,7 +866,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                     title = context.getString(R.string.trust_whitelist),
                     summary = whitelistSummary,
                     enabled = !unlimitedMode,
-                    onClick = { showWhitelistDialog = true },
+                    onClick = { openAiTermuxModelGen(context) },
                     startAction = { SettingIcon(Icons.Rounded.Shield, contentDescription = context.getString(R.string.trust_whitelist)) }
                 )
             }),
@@ -1017,7 +876,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 ArrowPreference(
                     title = context.getString(R.string.reconfigure_ai),
                     summary = context.getString(R.string.reset_config_desc),
-                    onClick = { showResetConfigWarning = true },
+                    onClick = { openAiTermuxModelGen(context) },
                     startAction = { SettingIcon(Icons.Rounded.Autorenew, contentDescription = context.getString(R.string.reconfigure_ai)) }
                 )
             }),
@@ -1027,7 +886,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 ArrowPreference(
                     title = context.getString(R.string.clear_chat_history),
                     summary = context.getString(R.string.clear_agent_history_desc),
-                    onClick = { showAiClearConfirm = true },
+                    onClick = { openAiTermuxMemoryHistory(context) },
                     startAction = { SettingIcon(Icons.Rounded.Delete, contentDescription = context.getString(R.string.clear_chat_history)) }
                 )
             }),
@@ -1037,7 +896,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 ArrowPreference(
                     title = context.getString(R.string.agent_online_config),
                     summary = context.getString(R.string.agent_online_config_desc),
-                    onClick = { showOnlineConfigEditor = true },
+                    onClick = { openAiTermuxModelGen(context) },
                     startAction = { SettingIcon(Icons.Rounded.Cloud, contentDescription = context.getString(R.string.agent_online_config)) }
                 )
             })).toTypedArray() else emptyArray(),
@@ -1047,8 +906,18 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 ArrowPreference(
                     title = context.getString(R.string.agent_profiles),
                     summary = context.getString(R.string.agent_profiles_desc),
-                    onClick = { showProfileManager = true },
+                    onClick = { openAiTermuxModelGen(context) },
                     startAction = { SettingIcon(Icons.Rounded.Dashboard, contentDescription = context.getString(R.string.agent_profiles)) }
+                )
+            }),
+        SearchableSetting(sec_ai, "AgentPaw 设置", "手机操控 Agent，LLM 沿用 Termux Agent 配置",
+            keywords = listOf("agentpaw", "paw", "手机操控", "自动化", "无障碍"),
+            render = {
+                ArrowPreference(
+                    title = "AgentPaw 设置",
+                    summary = "手机操控 Agent，LLM 沿用 Termux Agent 配置",
+                    onClick = { openAgentPawSettings(context) },
+                    startAction = { SettingIcon(painterResource(R.drawable.ic_agentpaw_settings), contentDescription = "AgentPaw 设置") }
                 )
             }),
         SearchableSetting(sec_ai, context.getString(R.string.agent_chat_params), context.getString(R.string.agent_chat_params_desc),
@@ -1057,7 +926,7 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 ArrowPreference(
                     title = context.getString(R.string.agent_chat_params),
                     summary = context.getString(R.string.agent_chat_params_desc),
-                    onClick = { showChatParamsEditor = true },
+                    onClick = { openAiTermuxModelGen(context) },
                     startAction = { SettingIcon(Icons.Rounded.Settings, contentDescription = context.getString(R.string.agent_chat_params)) }
                 )
             }),
@@ -1067,22 +936,18 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 ArrowPreference(
                     title = context.getString(R.string.agent_memory),
                     summary = context.getString(R.string.agent_memory_desc),
-                    onClick = { showMemoryEditor = true },
+                    onClick = { openAiTermuxMemoryHistory(context) },
                     startAction = { SettingIcon(Icons.Rounded.Psychology, contentDescription = context.getString(R.string.agent_memory)) }
                 )
             }),
-        SearchableSetting(sec_ai, context.getString(R.string.developer_mode), context.getString(R.string.developer_mode_desc),
-            keywords = listOf("desarrollador", "developer", "depuracion", "debug", "sin limite", "unrestricted"),
+        SearchableSetting(sec_ai, context.getString(R.string.developer_settings_title), context.getString(R.string.developer_settings_nav_desc),
+            keywords = listOf("开发者", "developer", "调试", "debug", "无限制", "unrestricted", "系统提示", "system prompt", "自定义技能", "custom skill"),
             render = {
-                SwitchPreference(
-                    title = context.getString(R.string.developer_mode),
-                    summary = context.getString(R.string.developer_mode_desc),
-                    checked = aiDeveloperMode,
-                    onCheckedChange = {
-                        aiDeveloperMode = it
-                        AiTermuxPrefs.setDeveloperMode(context, it)
-                    },
-                    startAction = { SettingIcon(Icons.Rounded.Build, contentDescription = context.getString(R.string.developer_mode)) }
+                ArrowPreference(
+                    title = context.getString(R.string.developer_settings_title),
+                    summary = context.getString(R.string.developer_settings_nav_desc),
+                    onClick = { openAiTermuxDeveloper(context) },
+                    startAction = { SettingIcon(Icons.Rounded.Build, contentDescription = context.getString(R.string.developer_settings_title)) }
                 )
             }),
 
@@ -1111,11 +976,67 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                 )
             }),
 
+        // ===== VorteX Sandbox =====
+        SearchableSetting(sec_security, context.getString(R.string.vortex_sandbox_title),
+            context.getString(R.string.vortex_sandbox_summary),
+            keywords = listOf("沙箱", "sandbox", "vortex", "隔离", "虚拟root", "测试环境", "演练"),
+            render = {
+                var sandboxEnabled by remember { mutableStateOf(VorteXSandbox.isEnabled(context)) }
+                SwitchPreference(
+                    title = context.getString(R.string.vortex_sandbox_title),
+                    summary = context.getString(R.string.vortex_sandbox_summary),
+                    checked = sandboxEnabled,
+                    onCheckedChange = {
+                        sandboxEnabled = it
+                        VorteXSandbox.setEnabled(context, it)
+                    },
+                    startAction = { SettingIcon(Icons.Rounded.Shield, contentDescription = context.getString(R.string.vortex_sandbox_title)) }
+                )
+            }),
+        SearchableSetting(sec_security, context.getString(R.string.vortex_sandbox_agent_title),
+            context.getString(R.string.vortex_sandbox_agent_summary),
+            keywords = listOf("沙箱", "agent", "授权", "authorize", "vortex", "termux agent"),
+            render = {
+                val sandboxOn = VorteXSandbox.isEnabled(context)
+                var agentAuth by remember { mutableStateOf(VorteXSandbox.isAgentAuthorized(context)) }
+                SwitchPreference(
+                    title = context.getString(R.string.vortex_sandbox_agent_title),
+                    summary = context.getString(R.string.vortex_sandbox_agent_summary),
+                    checked = agentAuth,
+                    enabled = sandboxOn,
+                    onCheckedChange = {
+                        agentAuth = it
+                        VorteXSandbox.setAgentAuthorized(context, it)
+                    },
+                    startAction = { SettingIcon(Icons.Rounded.Memory, contentDescription = context.getString(R.string.vortex_sandbox_agent_title)) }
+                )
+            }),
+
         // SettingsGroupCard 里的条目（动态展开）
     ) + buildList {
         addAll(dataSettings.map { it.toSearchable(sec_backup) })
-        addAll(toolConfigItems.map { it.toSearchable(sec_tool_config) })
         addAll(systemSettings.map { it.toSearchable(sec_system) })
+        // 「配置集成工具」入口随开关显隐，搜索结果里同步跟随，避免搜到点进去是空页
+        if (anyIntegratedToolEnabled) {
+            add(
+                SearchableSetting(
+                    sec_tools,
+                    context.getString(R.string.integrated_tools_config_entry),
+                    context.getString(R.string.integrated_tools_config_entry_summary),
+                    keywords = listOf("工具配置", "tool config", "集成工具", "integrated tools", "配置"),
+                    render = {
+                        ArrowPreference(
+                            title = context.getString(R.string.integrated_tools_config_entry),
+                            summary = context.getString(R.string.integrated_tools_config_entry_summary),
+                            onClick = { openIntegratedToolsConfig(context) },
+                            startAction = {
+                                SettingIcon(Icons.Rounded.Extension, contentDescription = context.getString(R.string.integrated_tools_config_entry))
+                            }
+                        )
+                    }
+                )
+            )
+        }
     }
 
 
@@ -1264,7 +1185,21 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                                 SettingIcon(Icons.Rounded.SwapHoriz, contentDescription = context.getString(R.string.horizontal_tip_layout))
                             }
                         )
-                            OverlayDropdownPreference(
+                    }
+                }
+            }
+
+            // ---------- Package Manager ----------
+            item(key = "section_pkg_mgmt") { SmallTitle(text = context.getString(R.string.pkg_mgmt_category)) }
+            item(key = "card_pkg_mgmt") {
+                                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                ) {
+                    Column {
+                        OverlayDropdownPreference(
                             title = context.getString(R.string.pkg_view_mode),
                             summary = context.getString(R.string.pkg_view_mode_desc),
                             items = listOf(
@@ -1278,6 +1213,14 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                             },
                             startAction = {
                                 SettingIcon(Icons.Rounded.Folder, contentDescription = context.getString(R.string.pkg_view_mode))
+                            }
+                        )
+                        ArrowPreference(
+                            title = context.getString(R.string.pkg_edit_sources),
+                            summary = context.getString(R.string.pkg_edit_sources_desc),
+                            onClick = { openSoftwareSourceSettings(context) },
+                            startAction = {
+                                SettingIcon(Icons.Rounded.Dns, contentDescription = context.getString(R.string.pkg_edit_sources))
                             }
                         )
                     }
@@ -1328,214 +1271,40 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
 
             // ---------- 终端 ----------
             item(key = "section_terminal") { SmallTitle(text = context.getString(R.string.terminal)) }
-            item(key = "card_terminal_runtime") {
-                val prefs = context.getSharedPreferences("termux_preferences", android.content.Context.MODE_PRIVATE)
-                var showStartupCmdDialog by remember { mutableStateOf(false) }
-                var startupCmdText by remember { mutableStateOf(prefs.getString("auto_start_command", "") ?: "") }
-                val defaultWelcome = remember {
-                    try {
-                        java.io.File("/data/data/com.termux/files/usr/etc/motd").takeIf { it.exists() }?.readText()
-                            ?: "Welcome to Termux!"
-                    } catch (_: Exception) { "Welcome to Termux!" }
-                }
-                val isComposeMode = true
-                            Card(
+            item(key = "card_terminal_modules") {
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                         .clip(RoundedCornerShape(16.dp))
                 ) {
                     Column {
-
-                        // ===== 终端设置 =====
-                        SwitchPreference(
-                            title = context.getString(R.string.pref_auto_start_console_title),
-                            summary = context.getString(R.string.pref_auto_start_console_summary),
-                            checked = autoStartConsoleEnabled,
-                            onCheckedChange = { LaunchPrefs.setAutoStartConsole(context, it) },
-                            startAction = { SettingIcon(Icons.Rounded.PlayArrow) }
+                        ArrowPreference(
+                            title = context.getString(R.string.console_settings),
+                            summary = context.getString(R.string.console_settings_desc),
+                            onClick = { openConsoleSettings(context) },
+                            startAction = { SettingIcon(Icons.Rounded.Tune) }
                         )
-                        if (isComposeMode) {
-                                OverlayDropdownPreference(
-                                title = context.getString(R.string.font_size),
-                                summary = context.getString(R.string.font_size_desc),
-                                items = listOf("10sp", "12sp", "14sp", "16sp", "18sp", "20sp", "24sp"),
-                                selectedIndex = listOf(10, 12, 14, 16, 18, 20, 24).indexOf(composeFontSize).coerceAtLeast(0),
-                                onSelectedIndexChange = { idx ->
-                                    com.termux.app.terminal.shell.ComposeTerminalSettings.setFontSize(
-                                        listOf(10, 12, 14, 16, 18, 20, 24)[idx]
-                                    )
-                                },
-                                startAction = { SettingIcon(Icons.Rounded.FormatSize) }
-                            )
-                            SwitchPreference(
-                                title = context.getString(R.string.cursor_blink),
-                                summary = if (composeCursorBlink) context.getString(R.string.enabled) else context.getString(R.string.disabled),
-                                checked = composeCursorBlink,
-                                onCheckedChange = {
-                                    com.termux.app.terminal.shell.ComposeTerminalSettings.setCursorBlink(it)
-                                },
-                                startAction = { SettingIcon(Icons.Rounded.Terminal) }
-                            )
-                            OverlayDropdownPreference(
-                                title = context.getString(R.string.cursor_style),
-                                summary = context.getString(R.string.cursor_style_desc),
-                                items = listOf("Bar I", "Underline ▁", "Block ■"),
-                                selectedIndex = listOf("BAR", "UNDERLINE", "BLOCK").indexOf(composeCursorStyleName).coerceAtLeast(0),
-                                onSelectedIndexChange = { idx ->
-                                    com.termux.app.terminal.shell.ComposeTerminalSettings.setCursorStyle(
-                                        com.awkoo.libterminal.engine.TerminalCursorStyle.valueOf(
-                                            listOf("BAR", "UNDERLINE", "BLOCK")[idx]
-                                        )
-                                    )
-                                },
-                                startAction = { SettingIcon(Icons.Rounded.Terminal) }
-                            )
-                            SwitchPreference(
-                                title = context.getString(R.string.text_blinking),
-                                summary = context.getString(R.string.text_blinking_desc),
-                                checked = composeTextBlinking,
-                                onCheckedChange = {
-                                    com.termux.app.terminal.shell.ComposeTerminalSettings.setTextBlinking(it)
-                                },
-                                startAction = { SettingIcon(Icons.Rounded.Terminal) }
-                            )
-                            OverlayDropdownPreference(
-                                title = context.getString(R.string.scrollback_buffer),
-                                summary = context.getString(R.string.scrollback_desc),
-                                items = listOf(context.getString(R.string.lines_1000), context.getString(R.string.lines_5000), context.getString(R.string.lines_10000), context.getString(R.string.lines_50000)),
-                                selectedIndex = listOf(1000, 5000, 10000, 50000).indexOf(composeScrollbackLines).coerceAtLeast(0),
-                                onSelectedIndexChange = { idx ->
-                                    com.termux.app.terminal.shell.ComposeTerminalSettings.setScrollbackLines(
-                                        listOf(1000, 5000, 10000, 50000)[idx]
-                                    )
-                                },
-                                startAction = { SettingIcon(Icons.Rounded.ScreenRotation) }
-                            )
-                            // 经典引擎终端设置项（PR168 迁移 libterminal 时移除，现接入 Nova 引擎）
-                            SwitchPreference(
-                                title = context.getString(R.string.enable_softkeyboard),
-                                summary = if (composeSoftKeyboard) context.getString(R.string.enabled) else context.getString(R.string.disabled),
-                                checked = composeSoftKeyboard,
-                                onCheckedChange = {
-                                    com.termux.app.terminal.shell.ComposeTerminalSettings.setSoftKeyboard(it)
-                                },
-                                startAction = { SettingIcon(Icons.Rounded.Keyboard) }
-                            )
-                            SwitchPreference(
-                                title = context.getString(R.string.enable_soft_keyboard_no_hw),
-                                summary = context.getString(R.string.soft_keyboard_only_if_no_hardware_desc),
-                                checked = composeSoftKeyboardOnlyIfNoHardware,
-                                onCheckedChange = {
-                                    com.termux.app.terminal.shell.ComposeTerminalSettings.setSoftKeyboardOnlyIfNoHardware(it)
-                                },
-                                startAction = { SettingIcon(painterResource(R.drawable.ic_keyboard_disabled)) }
-                            )
-                            SwitchPreference(
-                                title = context.getString(R.string.terminal_key_logging),
-                                summary = context.getString(R.string.terminal_key_logging_desc),
-                                checked = composeKeyLogging,
-                                onCheckedChange = {
-                                    com.termux.app.terminal.shell.ComposeTerminalSettings.setKeyLogging(it)
-                                },
-                                startAction = { SettingIcon(Icons.Rounded.DeveloperMode) }
-                            )
-                            SwitchPreference(
-                                title = context.getString(R.string.use_custom_keyboard_layout),
-                                summary = context.getString(R.string.use_custom_keyboard_layout_desc),
-                                checked = composeUseCustomKeyboardLayout,
-                                onCheckedChange = {
-                                    com.termux.app.terminal.shell.ComposeTerminalSettings.setUseCustomKeyboardLayout(it)
-                                },
-                                startAction = { SettingIcon(Icons.Rounded.Keyboard) }
-                            )
-                            OverlayDropdownPreference(
-                                title = context.getString(R.string.log_level),
-                                summary = context.getString(R.string.log_level_desc),
-                                items = listOf(context.getString(R.string.off), context.getString(R.string.normal), context.getString(R.string.debug), context.getString(R.string.verbose)),
-                                selectedIndex = logLevel.coerceIn(0, 3),
-                                onSelectedIndexChange = { idx -> logLevel = idx; terminalPrefs?.setLogLevel(context, idx) },
-                                startAction = { SettingIcon(Icons.Rounded.BugReport) }
-                            )
-                        }
-
-                            // ===== 通用设置 =====
-                            var editorToolIndex by remember { mutableStateOf(prefs.getString("editor_tool", "internal")?.let { if (it == "vim") 1 else 0 } ?: 0) }
-                            OverlayDropdownPreference(
-                                title = stringResource(R.string.editor_tools),
-                                summary = if (editorToolIndex == 0) stringResource(R.string.editor_tool_builtin) else stringResource(R.string.editor_tool_vim_in_terminal),
-                                items = listOf(stringResource(R.string.editor_tool_builtin_short), "Vim"),
-                                selectedIndex = editorToolIndex,
-                                onSelectedIndexChange = { idx ->
-                                    editorToolIndex = idx
-                                    prefs.edit().putString("editor_tool", if (idx == 0) "internal" else "vim").apply()
-                                },
-                                startAction = { SettingIcon(Icons.Rounded.Edit) }
-                            )
-                            ArrowPreference(
-                                title = stringResource(R.string.auto_execute_new_session),
-                                summary = if (startupCmdText.isBlank()) stringResource(R.string.startup_cmd_summary) else stringResource(R.string.startup_cmd_set) + "${startupCmdText.take(40)}${if (startupCmdText.length > 40) "..." else ""}",
-                                onClick = { showStartupCmdDialog = true },
-                                startAction = { SettingIcon(Icons.Rounded.Terminal) }
-                            )
-                            ArrowPreference(
-                                title = stringResource(R.string.edit_welcome_motd),
-                                summary = stringResource(R.string.motd_edit_summary),
-                                onClick = {
-                                    val tool = prefs.getString("editor_tool", "internal") ?: "internal"
-                                    if (tool == "vim") {
-                                        // 在终端中用 vim 打开
-                                        val intent = Intent(Intent.ACTION_SEND)
-                                        intent.setPackage(context.packageName)
-                                        intent.putExtra("command_path", "/data/data/com.termux/files/usr/etc/motd")
-                                        intent.putExtra("command", "vim /data/data/com.termux/files/usr/etc/motd")
-                                        intent.putExtra("session_name", "motd")
-                                        context.startActivity(intent)
-                                    } else {
-                                        val intent = android.content.Intent(context, com.termux.app.activities.TextEditorActivity::class.java)
-                                        intent.putExtra("file_path", "/data/data/com.termux/files/usr/etc/motd")
-                                        context.startActivity(intent)
-                                    }
-                                },
-                                startAction = { SettingIcon(Icons.Rounded.FormatSize) }
-                            )
-                        }
-                    }
-                // ===== 弹窗（和 Card 平级，都在 item 块内）=====
-                        OverlayDialog(
-                    show = showStartupCmdDialog,
-                    onDismissRequest = { showStartupCmdDialog = false },
-                    title = stringResource(R.string.auto_execute_new_session),
-                    summary = stringResource(R.string.startup_cmd_summary),
-                    content = {
-                                TextField(
-                            value = startupCmdText,
-                            onValueChange = { startupCmdText = it },
-                            label = stringResource(R.string.common_auto_execute),
-                            modifier = Modifier.fillMaxWidth()
+                        ArrowPreference(
+                            title = context.getString(R.string.key_settings),
+                            summary = context.getString(R.string.key_settings_desc),
+                            onClick = { openKeySettings(context) },
+                            startAction = { SettingIcon(Icons.Rounded.Keyboard) }
                         )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            top.yukonga.miuix.kmp.basic.TextButton(
-                                text = stringResource(R.string.cancel),
-                                onClick = { showStartupCmdDialog = false },
-                                modifier = Modifier.weight(1f)
-                            )
-                            top.yukonga.miuix.kmp.basic.TextButton(
-                                text = stringResource(R.string.save),
-                                onClick = {
-                                    prefs.edit().putString("auto_start_command", startupCmdText).apply()
-                                    showStartupCmdDialog = false
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
+                        ArrowPreference(
+                            title = context.getString(R.string.console_log),
+                            summary = context.getString(R.string.console_log_desc),
+                            onClick = { openConsoleLog(context) },
+                            startAction = { SettingIcon(Icons.Rounded.BugReport) }
+                        )
+                        ArrowPreference(
+                            title = context.getString(R.string.console_personalization),
+                            summary = context.getString(R.string.console_personalization_desc),
+                            onClick = { openConsolePersonalization(context) },
+                            startAction = { SettingIcon(Icons.Rounded.Palette) }
+                        )
                     }
-                )
-
+                }
             }
 
 
@@ -1633,6 +1402,18 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                                 IntegratedTools.showStandaloneConflictPrompt(context, IntegratedTools.Tool.TERMUX_STYLING)
                             }
                         )
+
+                        // 五个开关任一为开才出现；全关时整行消失，配置页进不去
+                        if (anyIntegratedToolEnabled) {
+                            ArrowPreference(
+                                title = context.getString(R.string.integrated_tools_config_entry),
+                                summary = context.getString(R.string.integrated_tools_config_entry_summary),
+                                onClick = { openIntegratedToolsConfig(context) },
+                                startAction = {
+                                    SettingIcon(Icons.Rounded.Extension, contentDescription = context.getString(R.string.integrated_tools_config_entry))
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -1660,238 +1441,41 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                             }
                         )
                         if (aiTermuxEnabled) {                            val whitelistCount = autoExecConfig.autoExecSkills.size
-                            val whitelistSummary = when {
-                                unlimitedMode -> context.getString(R.string.unrestricted_opened)
-                                whitelistCount == 0 -> context.getString(R.string.whitelist_off)
-                                else -> context.getString(R.string.whitelist_count_selected, whitelistCount)
-                            }
                             ArrowPreference(
-                                title = context.getString(R.string.trust_whitelist),
-                                summary = whitelistSummary,
-                                enabled = !unlimitedMode,
-                                onClick = { showWhitelistDialog = true },
+                                title = context.getString(R.string.model_gen_title),
+                                summary = context.getString(R.string.model_gen_nav_desc),
+                                onClick = { openAiTermuxModelGen(context) },
                                 startAction = {
-                                SettingIcon(Icons.Rounded.Shield, contentDescription = context.getString(R.string.trust_whitelist))
-                                }
-                            )
-
-                            if (isLocalMode) {
-                            val onlineCfg = AiTermuxPrefs.getConfig(context).providerConfig
-                            ArrowPreference(
-                                title = context.getString(R.string.agent_online_config),
-                                summary = if (onlineCfg.apiKey.isBlank()) {
-                                    context.getString(R.string.api_key_empty)
-                                } else {
-                                    context.getString(R.string.model_url_key,
-                                        onlineCfg.model.ifBlank { context.getString(R.string.not_set) },
-                                        onlineCfg.apiBaseUrl.ifBlank { context.getString(R.string.not_set) },
-                                        "********")
-                                },
-                                onClick = { showOnlineConfigEditor = true },
-                                startAction = {
-                                SettingIcon(Icons.Rounded.Cloud, contentDescription = context.getString(R.string.agent_online_config))
-                                }
-                            )
-                            }
-
-                            ArrowPreference(
-                                title = context.getString(R.string.agent_profiles),
-                                summary = context.getString(R.string.agent_profiles_desc),
-                                onClick = { showProfileManager = true },
-                                startAction = {
-                                SettingIcon(Icons.Rounded.Dashboard, contentDescription = context.getString(R.string.agent_profiles))
-                                }
-                            )
-
-                            ArrowPreference(
-                                title = context.getString(R.string.agent_chat_params),
-                                summary = context.getString(R.string.agent_chat_params_desc),
-                                onClick = { showChatParamsEditor = true },
-                                startAction = {
-                                SettingIcon(Icons.Rounded.Settings, contentDescription = context.getString(R.string.agent_chat_params))
-                                }
-                            )
-
-                            ArrowPreference(
-                                title = context.getString(R.string.agent_memory),
-                                summary = context.getString(R.string.agent_memory_desc),
-                                onClick = { showMemoryEditor = true },
-                                startAction = {
-                                SettingIcon(Icons.Rounded.Psychology, contentDescription = context.getString(R.string.agent_memory))
-                                }
-                            )
-
-                            if (aiProvider == "local") {
-                                ArrowPreference(
-                                    title = context.getString(R.string.train_local_model),
-                                    summary = if (hasFallbackCached) {
-                                            context.getString(R.string.training_online_full_auto)
-                                        } else {
-                                            context.getString(R.string.training_manual_mode)
-                                        },
-                                    onClick = {
-                                        context.startActivity(android.content.Intent(context, com.termux.app.activities.AiLocalTrainerActivity::class.java))
-                                    },
-                                    startAction = {
-                                SettingIcon(Icons.Rounded.Tune, contentDescription = context.getString(R.string.train_local_model))
-                                    }
-                                )
-                            }
-                            ArrowPreference(
-                                title = context.getString(R.string.reconfigure_ai),
-                                summary = context.getString(R.string.reset_config_desc),
-                                onClick = { showResetConfigWarning = true },
-                                startAction = {
-                                SettingIcon(Icons.Rounded.Autorenew, contentDescription = context.getString(R.string.reconfigure_ai))
+                                    SettingIcon(Icons.Rounded.Tune, contentDescription = context.getString(R.string.model_gen_title))
                                 }
                             )
                             ArrowPreference(
-                                title = context.getString(R.string.clear_chat_history),
-                                summary = context.getString(R.string.clear_agent_history_desc),
-                                onClick = { showAiClearConfirm = true },
+                                title = context.getString(R.string.memory_history_title),
+                                summary = context.getString(R.string.memory_history_nav_desc),
+                                onClick = { openAiTermuxMemoryHistory(context) },
                                 startAction = {
-                                SettingIcon(Icons.Rounded.Delete, contentDescription = context.getString(R.string.clear_chat_history))
+                                    SettingIcon(Icons.Rounded.History, contentDescription = context.getString(R.string.memory_history_title))
                                 }
                             )
-                            // 本地模式专属：备用在线大模型（fallback）
-                            if (isLocalMode) {
-                                SwitchPreference(
-                                    title = context.getString(R.string.backup_online_llm),
-                                    summary = if (fallbackEnabled) {
-                                        val ready = AiTermuxPrefs.isFallbackOnlineConfigReady(context)
-                                        if (ready) context.getString(R.string.fallback_enabled_ready)
-                                        else context.getString(R.string.fallback_not_configured)
-                                    } else {
-                                        context.getString(R.string.fallback_off_desc)
-                                    },
-                                    checked = fallbackEnabled,
-                                    onCheckedChange = {
-                                        fallbackEnabled = it
-                                        AiTermuxPrefs.setFallbackOnlineEnabled(context, it)
-                                    },
-                                    startAction = {
-                                SettingIcon(Icons.Rounded.Autorenew, contentDescription = context.getString(R.string.backup_online_llm))
-                                    }
-                                )
-                                if (fallbackEnabled) {
-                                ArrowPreference(
-                                        title = context.getString(R.string.configure_backup_params),
-                                        summary = run {
-                                            val c = AiTermuxPrefs.getFallbackOnlineConfig(context)
-                                            val urlShown = if (c.baseUrl.isBlank()) context.getString(R.string.not_set) else c.baseUrl
-                                            val modelShown = if (c.model.isBlank()) context.getString(R.string.not_set) else c.model
-                                            val keyShown = if (c.apiKey.isBlank()) context.getString(R.string.api_key_empty) else "********"
-                                            context.getString(R.string.model_url_key, modelShown, urlShown, keyShown)
-                                        },
-                                        onClick = {
-                                            // 打开对话框前，载入当前保存的值
-                                            val cfg = AiTermuxPrefs.getFallbackOnlineConfig(context)
-                                            fbKey = cfg.apiKey
-                                            fbUrl = cfg.baseUrl
-                                            fbModel = cfg.model
-                                            fbTemp = cfg.temperature
-                                            showFallbackEditor = true
-                                        },
-                                        startAction = {
-                                SettingIcon(Icons.Rounded.Edit, contentDescription = context.getString(R.string.configure_backup_params))
-                                        }
-                                    )
-                                }
-                            }
-                            SwitchPreference(
-                                title = context.getString(R.string.developer_mode),
-                                summary = context.getString(R.string.developer_mode_desc),
-                                checked = aiDeveloperMode,
-                                onCheckedChange = {
-                                    aiDeveloperMode = it
-                                    AiTermuxPrefs.setDeveloperMode(context, it)
-                                },
+                            ArrowPreference(
+                                title = context.getString(R.string.developer_settings_title),
+                                summary = context.getString(R.string.developer_settings_nav_desc),
+                                onClick = { openAiTermuxDeveloper(context) },
                                 startAction = {
-                                SettingIcon(Icons.Rounded.Build, contentDescription = context.getString(R.string.developer_mode))
+                                    SettingIcon(Icons.Rounded.Build, contentDescription = context.getString(R.string.developer_settings_title))
                                 }
                             )
-                            if (aiDeveloperMode) {                                if (useCustomSystemPrompt) {
-                                ArrowPreference(
-                                        title = context.getString(R.string.use_official_prompt),
-                                        summary = context.getString(
-                                            R.string.currently_using_source,
-                                            systemPromptSource.ifBlank { context.getString(R.string.custom_file) }
-                                        ),
-                                        onClick = { showSystemPromptRestoreConfirm = true },
-                                        startAction = {
-                                SettingIcon(Icons.Rounded.Restore, contentDescription = context.getString(R.string.use_official_prompt))
-                                        }
-                                    )
-                                } else {
-                                ArrowPreference(
-                                        title = context.getString(R.string.use_custom_prompt),
-                                        summary = context.getString(R.string.load_prompt_from_file),
-                                        onClick = { showSystemPromptFilePicker = true },
-                                        startAction = {
-                                SettingIcon(Icons.Rounded.Edit, contentDescription = context.getString(R.string.use_custom_prompt))
-                                        }
-                                    )
+                            ArrowPreference(
+                                title = "AgentPaw 设置",
+                                summary = "手机操控 Agent，LLM 沿用 Termux Agent 配置",
+                                onClick = { openAgentPawSettings(context) },
+                                startAction = {
+                                    SettingIcon(painterResource(R.drawable.ic_agentpaw_settings), contentDescription = "AgentPaw 设置")
                                 }
-                            ArrowPreference(
-                                    title = context.getString(R.string.custom_skills),
-                                    summary = context.getString(R.string.custom_skill_create_manage),
-                                    onClick = { showCustomSkillManager = true },
-                                    startAction = {
-                                SettingIcon(Icons.Rounded.Code, contentDescription = context.getString(R.string.custom_skills))
-                                    }
-                                )
-                            ArrowPreference(
-                                        title = context.getString(R.string.full_chat_history),
-                                        summary = context.getString(R.string.view_full_history_desc),
-                                        onClick = { showFullHistoryViewer = true },
-                                        startAction = {
-                                SettingIcon(Icons.Rounded.FolderOpen, contentDescription = context.getString(R.string.full_chat_history))
-                                        }
-                                    )
-                            SwitchPreference(
-                                        title = context.getString(R.string.unrestricted_mode),
-                                        summary = if (unlimitedMode) {
-                                            context.getString(R.string.fallback_enabled_desc)
-                                        } else {
-                                            context.getString(R.string.unrestricted_mode_desc)
-                                        },
-                                        checked = unlimitedMode,
-                                        onCheckedChange = { newValue ->
-                                            if (newValue) {
-                                                showUnlimitedModeConfirm = true
-                                            } else {
-                                                unlimitedMode = false
-                                                AiTermuxPrefs.setUnlimitedMode(context, false)
-                                            }
-                                        },
-                                        startAction = {
-                                SettingIcon(Icons.Rounded.Shield, contentDescription = context.getString(R.string.unrestricted_mode))
-                                        }
-                                    )
-                                    if (unlimitedMode) {
-                                SwitchPreference(
-                                            title = context.getString(R.string.root_exec_agent),
-                                            summary = context.getString(R.string.root_auto_su_desc),
-                                            checked = rootAutoShell,
-                                            onCheckedChange = {
-                                                rootAutoShell = it
-                                                AiTermuxPrefs.setRootAutoShell(context, it)
-                                            },
-                                            startAction = {
-                                SettingIcon(Icons.Rounded.AdminPanelSettings, contentDescription = context.getString(R.string.root_exec_agent))
-                                            }
-                                        )
-                                    }
-                            }
+                            )
                         }
                     }
                 }
-            }
-
-            // ---------- Tool Configuration (conditional, only for enabled tools) ----------
-            if (toolConfigItems.isNotEmpty()) {
-                item(key = "section_tool_config") { SmallTitle(text = context.getString(R.string.tool_config_category)) }
-                item(key = "card_tool_config") { SettingsGroupCard(items = toolConfigItems) }
             }
 
             // ---------- Security Settings ----------
@@ -1966,6 +1550,51 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                                 SettingIcon(Icons.Rounded.SmartToy, contentDescription = stringResource(R.string.settings_agent_script_judge))
                             }
                         )
+                        // ---------- VorteX 沙箱 ----------
+                        var sandboxEnabled by remember {
+                            mutableStateOf(VorteXSandbox.isEnabled(context))
+                        }
+                        SwitchPreference(
+                            title = context.getString(R.string.vortex_sandbox_title),
+                            summary = if (sandboxEnabled)
+                                context.getString(R.string.vortex_sandbox_summary) + "\n" +
+                                    VorteXSandbox.isolationSummary(context)
+                            else
+                                context.getString(R.string.vortex_sandbox_summary),
+                            checked = sandboxEnabled,
+                            onCheckedChange = {
+                                sandboxEnabled = it
+                                VorteXSandbox.setEnabled(context, it)
+                            },
+                            startAction = {
+                                SettingIcon(
+                                    Icons.Rounded.Warning,
+                                    contentDescription = context.getString(R.string.vortex_sandbox_title)
+                                )
+                            }
+                        )
+                        var sandboxAgentAuth by remember {
+                            mutableStateOf(VorteXSandbox.isAgentAuthorized(context))
+                        }
+                        SwitchPreference(
+                            title = context.getString(R.string.vortex_sandbox_agent_title),
+                            summary = if (sandboxEnabled)
+                                context.getString(R.string.vortex_sandbox_agent_summary)
+                            else
+                                "需开启 VorteX 沙箱后可用",
+                            checked = sandboxAgentAuth && sandboxEnabled,
+                            enabled = sandboxEnabled,
+                            onCheckedChange = {
+                                sandboxAgentAuth = it
+                                VorteXSandbox.setAgentAuthorized(context, it)
+                            },
+                            startAction = {
+                                SettingIcon(
+                                    Icons.Rounded.SmartToy,
+                                    contentDescription = context.getString(R.string.vortex_sandbox_agent_title)
+                                )
+                            }
+                        )
                         // ---------- Agent 判定历史 ----------
                         var agentHistory by remember {
                             mutableStateOf(com.termux.app.compose.AgentScriptJudge.getHistory(context))
@@ -2019,6 +1648,167 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
                                         },
                                         modifier = Modifier.fillMaxWidth()
                                     )
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+
+            // ---------- 重置运行环境 ----------
+            item(key = "card_reset_runtime_env") {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                ) {
+                    Column {
+                        ArrowPreference(
+                            title = context.getString(R.string.reset_runtime_env_title),
+                            summary = context.getString(R.string.reset_runtime_env_summary),
+                            onClick = { showResetEnvConfirm = true },
+                            startAction = {
+                                SettingIcon(
+                                    Icons.Rounded.Warning,
+                                    contentDescription = context.getString(R.string.reset_runtime_env_title)
+                                )
+                            }
+                        )
+
+                        // ---------- 二次确认弹窗 ----------
+                        OverlayDialog(
+                            title = context.getString(R.string.reset_runtime_env_warning_title),
+                            summary = context.getString(R.string.reset_runtime_env_warning_body),
+                            show = showResetEnvConfirm,
+                            onDismissRequest = { showResetEnvConfirm = false },
+                            content = {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    TextButton(
+                                        text = context.getString(R.string.reset_runtime_env_cancel),
+                                        onClick = { showResetEnvConfirm = false },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    TextButton(
+                                        text = context.getString(R.string.reset_runtime_env_confirm),
+                                        onClick = {
+                                            showResetEnvConfirm = false
+                                            resetEnvFailMode = null
+                                            resetEnvErrorMsg = ""
+                                            RuntimeEnvironmentResetter.reset(
+                                                context,
+                                                object : RuntimeEnvironmentResetter.Listener {
+                                                    override fun onStepUpdate(step: RuntimeEnvironmentResetter.Step, msg: String) {
+                                                        resetEnvStep = step; resetEnvMessage = msg
+                                                    }
+                                                    override fun onSuccess() {
+                                                        resetEnvFailMode = null; showResetEnvProgress = true
+                                                    }
+                                                    override fun onFailBeforePurge(msg: String) {
+                                                        resetEnvFailMode = 0; resetEnvErrorMsg = msg; showResetEnvProgress = true
+                                                    }
+                                                    override fun onFailAfterPurge(msg: String) {
+                                                        resetEnvFailMode = 1; resetEnvErrorMsg = msg; showResetEnvProgress = true
+                                                    }
+                                                }
+                                            )
+                                            showResetEnvProgress = true
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+                        )
+
+                        // ---------- 进度 + 结果弹窗 ----------
+                        OverlayDialog(
+                            title = when (resetEnvFailMode) {
+                                null -> if (resetEnvStep == RuntimeEnvironmentResetter.Step.DONE)
+                                    context.getString(R.string.reset_runtime_env_success_title)
+                                    else context.getString(R.string.reset_runtime_env_title)
+                                0 -> context.getString(R.string.reset_runtime_env_title) + " — 下载/校验失败"
+                                1 -> context.getString(R.string.reset_runtime_env_title) + " — 环境已受损"
+                                else -> context.getString(R.string.reset_runtime_env_title)
+                            },
+                            summary = when (resetEnvFailMode) {
+                                null -> if (resetEnvStep == RuntimeEnvironmentResetter.Step.DONE)
+                                    "prefix 与 home 已恢复到全新安装状态"
+                                    else resetEnvMessage
+                                0 -> context.getString(R.string.reset_runtime_env_fail_before_purge, resetEnvErrorMsg)
+                                1 -> context.getString(R.string.reset_runtime_env_fail_after_purge, resetEnvErrorMsg)
+                                else -> resetEnvMessage
+                            },
+                            show = showResetEnvProgress,
+                            onDismissRequest = { if (resetEnvFailMode != 0) showResetEnvProgress = false },
+                            content = {
+                                when {
+                                    resetEnvFailMode == null && resetEnvStep == RuntimeEnvironmentResetter.Step.DONE -> {
+                                        TextButton(
+                                            text = context.getString(R.string.reset_runtime_env_done_button),
+                                            onClick = { showResetEnvProgress = false },
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                    resetEnvFailMode == 0 -> {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            TextButton(
+                                                text = context.getString(R.string.reset_runtime_env_cancel),
+                                                onClick = { showResetEnvProgress = false },
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            TextButton(
+                                                text = context.getString(R.string.reset_runtime_env_retry),
+                                                onClick = {
+                                                    showResetEnvProgress = false
+                                                    resetEnvFailMode = null; resetEnvErrorMsg = ""
+                                                    RuntimeEnvironmentResetter.reset(
+                                                        context,
+                                                        object : RuntimeEnvironmentResetter.Listener {
+                                                            override fun onStepUpdate(step: RuntimeEnvironmentResetter.Step, msg: String) {
+                                                                resetEnvStep = step; resetEnvMessage = msg
+                                                            }
+                                                            override fun onSuccess() {
+                                                                resetEnvFailMode = null; showResetEnvProgress = true
+                                                            }
+                                                            override fun onFailBeforePurge(msg: String) {
+                                                                resetEnvFailMode = 0; resetEnvErrorMsg = msg; showResetEnvProgress = true
+                                                            }
+                                                            override fun onFailAfterPurge(msg: String) {
+                                                                resetEnvFailMode = 1; resetEnvErrorMsg = msg; showResetEnvProgress = true
+                                                            }
+                                                        }
+                                                    )
+                                                    showResetEnvProgress = true
+                                                },
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+                                    }
+                                    resetEnvFailMode == 1 -> {
+                                        TextButton(
+                                            text = context.getString(R.string.ok),
+                                            onClick = { showResetEnvProgress = false },
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                    else -> {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.padding(end = 16.dp),
+                                                strokeWidth = 2.dp
+                                            )
+                                            Text(text = resetEnvMessage)
+                                        }
+                                    }
                                 }
                             }
                         )
@@ -2127,50 +1917,6 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
             }
         )
     }
-
-    // ---------- Termux:API usage guide ----------
-                        OverlayDialog(
-        title = context.getString(R.string.termux_api_help),
-        show = showApiHelpDialog,
-        onDismissRequest = { showApiHelpDialog = false },
-        content = {
-                                Box(modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
-                                HelpContentWithCopyableCommands(
-                    content = context.getString(R.string.termux_api_help_content),
-                    context = context,
-                    snackbarHostState = snackbarHostState
-                )
-            }
-                            Spacer(Modifier.height(12.dp))
-                            TextButton(
-                text = context.getString(R.string.ok),
-                onClick = { showApiHelpDialog = false },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    )
-
-    // ---------- Termux:Boot startup guide ----------
-                        OverlayDialog(
-        title = context.getString(R.string.termux_boot_help),
-        show = showBootHelpDialog,
-        onDismissRequest = { showBootHelpDialog = false },
-        content = {
-                                Box(modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
-                                HelpContentWithCopyableCommands(
-                    content = context.getString(R.string.termux_boot_help_content),
-                    context = context,
-                    snackbarHostState = snackbarHostState
-                )
-            }
-                            Spacer(Modifier.height(12.dp))
-                            TextButton(
-                text = context.getString(R.string.ok),
-                onClick = { showBootHelpDialog = false },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    )
 
     // ---------- Restore: choose backup file ----------
                         OverlayDialog(
@@ -2334,929 +2080,6 @@ val composeUseCustomKeyboardLayout by com.termux.app.terminal.shell.ComposeTermi
         }
     )
 
-    // ---------- AI Termux：清空对话确认 ----------
-    if (showAiClearConfirm) {
-                                OverlayDialog(
-            show = true,
-            title = context.getString(R.string.clear_chat_title),
-            summary = context.getString(R.string.clear_chat_confirm),
-            onDismissRequest = { showAiClearConfirm = false },
-            content = {
-                                Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                                TextButton(
-                    text = context.getString(R.string.cancel),
-                    onClick = { showAiClearConfirm = false },
-                    modifier = Modifier.weight(1f)
-                )
-                            Spacer(Modifier.width(20.dp))
-                            TextButton(
-                    text = context.getString(R.string.clear),
-                    onClick = {
-                        showAiClearConfirm = false
-                        AiTermuxPrefs.clearAllConversationsExceptDefault(context)
-                    },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-        )
-    }
-
-    // ---------- AI Termux：重置配置状态警告 ----------
-    if (showResetConfigWarning) {
-        OverlayDialog(
-            show = true,
-            title = context.getString(R.string.reset_config_warning_title),
-            summary = context.getString(R.string.reset_config_warning_message),
-            onDismissRequest = { showResetConfigWarning = false },
-            content = {
-                Column {
-                    Text(
-                        text = context.getString(R.string.reset_config_warning_hint),
-                        modifier = Modifier.padding(bottom = 12.dp),
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary
-                    )
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        TextButton(
-                            text = context.getString(R.string.cancel),
-                            onClick = { showResetConfigWarning = false },
-                            modifier = Modifier.weight(1f)
-                        )
-                        Spacer(Modifier.width(20.dp))
-                        TextButton(
-                            text = context.getString(R.string.reset_config_confirm_btn),
-                            onClick = {
-                                showResetConfigWarning = false
-                                AiTermuxPrefs.resetAllAiState(context)
-                                val intent = Intent(context, com.termux.app.activities.AiTermuxActivity::class.java)
-                                intent.putExtra("force_setup", true)
-                                context.startActivity(intent)
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.textButtonColors(color = Color(0xFFF44336))
-                        )
-                    }
-                }
-            }
-        )
-    }
-
-    // ---------- AI Termux：信任白名单选择对话框 ----------
-    if (showWhitelistDialog && aiTermuxEnabled) {
-        // Initialize temp skills from current config when dialog opens
-                        LaunchedEffect(showWhitelistDialog) {
-            tempWhitelistSkills = autoExecConfig.autoExecSkills.mapNotNull { runCatching { SkillType.valueOf(it) }.getOrNull() }.toSet()
-        }
-                            OverlayDialog(
-            show = showWhitelistDialog,
-            onDismissRequest = { showWhitelistDialog = false },
-            title = context.getString(R.string.trust_whitelist),
-            summary = context.getString(R.string.whitelist_select_desc),
-            content = {
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                Text(
-                        text = context.getString(R.string.whitelist_warning),
-                        fontSize = 13.sp,
-                        color = Color(0xFFDC2626),
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
-
-                    whitelistSkillLabels.forEach { (skill, label) ->
-                        val checked = tempWhitelistSkills.contains(skill)
-                            CheckboxPreference(
-                            title = label,
-                            checked = checked,
-                            onCheckedChange = { isChecked ->
-                                tempWhitelistSkills = if (isChecked) {
-                                    tempWhitelistSkills + skill
-                                } else {
-                                    tempWhitelistSkills - skill
-                                }
-                            },
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        )
-                    }
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                        text = context.getString(R.string.auto_exec_skills_note),
-                        fontSize = 13.sp,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    )
-                            Text(
-                        text = context.getString(R.string.agent_permissions_examples),
-                        fontSize = 13.sp,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.7f),
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-                            Spacer(Modifier.height(16.dp))
-                            Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                                TextButton(
-                            text = context.getString(R.string.cancel),
-                            onClick = { showWhitelistDialog = false },
-                            modifier = Modifier.weight(1f)
-                        )
-                            Spacer(Modifier.width(20.dp))
-                            TextButton(
-                            text = context.getString(R.string.ok),
-                            onClick = {
-                                // If no skills selected, whitelist is disabled
-                                val enabled = tempWhitelistSkills.isNotEmpty()
-                                autoExecConfig = autoExecConfig.copy(
-                                    autoExecEnabled = enabled,
-                                    autoExecSkills = tempWhitelistSkills.map { it.name }.toSet()
-                                )
-                                AiTermuxPrefs.saveAutoExecConfig(context, autoExecConfig)
-                                showWhitelistDialog = false
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.textButtonColorsPrimary()
-                        )
-                    }
-                }
-            }
-        )
-    }
-
-    // ---------- 关闭高危命令二次确认：风险警告弹窗（由 RiskConfirmManager 统一处理） ----------
-
-    // 其余对话框...
-
-    // ---------- AI Termux：编辑 System Prompt ----------
-    var systemPromptText by remember { mutableStateOf(AiTermuxPrefs.getConfig(context).customSystemPrompt) }
-                            OverlayDialog(
-        title = context.getString(R.string.edit_system_prompt),
-        summary = context.getString(R.string.custom_extra_instructions_desc),
-        show = showSystemPromptEditor,
-        onDismissRequest = { showSystemPromptEditor = false },
-        content = {
-                                Box(
-            modifier = Modifier
-                .heightIn(max = 400.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
-                                TextField(
-                value = systemPromptText,
-                onValueChange = { systemPromptText = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 150.dp),
-                label = context.getString(R.string.custom_prompt_hint),
-                useLabelAsPlaceholder = true,
-                maxLines = Int.MAX_VALUE,
-                minLines = 5
-            )
-        }
-                            Spacer(Modifier.height(12.dp))
-                            Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                                TextButton(
-                text = context.getString(R.string.reset_default),
-                onClick = {
-                    systemPromptText = ""
-                    val cfg = AiTermuxPrefs.getConfig(context)
-                    AiTermuxPrefs.saveConfig(context, cfg.copy(customSystemPrompt = ""))
-                },
-                modifier = Modifier.weight(1f)
-            )
-                            Spacer(Modifier.width(16.dp))
-                            TextButton(
-                text = context.getString(R.string.save),
-                onClick = {
-                    val cfg = AiTermuxPrefs.getConfig(context)
-                    AiTermuxPrefs.saveConfig(context, cfg.copy(customSystemPrompt = systemPromptText))
-                    showSystemPromptEditor = false
-                },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.textButtonColorsPrimary()
-            )
-        }
-        }
-    )
-
-    // ---------- AI Termux：备用在线模型参数编辑 ----------
-                        OverlayDialog(
-        title = context.getString(R.string.configure_backup_llm),
-        summary = context.getString(R.string.fallback_desc),
-        show = showFallbackEditor,
-        onDismissRequest = { showFallbackEditor = false },
-        content = {
-                                Box(
-            modifier = Modifier
-                .heightIn(max = 480.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                // 从 LLM Profile 一键载入
-                                val profiles = com.termux.app.compose.AiTermuxPrefs.getLlmProfiles(context)
-                                if (profiles.isNotEmpty()) {
-                                    Box(modifier = Modifier.fillMaxWidth().height(40.dp)
-                                        .clickable {
-                                            val p = profiles.first()
-                                            fbUrl = p.apiBaseUrl; fbKey = p.apiKey; fbModel = p.model; fbTemp = p.temperature
-                                            com.termux.app.compose.AiTermuxPrefs.saveFallbackOnlineConfig(context,
-                                                com.termux.app.compose.AiTermuxPrefs.FallbackOnlineConfig(
-                                                    enabled = true, apiKey = p.apiKey, baseUrl = p.apiBaseUrl,
-                                                    model = p.model, temperature = p.temperature))
-                                            SnackbarHelper.show(context, context.getString(R.string.settings_profile_fallback_loaded, p.name), Snackbar.LENGTH_SHORT, null)
-                                            showFallbackEditor = false
-                                        }
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(MiuixTheme.colorScheme.primary.copy(alpha = 0.1f))
-                                        .padding(horizontal = 14.dp),
-                                        contentAlignment = Alignment.CenterStart) {
-                                        Text(stringResource(R.string.settings_profile_quick_load, profiles.first().name),
-                                            style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium),
-                                            color = MiuixTheme.colorScheme.primary)
-                                    }
-                                }
-
-                                TextField(
-                    value = fbUrl,
-                    onValueChange = { v -> fbUrl = v },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = context.getString(R.string.api_base_url_hint),
-                    useLabelAsPlaceholder = true
-                )
-                            TextField(
-                    value = fbKey,
-                    onValueChange = { v -> fbKey = v },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = context.getString(R.string.api_key_hint),
-                    useLabelAsPlaceholder = true
-                )
-                            TextField(
-                    value = fbModel,
-                    onValueChange = { v -> fbModel = v },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = context.getString(R.string.model_name_hint),
-                    useLabelAsPlaceholder = true
-                )
-                            Text(
-                    text = context.getString(R.string.temperature_current, fbTemp),
-                    fontSize = 12.sp,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary
-                )
-                androidx.compose.material3.Slider(
-                    value = fbTemp,
-                    onValueChange = { fbTemp = it },
-                    valueRange = 0f..2f,
-                    steps = 39,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
-                            Spacer(Modifier.height(12.dp))
-                            Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                                TextButton(
-                text = context.getString(R.string.cancel),
-                onClick = { showFallbackEditor = false },
-                modifier = Modifier.weight(1f)
-            )
-                            Spacer(Modifier.width(16.dp))
-                            TextButton(
-                text = context.getString(R.string.save),
-                onClick = {
-                    AiTermuxPrefs.saveFallbackOnlineConfig(
-                        context,
-                        AiTermuxPrefs.FallbackOnlineConfig(
-                            enabled = true,
-                            apiKey = fbKey,
-                            baseUrl = fbUrl,
-                            model = fbModel,
-                            temperature = fbTemp
-                        )
-                    )
-                    showFallbackEditor = false
-                },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.textButtonColorsPrimary()
-            )
-        }
-        }
-    )
-
-    // ---------- AI Termux：在线主配置 / 模型配置档 / 对话参数 / 长期记忆 ----------
-    AgentOnlineConfigDialog(show = showOnlineConfigEditor, onDismiss = { showOnlineConfigEditor = false })
-    AgentProfileDialog(show = showProfileManager, onDismiss = { showProfileManager = false })
-    AgentChatParamsDialog(show = showChatParamsEditor, onDismiss = { showChatParamsEditor = false })
-    AgentMemoryDialog(show = showMemoryEditor, onDismiss = { showMemoryEditor = false })
-
-    // ---------- AI Termux：选择 System Prompt 文件 ----------
-    var showInternalPromptPicker by remember { mutableStateOf(false) }
-                            OverlayDialog(
-        title = context.getString(R.string.select_prompt_file),
-        summary = context.getString(R.string.custom_prompt_pick_md),
-        show = showSystemPromptFilePicker,
-        onDismissRequest = { showSystemPromptFilePicker = false },
-        content = {
-        Column {
-                                Text(
-                text = context.getString(R.string.file_picker_choice),
-                style = TextStyle(fontSize = 14.sp)
-            )
-                            Spacer(Modifier.height(16.dp))
-                            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                                TextButton(
-                    text = context.getString(R.string.termux_builtin),
-                    onClick = {
-                        showSystemPromptFilePicker = false
-                        showInternalPromptPicker = true
-                    },
-                    modifier = Modifier.weight(1f)
-                )
-                            TextButton(
-                    text = context.getString(R.string.system_picker),
-                    onClick = {
-                        showSystemPromptFilePicker = false
-                        // 使用系统文件选择器
-                        systemPromptFileLauncher.launch(arrayOf("text/markdown", "text/plain", "*/*"))
-                    },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-        }
-    )
-
-    // Termux 内部文件选择器
-                        TermuxInternalFilePicker(
-        show = showInternalPromptPicker,
-        title = context.getString(R.string.select_prompt_file),
-        fileExtensions = listOf("md", "txt"),
-        onDismiss = { showInternalPromptPicker = false },
-        onFileSelected = { path ->
-            showInternalPromptPicker = false
-            try {
-                val file = java.io.File(path.replace("\$HOME", TERMUX_HOME_ABS))
-                if (file.exists() && file.isFile) {
-                    val content = file.readText()
-                    if (content.isNotBlank()) {
-                        AiTermuxPrefs.setCustomSystemPrompt(context, content)
-                        AiTermuxPrefs.setUseCustomSystemPrompt(context, true)
-                        useCustomSystemPrompt = true
-                        systemPromptSource = file.name
-                        showSnackbar(context.getString(R.string.custom_prompt_loaded))
-                    } else {
-                        showSnackbar(context.getString(R.string.file_empty))
-                    }
-                }
-            } catch (e: Exception) {
-                showSnackbar(context.getString(R.string.read_file_failed, e.message))
-            }
-        }
-    )
-
-    // ---------- AI Termux：确认还原官方 System Prompt ----------
-                        OverlayDialog(
-        title = context.getString(R.string.restore_official_prompt),
-        summary = context.getString(R.string.restore_official_prompt_confirm),
-        show = showSystemPromptRestoreConfirm,
-        onDismissRequest = { showSystemPromptRestoreConfirm = false },
-        content = {
-                                Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
-        ) {
-                                TextButton(
-                text = context.getString(R.string.cancel),
-                onClick = { showSystemPromptRestoreConfirm = false }
-            )
-                            Spacer(Modifier.width(12.dp))
-                            TextButton(
-                text = context.getString(R.string.confirm_restore),
-                onClick = {
-                    AiTermuxPrefs.setUseCustomSystemPrompt(context, false)
-                    useCustomSystemPrompt = false
-                    systemPromptSource = ""
-                    showSystemPromptRestoreConfirm = false
-                    showSnackbar(context.getString(R.string.switched_official_prompt))
-                },
-                colors = ButtonDefaults.textButtonColorsPrimary()
-            )
-        }
-        }
-    )
-
-    // ---------- AI Termux：自定义技能管理 ----------
-    var skillsRefreshKey by remember { mutableStateOf(0) }
-                            OverlayDialog(
-        title = context.getString(R.string.custom_skills),
-        summary = context.getString(R.string.custom_skill_manage_desc),
-        show = showCustomSkillManager,
-        onDismissRequest = { showCustomSkillManager = false },
-        content = {
-        val customSkills = remember(skillsRefreshKey) { AiTermuxPrefs.getCustomSkills(context) }
-        if (customSkills.isEmpty()) {
-                                Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                                Text(
-                    text = context.getString(R.string.no_custom_skills),
-                    fontSize = 14.sp,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary
-                )
-            }
-        } else {
-                                Box(
-                modifier = Modifier
-                    .heightIn(max = 350.dp)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                Column {
-                    customSkills.forEach { skill ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                    ) {
-                                Column(
-                            modifier = Modifier.padding(12.dp)
-                        ) {
-                                Text(
-                                text = skill.name,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MiuixTheme.colorScheme.onSurface
-                            )
-                            if (skill.description.isNotBlank()) {
-                                Text(
-                                    text = skill.description,
-                                    fontSize = 13.sp,
-                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                                    modifier = Modifier.padding(top = 4.dp)
-                                )
-                            }
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 8.dp),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                TextButton(
-                                    text = context.getString(R.string.edit),
-                                    onClick = {
-                                        editingSkill = skill
-                                        showAddEditSkillDialog = true
-                                    }
-                                )
-                            Spacer(Modifier.width(8.dp))
-                            TextButton(
-                                    text = context.getString(R.string.delete),
-                                    onClick = {
-                                        AiTermuxPrefs.deleteCustomSkill(context, skill.id)
-                                        skillsRefreshKey++
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-
-}
-            }
-        }
-                            Spacer(Modifier.height(12.dp))
-                            Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                                TextButton(
-                text = context.getString(R.string.off),
-                onClick = { showCustomSkillManager = false },
-                modifier = Modifier.weight(1f)
-            )
-                            Spacer(Modifier.width(16.dp))
-                            TextButton(
-                text = context.getString(R.string.add_skill),
-                onClick = {
-                    editingSkill = null
-                    showAddEditSkillDialog = true
-                },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.textButtonColorsPrimary()
-            )
-        }
-        }
-    )
-
-    // ---------- AI Termux：添加/编辑自定义技能 ----------
-    var skillName by remember { mutableStateOf("") }
-    var skillDescription by remember { mutableStateOf("") }
-    var skillSystemPrompt by remember { mutableStateOf("") }
-    var skillJson by remember { mutableStateOf("") }
-    var skillImplementationType by remember { mutableStateOf("shell_command") }
-
-    val implOptions = listOf(
-        "shell_command" to context.getString(R.string.shell_command),
-        "open_activity" to context.getString(R.string.open_page),
-        "send_broadcast" to context.getString(R.string.send_broadcast),
-        "custom" to context.getString(R.string.custom)
-    )
-
-    val implJsonTemplates = mapOf(
-        "shell_command" to """{"skillType":"CUSTOM_COMMAND","params":{"command":"ls -la ~"}}""",
-        "open_activity" to """{"skillType":"CUSTOM_COMMAND","params":{"activityClass":"com.example.MyActivity","extras":{"key":"value"}}}""",
-        "send_broadcast" to """{"skillType":"CUSTOM_COMMAND","params":{"action":"com.example.MY_ACTION","extras":{"key":"value"}}}""",
-        "custom" to """{"skillType":"CUSTOM_COMMAND","params":{"key":"value"}}"""
-    )
-                            LaunchedEffect(editingSkill) {
-        editingSkill?.let { skill ->
-            skillName = skill.name
-            skillDescription = skill.description
-            skillSystemPrompt = skill.systemPrompt
-            skillJson = skill.skillJson
-            skillImplementationType = skill.implementationType
-        } ?: run {
-            skillName = ""
-            skillDescription = ""
-            skillSystemPrompt = ""
-            skillJson = ""
-            skillImplementationType = "shell_command"
-        }
-    }
-                            OverlayDialog(
-        title = if (editingSkill != null) context.getString(R.string.edit_skill) else context.getString(R.string.add_custom_skill),
-        summary = context.getString(R.string.custom_skill_create_desc),
-        show = showAddEditSkillDialog,
-        onDismissRequest = { showAddEditSkillDialog = false },
-        content = {
-                                Box(
-            modifier = Modifier
-                .heightIn(max = 520.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
-            Column {
-                                TextField(
-                value = skillName,
-                onValueChange = { skillName = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = context.getString(R.string.skill_name_hint),
-                useLabelAsPlaceholder = true,
-                singleLine = true
-            )
-                            Spacer(Modifier.height(8.dp))
-                            TextField(
-                value = skillDescription,
-                onValueChange = { skillDescription = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = context.getString(R.string.skill_description),
-                useLabelAsPlaceholder = true,
-                singleLine = false,
-                maxLines = 2
-            )
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                text = context.getString(R.string.implementation),
-                fontSize = 12.sp,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary
-            )
-                            Spacer(Modifier.height(4.dp))
-                            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                implOptions.forEach { (value, label) ->
-                    val selected = skillImplementationType == value
-                    TextButton(
-                        text = label,
-                        onClick = {
-                            skillImplementationType = value
-                            if (skillJson.isBlank() || skillJson == implJsonTemplates.values.first()) {
-                                skillJson = implJsonTemplates[value] ?: ""
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                        colors = if (selected) ButtonDefaults.textButtonColorsPrimary() else ButtonDefaults.textButtonColors()
-                    )
-                }
-            }
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                text = context.getString(R.string.skill_invocation_desc),
-                fontSize = 12.sp,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary
-            )
-                            TextField(
-                value = skillJson,
-                onValueChange = { skillJson = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 60.dp),
-                label = context.getString(R.string.impl_example_prefix, implJsonTemplates[skillImplementationType]),
-                useLabelAsPlaceholder = true,
-                maxLines = Int.MAX_VALUE,
-                minLines = 3
-            )
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                text = context.getString(R.string.impl_notes_hint),
-                fontSize = 12.sp,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary
-            )
-                            TextField(
-                value = skillSystemPrompt,
-                onValueChange = { skillSystemPrompt = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 60.dp),
-                label = context.getString(R.string.skill_impl_detail_hint),
-                useLabelAsPlaceholder = true,
-                maxLines = Int.MAX_VALUE,
-                minLines = 3
-            )
-            }
-        }
-                            Spacer(Modifier.height(12.dp))
-                            Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                                TextButton(
-                text = context.getString(R.string.cancel),
-                onClick = { showAddEditSkillDialog = false },
-                modifier = Modifier.weight(1f)
-            )
-                            Spacer(Modifier.width(16.dp))
-                            TextButton(
-                text = context.getString(R.string.save),
-                onClick = {
-                    if (skillName.isBlank()) return@TextButton
-                    val existing = editingSkill
-                    if (existing != null) {
-                        AiTermuxPrefs.updateCustomSkill(context, existing.copy(
-                            name = skillName,
-                            description = skillDescription,
-                            systemPrompt = skillSystemPrompt,
-                            skillJson = skillJson,
-                            implementationType = skillImplementationType
-                        ))
-                    } else {
-                        AiTermuxPrefs.addCustomSkill(context, CustomSkill(
-                            name = skillName,
-                            description = skillDescription,
-                            systemPrompt = skillSystemPrompt,
-                            skillJson = skillJson,
-                            implementationType = skillImplementationType
-                        ))
-                    }
-                    skillsRefreshKey++
-                    showAddEditSkillDialog = false
-                },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.textButtonColorsPrimary()
-            )
-        }
-        }
-    )
-
-    // ---------- AI Termux：完整对话记录 ----------
-                        OverlayDialog(
-        title = context.getString(R.string.full_chat_history),
-        summary = context.getString(R.string.chat_history_full_desc),
-        show = showFullHistoryViewer,
-        onDismissRequest = { showFullHistoryViewer = false },
-        content = {
-        val messages = remember { AiTermuxPrefs.getChatHistory(context) }
-        val clipboard = remember {
-            context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-        }
-        if (messages.isEmpty()) {
-                                Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                                Text(
-                    text = context.getString(R.string.no_chat_history),
-                    fontSize = 14.sp,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary
-                )
-            }
-        } else {
-                                Box(
-                modifier = Modifier
-                    .heightIn(max = 400.dp)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                Column {
-                // System Prompt
-                        Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                ) {
-                                Column(modifier = Modifier.padding(12.dp)) {
-                                Text(
-                            text = "System Prompt",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MiuixTheme.colorScheme.primary
-                        )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                            text = AiTermuxPrefs.buildFullSystemPrompt(context),
-                            fontSize = 11.sp,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            lineHeight = 16.sp,
-                            maxLines = 30
-                        )
-                    }
-                }
-                // Messages
-                messages.forEach { msg ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                    ) {
-                                Column(modifier = Modifier.padding(12.dp)) {
-                                Text(
-                                text = when (msg.role) {
-                                    "user" -> context.getString(R.string.tab_user)
-                                    "assistant" -> "🤖 AI"
-                                    "system" -> context.getString(R.string.tab_system)
-                                    else -> msg.role
-                                },
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = when (msg.role) {
-                                    "user" -> MiuixTheme.colorScheme.primary
-                                    "assistant" -> MiuixTheme.colorScheme.onSurface
-                                    else -> MiuixTheme.colorScheme.onSurfaceVariantSummary
-                                }
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = msg.content.ifBlank { context.getString(R.string.empty) },
-                                fontSize = 13.sp,
-                                color = MiuixTheme.colorScheme.onSurface,
-                                lineHeight = 18.sp,
-                                maxLines = 50
-                            )
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 4.dp),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                Text(
-                                    text = context.getString(R.string.copy),
-                                    fontSize = 11.sp,
-                                    color = MiuixTheme.colorScheme.primary,
-                                    modifier = Modifier
-                                        .clickable {
-                                            val clip = android.content.ClipData.newPlainText(context.getString(R.string.messages), msg.content)
-                                            clipboard.setPrimaryClip(clip)
-                                        }
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-                }
-            }
-        }
-                            Spacer(Modifier.height(12.dp))
-                            Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                                TextButton(
-                text = context.getString(R.string.copy_all),
-                onClick = {
-                    val allContent = buildString {
-                        appendLine("=== System Prompt ===")
-                        appendLine(AiTermuxPrefs.buildFullSystemPrompt(context))
-                        appendLine()
-                        appendLine(context.getString(R.string.chat_history_header))
-                        messages.forEach { msg ->
-                            appendLine("[${msg.role}] ${msg.content}")
-                        }
-                    }
-                    val clip = android.content.ClipData.newPlainText(context.getString(R.string.full_chat_history), allContent)
-                    clipboard.setPrimaryClip(clip)
-                },
-                modifier = Modifier.weight(1f)
-            )
-                            Spacer(Modifier.width(16.dp))
-                            TextButton(
-                text = context.getString(R.string.off),
-                onClick = { showFullHistoryViewer = false },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.textButtonColorsPrimary()
-            )
-        }
-        }
-    )
-
-    // ---------- 无限制模式二次确认弹窗 ----------
-    var unlimitedCheckboxChecked by remember { mutableStateOf(false) }
-    var isUnlimitedAuthenticating by remember { mutableStateOf(false) }
-                            LaunchedEffect(showUnlimitedModeConfirm) {
-        if (!showUnlimitedModeConfirm) {
-            unlimitedCheckboxChecked = false
-            isUnlimitedAuthenticating = false
-        }
-    }
-    val unlimitedScope = rememberCoroutineScope()
-    val unlimitedShowBlocked: () -> Unit = {
-        val msg = context.getString(R.string.accessibility_guard_blocked_toast)
-        SnackbarHelper.show(context, msg, Snackbar.LENGTH_LONG)
-    }
-                            OverlayDialog(
-        show = showUnlimitedModeConfirm,
-        onDismissRequest = {
-            showUnlimitedModeConfirm = false
-        },
-        title = context.getString(R.string.enable_unrestricted),
-        summary = context.getString(R.string.unrestricted_mode_banner),
-        content = {
-                                Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp)
-            ) {
-                                Text(
-                    text = context.getString(R.string.unrestricted_mode_warning),
-                    fontSize = 13.sp,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    lineHeight = 20.sp,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-                            CheckboxPreference(
-                    title = context.getString(R.string.confirm_unrestricted),
-                    checked = unlimitedCheckboxChecked,
-                    onCheckedChange = { unlimitedCheckboxChecked = it },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                            Spacer(Modifier.height(16.dp))
-                            Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(20.dp)
-                ) {
-                                Button(
-                        onClick = {
-                            showUnlimitedModeConfirm = false
-                        },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            color = Color.Transparent
-                        )
-                    ) {
-                                Text(
-                            text = context.getString(R.string.cancel),
-                            color = MiuixTheme.colorScheme.onSurface,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                            Button(
-                        onClick = {
-                            isUnlimitedAuthenticating = true
-                            val activity = context as? FragmentActivity
-                            if (activity != null) {
-                                launchBiometricAuth(activity) { success ->
-                                    isUnlimitedAuthenticating = false
-                                    if (success) {
-                                        unlimitedMode = true
-                                        AiTermuxPrefs.setUnlimitedMode(context, true)
-                                        showUnlimitedModeConfirm = false
-                                    } else {
-                                        val msg = context.getString(R.string.risk_command_biometric_prompt)
-                                        SnackbarHelper.show(context, msg, Snackbar.LENGTH_SHORT)
-                                    }
-                                }
-                            } else {
-                                unlimitedMode = true
-                                AiTermuxPrefs.setUnlimitedMode(context, true)
-                                showUnlimitedModeConfirm = false
-                            }
-                        },
-                        enabled = unlimitedCheckboxChecked && !isUnlimitedAuthenticating,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            color = if (unlimitedCheckboxChecked && !isUnlimitedAuthenticating)
-                            Color(0xFFD32F2F) else Color(0xFFBDBDBD)
-                        )
-                    ) {
-                                Text(
-                            text = context.getString(R.string.confirm_enable),
-                            color = Color.White,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
-        }
-    )
     }
 }
 
@@ -3316,7 +2139,7 @@ private fun AgentHistoryItem(entry: com.termux.app.compose.AgentScriptJudge.Judg
 }
 
 @Composable
-private fun SettingIcon(icon: ImageVector, contentDescription: String? = null, badge: ImageVector? = null) {
+internal fun SettingIcon(icon: ImageVector, contentDescription: String? = null, badge: ImageVector? = null) {
                                 Box(
         modifier = Modifier.size(40.dp)
     ) {
@@ -3358,7 +2181,7 @@ private fun SettingIcon(icon: ImageVector, contentDescription: String? = null, b
 }
 
 @Composable
-private fun SettingIcon(painter: Painter, contentDescription: String? = null) {
+internal fun SettingIcon(painter: Painter, contentDescription: String? = null) {
     Box(
         modifier = Modifier
             .size(40.dp)
@@ -3463,109 +2286,10 @@ private fun IntegratedToolSwitch(
     }
 }
 
-/**
- * 解析帮助文本，将命令行渲染为可一键复制的行，其余渲染为普通文本。
- *
- * 判定规则（行首去空格后）：
- *  - 以 `•` 开头 → 命令描述行，其中 ` — ` 后为说明，前面是命令 → 提取命令部分可复制
- *  - 以 `pkg ` / `mkdir ` / `termux-` / `#!/` / `#` / `sshd` / `termux-wake-lock` 开头 → 整行可复制
- *  - 以数字+`.` 开头（如 `1. `）→ 步骤说明行，不可复制
- *  - 其余 → 普通文本
- */
-@Composable
-private fun HelpContentWithCopyableCommands(
-    content: String,
-    context: Context,
-    snackbarHostState: SnackbarHostState
-) {
-    val scope = rememberCoroutineScope()
-    fun showSnackbar(message: String) {
-        scope.launch {
-            snackbarHostState.showSnackbar(message = message, duration = SnackbarDuration.Short)
-        }
-    }
-    val lines = content.split("\n")
-    val clipboard = remember {
-        context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-    }
-                            Column(modifier = Modifier.fillMaxWidth()) {
-        lines.forEachIndexed { index, rawLine ->
-            val trimmed = rawLine.trim()
-            if (trimmed.isEmpty()) {
-                                Spacer(Modifier.height(8.dp))
-                return@forEachIndexed
-            }
-
-            val commandText: String? = when {
-                trimmed.startsWith("• ") -> {
-                    val afterBullet = trimmed.substring(2).trim()
-                    val dashIdx = afterBullet.indexOf(" — ")
-                    if (dashIdx > 0) afterBullet.substring(0, dashIdx).trim()
-                    else if (afterBullet.startsWith("termux-") || afterBullet.startsWith("pkg ")) afterBullet
-                    else null
-                }
-                trimmed.startsWith("pkg ") ||
-                trimmed.startsWith("mkdir ") ||
-                trimmed.startsWith("termux-") ||
-                trimmed.startsWith("#!/") ||
-                trimmed.startsWith("sshd") ||
-                trimmed.startsWith("termux-wake-lock") -> trimmed
-                rawLine.trimStart().startsWith("#!/") -> rawLine.trimStart()
-                rawLine.trimStart().startsWith("termux-wake-lock") -> rawLine.trimStart()
-                rawLine.trimStart().startsWith("sshd") -> rawLine.trimStart()
-                else -> null
-            }
-
-            if (commandText != null) {
-                                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                                Text(
-                        text = rawLine,
-                        fontSize = 13.sp,
-                        color = MiuixTheme.colorScheme.onSurface,
-                        lineHeight = 20.sp,
-                        modifier = Modifier.weight(1f)
-                    )
-                            Spacer(Modifier.width(4.dp))
-                            Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(MiuixTheme.colorScheme.primary.copy(alpha = 0.12f))
-                            .clickable {
-                                val clip = android.content.ClipData.newPlainText(context.getString(R.string.command), commandText)
-                                clipboard.setPrimaryClip(clip)
-                                showSnackbar(context.getString(R.string.copied_command, commandText))
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                                Icon(
-                            painter = painterResource(R.drawable.ic_copy),
-                            contentDescription = context.getString(R.string.copy),
-                            modifier = Modifier.size(16.dp),
-                            tint = MiuixTheme.colorScheme.primary
-                        )
-                    }
-                }
-            } else {
-                                Text(
-                    text = rawLine,
-                    fontSize = 14.sp,
-                    color = MiuixTheme.colorScheme.onSurface,
-                    lineHeight = 22.sp
-                )
-            }
-        }
-    }
-}
 
 /** Agent 在线模型配置弹窗：直接编辑当前生效的主配置 */
 @Composable
-private fun AgentOnlineConfigDialog(show: Boolean, onDismiss: () -> Unit) {
+internal fun AgentOnlineConfigDialog(show: Boolean, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val cfg = AiTermuxPrefs.getConfig(context).providerConfig
     var baseUrl by remember(show) { mutableStateOf(cfg.apiBaseUrl) }
@@ -3640,7 +2364,7 @@ private fun AgentOnlineConfigDialog(show: Boolean, onDismiss: () -> Unit) {
 
 /** 模型配置档：列出已保存的 profile，可启用 / 删除 / 新建 */
 @Composable
-private fun AgentProfileDialog(show: Boolean, onDismiss: () -> Unit) {
+internal fun AgentProfileDialog(show: Boolean, onDismiss: () -> Unit) {
     val context = LocalContext.current
     var profiles by remember(show) { mutableStateOf(AiTermuxPrefs.getLlmProfiles(context)) }
     var activeId by remember(show) { mutableStateOf(AiTermuxPrefs.getActiveLlmProfileId(context)) }
@@ -3785,12 +2509,13 @@ private fun AgentProfileDialog(show: Boolean, onDismiss: () -> Unit) {
 
 /** 对话参数：上下文条数、压缩阈值、保留条数、单轮 maxTokens */
 @Composable
-private fun AgentChatParamsDialog(show: Boolean, onDismiss: () -> Unit) {
+internal fun AgentChatParamsDialog(show: Boolean, onDismiss: () -> Unit) {
     val context = LocalContext.current
     var ctx by remember(show) { mutableStateOf(AiTermuxPrefs.getContextMessages(context)) }
     var threshold by remember(show) { mutableStateOf(AiTermuxPrefs.getCompressThreshold(context)) }
     var keepRecent by remember(show) { mutableStateOf(AiTermuxPrefs.getCompressKeepRecent(context)) }
     var maxTokens by remember(show) { mutableStateOf(AiTermuxPrefs.getMaxTokens(context)) }
+    var maxRounds by remember(show) { mutableStateOf(AiTermuxPrefs.getMaxRounds(context)) }
 
     OverlayDialog(
         title = stringResource(R.string.agent_chat_params),
@@ -3824,6 +2549,12 @@ private fun AgentChatParamsDialog(show: Boolean, onDismiss: () -> Unit) {
                         onValueChange = { maxTokens = it },
                         range = 1024..65536
                     )
+                    NumberField(
+                        label = stringResource(R.string.label_max_rounds),
+                        value = maxRounds,
+                        onValueChange = { maxRounds = it },
+                        range = 5..200
+                    )
                 }
             }
             Spacer(Modifier.height(12.dp))
@@ -3841,6 +2572,7 @@ private fun AgentChatParamsDialog(show: Boolean, onDismiss: () -> Unit) {
                         AiTermuxPrefs.setCompressThreshold(context, threshold)
                         AiTermuxPrefs.setCompressKeepRecent(context, keepRecent)
                         AiTermuxPrefs.setMaxTokens(context, maxTokens)
+                        AiTermuxPrefs.setMaxRounds(context, maxRounds)
                         onDismiss()
                     },
                     modifier = Modifier.weight(1f),
@@ -3874,7 +2606,7 @@ private fun NumberField(
 
 /** 长期记忆：查看 / 编辑 / 清空 Agent 的 MEMORY.md */
 @Composable
-private fun AgentMemoryDialog(show: Boolean, onDismiss: () -> Unit) {
+internal fun AgentMemoryDialog(show: Boolean, onDismiss: () -> Unit) {
     val context = LocalContext.current
     var text by remember(show) { mutableStateOf(AiTermuxPrefs.getMemory(context)) }
 

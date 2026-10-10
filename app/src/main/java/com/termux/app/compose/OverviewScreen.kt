@@ -97,7 +97,9 @@ import androidx.compose.foundation.Canvas
 import com.termux.R
 import com.termux.app.TermuxService
 import com.termux.shared.termux.shell.command.runner.terminal.TermuxSession
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
@@ -105,6 +107,10 @@ import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.icon.glass.Add
+import top.yukonga.miuix.kmp.icon.glass.Edit
+import top.yukonga.miuix.kmp.icon.glass.MiuixGlassIcons
+import top.yukonga.miuix.kmp.icon.glass.Ok
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Switch
@@ -499,6 +505,9 @@ fun OverviewScreen(
     
     // CPU/GPU monitoring loop
     LaunchedEffect(sessions, composeSessionInfos, isComposeRuntime) {
+        // 采样涉及 /proc 遍历、dumpsys Binder 调用等重 IO，必须在 IO 线程跑：
+        // LaunchedEffect 默认在主线程，readGpuUsage() 里的 exec + waitFor 会直接 ANR
+        withContext(Dispatchers.IO) {
         // First call to initialize baseline
         val sessionPids = if (isComposeRuntime) {
             composeSessionInfos.mapNotNull { it.session.pid.takeIf { it > 0 } }.toSet()
@@ -542,10 +551,13 @@ fun OverviewScreen(
             
             delay(1000)
         }
+        }
     }
     
     // Process list monitoring
     LaunchedEffect(sessions, composeSessionInfos, isComposeRuntime) {
+        // 遍历 /proc + 执行 ps，同样是重 IO，不能占主线程
+        withContext(Dispatchers.IO) {
         while (true) {
             val sessionPids = if (isComposeRuntime) {
                 composeSessionInfos.mapNotNull { it.session.pid.takeIf { it > 0 } }.toSet()
@@ -554,6 +566,7 @@ fun OverviewScreen(
             }
             processList = readProcessList(sessionPids)
             delay(2000)
+        }
         }
     }
     
@@ -885,7 +898,7 @@ fun OverviewScreen(
                                 showAddCardDialog = true
                             }) {
                                 Icon(
-                                    imageVector = Icons.Rounded.Add,
+                                    imageVector = MiuixGlassIcons.Add,
                                     contentDescription = null,
                                     modifier = Modifier.size(24.dp),
                                     tint = MiuixTheme.colorScheme.onSurface
@@ -895,7 +908,7 @@ fun OverviewScreen(
                                 isEditMode = !isEditMode
                             }) {
                                 Icon(
-                                    imageVector = if (isEditMode) Icons.Rounded.Check else Icons.Rounded.Edit,
+                                    imageVector = if (isEditMode) MiuixGlassIcons.Ok else MiuixGlassIcons.Edit,
                                     contentDescription = null,
                                     modifier = Modifier.size(24.dp),
                                     tint = MiuixTheme.colorScheme.onSurface
@@ -986,8 +999,6 @@ private fun TipsAgentCard(
     onNewTerminalAndOpenConsole: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val isDark = isSystemInDarkTheme()
-    val surfaceColor = if (isDark) Color(0xFF1C1C1E) else Color(0xFFFAFAFA)
     val aiTermuxEnabled = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
         .getBoolean("ai_termux_enabled", true)
     val cardLayoutMode = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
@@ -1043,7 +1054,7 @@ private fun TipsAgentCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(surfaceColor)
+                .background(MiuixTheme.colorScheme.surfaceContainer)
         ) {
             // ===== Top row: pill + uptime =====
             Row(
@@ -1844,7 +1855,7 @@ private fun OverviewCardContainer(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val isWide = card.size == CardSize.WIDE
-    val surfaceColor = backgroundColor ?: MiuixTheme.colorScheme.surface
+    val surfaceColor = backgroundColor ?: MiuixTheme.colorScheme.surfaceContainer
 
     Card(
         modifier = Modifier
